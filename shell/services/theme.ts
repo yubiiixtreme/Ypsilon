@@ -1,17 +1,29 @@
-// Ypsilon theme service — Day 1: tokens passthrough. Day 2: gen + live switch.
+// Ypsilon theme service — reads tokens, resolves generated artifact paths.
+// Inert at import time (client-process safe). Live switch = file rewrite +
+// `ags request reload-css` (see app.tsx requestHandler).
 import tokens from "../../themes/tokens.json"
+import GLib from "gi://GLib"
 
-export const activeTheme = () => {
-  const t = (tokens as { active: string }).active
-  return t ?? "ypsilon-dark"
+type Palette = Record<string, string>
+type Tokens = {
+  active: string
+  radius: Record<string, number>
+  blur: Record<string, number>
+  opacity: Record<string, number>
+  anim: Record<string, number>
+  themes: Record<string, Palette>
 }
 
-export const palette = () => {
-  const all = (tokens as { themes: Record<string, unknown> }).themes
-  return all[activeTheme()] as Record<string, string>
-}
+const T = tokens as unknown as Tokens
+const HOME = GLib.get_home_dir()
+export const ROOT = `${HOME}/Projects/Ypsilon`
 
-export function applyTheme(_name: string) {
-  // Day 2: app.apply_css() + write hypr/themes/current.conf + hyprctl reload
-  print(`ypsilon: theme switch to ${_name} lands Day 2`)
-}
+export const activeTheme = () => T.active ?? "ypsilon-dark"
+
+export const themeNames = () => Object.keys(T.themes).sort()
+
+export const palette = (): Palette => T.themes[activeTheme()] ?? T.themes["ypsilon-dark"]
+
+export const generatedCssPath = () => `${ROOT}/shell/style/_generated.css`
+
+export const hyprCurrentPath = () => `${ROOT}/hypr/themes/current.conf`

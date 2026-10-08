@@ -3,55 +3,56 @@
 ## Stack
 
 - **Compositor:** Hyprland 0.56+ (Wayland)
-- **Shell:** AGS v3 `aylurs-gtk-shell` + `libastal-meta` (hyprland, tray, network, bluetooth, battery, mpris, notifd, wireplumber, apps, io)
-- **Lang:** TypeScript + JSX (Gnim) running on GJS
-- **Style:** GTK4 CSS / SCSS → glass, rounded, animated
-- **Theme:** `themes/tokens.json` → `shell/style.scss` + `hypr/themes/*.conf` (gen script coming Day 2)
-- **CLI:** `scripts/ypsilon` (bash) → later Rust/TS rewrite
+- **Shell:** AGS v3 `aylurs-gtk-shell` + `libastal-meta` (hyprland, tray, network, bluetooth, battery, mpris, notifd, wireplumber, apps, brightness)
+- **Lang:** TypeScript + JSX (Gnim) on GJS, GTK4 (`ags/gtk4`)
+- **Style:** `shell/style.scss` (layout) + `shell/style/_generated.css` (theme colors, via gen-theme.py), concatenated in `app.tsx`
+- **Theme:** `themes/tokens.json` → `hypr/themes/*.conf` + `_generated.css` + `extras/` (foot/kitty/ghostty/fuzzel/gtk) — see `scripts/gen-theme.py`
+- **CLI:** `scripts/ypsilon` (bash). `theme set` regenerates repo files; live-apply needs `--apply`.
 
 ## Hyprland layering
 
-`hypr/ypsilon.conf` sources `core/*.conf` in order:
-monitors → env → execs → general → decoration → animations → input → keybinds → rules → misc
+`hypr/ypsilon.conf` sources `core/*.conf` in order, theme colors LAST:
+monitors → env → general → decoration → animations → input → keybinds → rules → execs → misc → themes/current.conf
 
-- `general`: gaps 12, border 2, layout dwindle
-- `decoration`: rounding 18, blur enabled (size 12, passes 3, noise, vibrancy), shadows, dim inactive
-- `animations`: bezier curves, 250ms workspaces, 200ms windows, fade+slide+pop. This is where "a lot of effects" lives.
-- All colors reference theme vars, defaults to Tokyo-Night-ish Ypsilon palette (see tokens.json).
+- `general`: gaps 6/12, border 2, dwindle, gradient active border
+- `decoration`: rounding 18, blur 12x3 + noise + vibrancy, shadows, dim inactive
+- `animations`: ypsilon bezier, windows/workspaces slide, layers pop
+- `rules`: generic gtk-layer-shell blur + per-surface `layerrule = blur, ypsilon-*` (matches `namespace` prop)
+- Standalone (not sourced, opt-in later): `hyprlock.conf`, `hypridle.conf`
 
-Safe by design: our conf lives in repo, never auto-linked. User opts in with one `source =` line.
+Safe by design: everything lives in the repo. Nothing links to `~/.config` unless you run `install.sh`.
 
 ## Shell layering
 
 ```
-shell/app.tsx
-  └─ Bar (per monitor, TOP anchored, layer-shell exclusive)
-       ├─ left: Launcher btn + Workspaces (Hyprland service)
-       ├─ center: Clock + Media (Mpris stub Day 1)
-       └─ right: Tray + Network + Audio + Battery + Power btn
-  └─ Launcher (stub, hidden window, SUPER+Space)
-  └─ ControlCenter (stub, hidden, SUPER+C)
+shell/app.tsx  (css = style.scss + _generated.css; requestHandler: reload-css, osd)
+  ├─ Bar(i) per monitor — TOP|LEFT|RIGHT, EXCLUSIVE, name ypsilon-bar-N
+  │    left: apps btn + Workspaces (AstalHyprland, hyprctl actions)
+  │    center: clock (poll) + MediaMini (AstalMpris)
+  │    right: Tray (AstalTray) + wifi (AstalNetwork) + vol (AstalWp) + bat (AstalBattery) + power
+  ├─ Launcher — TOP sheet, ON_DEMAND keys, AstalApps fuzzy + `=calc` + `:cmd`
+  ├─ ControlCenter — TOP|RIGHT, vol/bright sliders, wifi/bt buttons, DND switch
+  ├─ NotificationCenter — TOP|RIGHT, AstalNotifd list + Toast (auto-hide)
+  ├─ OSD — BOTTOM pill, `ags request osd volume|brightness`, GLib timeout hide
+  ├─ Powermenu — TOP sheet, systemctl/hyprlock actions
+  └─ Overview — TOP sheet, workspace grid + clients count + focused title
 ```
 
-Services:
-- `services/theme.ts` — reads tokens, exposes css vars, `applyTheme(name)`
-- `services/hypr.ts` — thin wrapper around `AstalHyprland` (workspaces/clients)
+Services (`shell/services/`, lazy singletons — module import is client-process safe):
+- `theme.ts` — tokens read + generated-artifact paths (inert, no Astal)
+- `hypr.ts` — AstalHyprland state; actions via `hyprctl` (always present)
+- `audio.ts` / `brightness.ts` / `media.ts` / `notif.ts` / `apps.ts` — Astal singletons + guarded actions
+- `system.ts` — pure exec helpers (lock, power, wifi/bt toggle, screenshots)
+- `osd.ts` — OSD state + GLib timeout (no Astal import)
 
-Styling:
-- `style.scss` — glass mixin, `.ypsilon-bar`, pills, buttons, animations (fadeSlideIn, pop)
-- GTK4 CSS, no web-only props. Blur comes from Hyprland `layerrule blur, gtk4-layer-shell`.
+Conventions that prevent whole-shell crashes:
+- `name` prop always BEFORE `application={app}`; only verified anchors (no CENTER anchor).
+- Only docs-verified signals: onClicked, onNotifyText, onActivate, onChangeValue, onNotifyActive, onToggled.
+- Unverified Astal props/methods are read guarded (`?.`, `??`) and written in try/catch.
+- Toggle-buttons that run non-idempotent shell commands are plain buttons (no notify-loop).
 
 ## Data flow
 
-User keybind (Hyprland) → `ags -t <window>` or `ypsilon <cmd>` → Astal service → widget update → CSS transition.
-
-Theme switch: `ypsilon theme set <name>` → writes `hypr/themes/current.conf` + `app.apply_css()` → `hyprctl reload`.
-
-## Tomorrow hooks
-
-- [ ] `scripts/gen-theme.py`: tokens.json → hypr + scss
-- [ ] Launcher: app fuzzy search (AstalApps) + calc + clipboard
-- [ ] ControlCenter: sliders, wifi/bt toggles
-- [ ] Notifications: AstalNotifd center + history
-- [ ] Wallpaper daemon: swww/hyprpaper + scheme switch
-- [ ] Lockscreen: hyprlock + 한 glass theme
+Hyprland keybind → `ags toggle <name>` → window visibility flips.
+`ags request osd volume` → requestHandler → OSD state → GLib auto-hide.
+`ypsilon theme set NAME` → tokens.json + regenerate → (with --apply) `hyprctl reload` + `ags request reload-css`.

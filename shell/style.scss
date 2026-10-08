@@ -1,9 +1,23 @@
-// Ypsilon — Glass + Rounded + Animated. GTK4 CSS (no web-only props).
-// Tokens mirror ../../themes/tokens.json (gen script Day 2 inlines them).
+// Ypsilon base style — Glass + Rounded + Animated (GTK4 CSS).
+// Colors come from style/_generated.css (gen-theme.py). This file = layout.
+// No web-only props (no backdrop-filter etc). Blur is done by Hyprland.
 
-window.ypsilon-bar {
+window {
+  font-family: "Inter", "Figtree", sans-serif;
+}
+
+window.ypsilon-bar,
+window.ypsilon-launcher,
+window.ypsilon-control,
+window.ypsilon-notif-center,
+window.ypsilon-toast,
+window.ypsilon-osd,
+window.ypsilon-power,
+window.ypsilon-overview {
   background: transparent;
 }
+
+/* ---------- bar ---------- */
 
 .bar-inner {
   background: rgba(18, 23, 43, 0.72);
@@ -13,45 +27,220 @@ window.ypsilon-bar {
   padding: 6px 14px;
 }
 
-.launch-btn, .power-btn {
+.ws-strip {
+  padding: 2px;
+}
+
+.ws-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  color: #8b93b8;
+  font-weight: 700;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+.ws-btn.occupied {
+  color: #e6e9f5;
+  border-color: rgba(124, 124, 255, 0.28);
+}
+
+.ws-btn.active {
+  background: #7c7cff;
+  color: #0b0e1a;
+  border-color: #7c7cff;
+}
+
+.ws-btn.big {
+  padding: 14px 26px;
+  font-size: 20px;
+}
+
+.launch-btn, .power-btn, .pill-btn {
   background: rgba(124, 124, 255, 0.18);
   border: 1px solid rgba(124, 124, 255, 0.35);
   border-radius: 9999px;
-  padding: 2px 10px;
+  padding: 2px 12px;
   color: #e6e9f5;
-  transition: background 200ms ease, color 200ms ease;
+  transition: background 200ms ease;
 }
 
-.launch-btn:hover, .power-btn:hover {
+.launch-btn:hover, .power-btn:hover, .pill-btn:hover {
   background: rgba(124, 124, 255, 0.38);
 }
 
+.pill-btn.on {
+  background: rgba(124, 124, 255, 0.45);
+}
+
 .clock {
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
   color: #e6e9f5;
 }
 
-.ws-stub, .status-stub {
-  color: #8b93b8;
-  font-size: 13px;
+.media-mini {
+  padding: 0 6px;
 }
 
-window.ypsilon-launcher .launcher-inner,
-window.ypsilon-control .control-inner {
-  background: rgba(18, 23, 43, 0.82);
-  border: 1px solid rgba(124, 124, 255, 0.28);
-  border-radius: 24px;
-  padding: 28px 36px;
+.media-title {
+  font-size: 13px;
   color: #e6e9f5;
 }
 
-/* pop-in for layer windows (Hyprland `layers` animation handles motion too) */
-window.ypsilon-launcher, window.ypsilon-control {
-  animation: ypsilon-pop 250ms ease;
+.tray-btn {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 8px;
 }
 
-@keyframes ypsilon-pop {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.tray-btn:hover {
+  background: rgba(124, 124, 255, 0.25);
 }
+
+.tray-empty {
+  font-size: 11px;
+}
+
+.status-sub {
+  font-size: 13px;
+  color: #8b93b8;
+}
+
+/* ---------- floating sheets ---------- */
+
+window.ypsilon-launcher .launcher-inner,
+window.ypsilon-control .control-inner,
+window.ypsilon-notif-center .notif-center-inner,
+window.ypsilon-power .power-inner,
+window.ypsilon-overview .overview-inner {
+  background: rgba(18, 23, 43, 0.85);
+  border: 1px solid rgba(124, 124, 255, 0.28);
+  border-radius: 24px;
+  padding: 20px 22px;
+  margin-top: 90px;
+  min-width: 420px;
+  color: #e6e9f5;
+}
+
+window.ypsilon-control .control-inner,
+window.ypsilon-notif-center .notif-center-inner {
+  margin-top: 12px;
+  margin-right: 12px;
+  min-width: 340px;
+}
+
+window.ypsilon-power .power-inner,
+window.ypsilon-overview .overview-inner {
+  min-width: 480px;
+}
+
+.launcher-title, .control-title, .power-title, .overview-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #e6e9f5;
+}
+
+.launcher-sub, .control-sub {
+  font-size: 12px;
+  color: #8b93b8;
+}
+
+.entry {
+  background: #12172b;
+  border: 1px solid rgba(124, 124, 255, 0.28);
+  border-radius: 14px;
+  padding: 8px 12px;
+  color: #e6e9f5;
+}
+
+.app-row {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 6px 10px;
+}
+
+.app-row:hover {
+  background: rgba(124, 124, 255, 0.18);
+  border-color: rgba(124, 124, 255, 0.28);
+}
+
+.app-name {
+  font-weight: 700;
+  color: #e6e9f5;
+}
+
+.slider-row slider {
+  min-width: 150px;
+}
+
+.toggle-row {
+  padding: 2px 0;
+}
+
+/* ---------- notifications ---------- */
+
+.notif-row {
+  background: rgba(124, 124, 255, 0.08);
+  border: 1px solid rgba(124, 124, 255, 0.22);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+
+.notif-row.critical {
+  border-color: #fb7185;
+}
+
+.notif-summary {
+  font-weight: 800;
+  color: #e6e9f5;
+}
+
+.notif-body {
+  font-size: 13px;
+  color: #8b93b8;
+}
+
+window.ypsilon-toast .toast-inner {
+  background: rgba(18, 23, 43, 0.9);
+  border: 1px solid rgba(124, 124, 255, 0.35);
+  border-radius: 18px;
+  padding: 10px 16px;
+  margin-top: 56px;
+  color: #e6e9f5;
+}
+
+/* ---------- osd ---------- */
+
+window.ypsilon-osd .osd-inner {
+  background: rgba(18, 23, 43, 0.85);
+  border: 1px solid rgba(124, 124, 255, 0.28);
+  border-radius: 9999px;
+  padding: 8px 20px;
+  margin-bottom: 40px;
+  color: #e6e9f5;
+}
+
+.osd-inner levelbar {
+  min-width: 180px;
+}
+
+.osd-label {
+  font-weight: 800;
+  color: #e6e9f5;
+  min-width: 44px;
+}
+
+/* ---------- misc ---------- */
+
+.accent {
+  color: #22d3ee;
+  font-weight: 800;
+}
+
+.good { color: #34d399; }
+.warn { color: #fbbf24; }
+.bad { color: #fb7185; }

@@ -1,72 +1,61 @@
 # Ypsilon DE
 
 > Our own Wayland desktop environment on top of Hyprland.
-> Local-only for now — no GitHub push until we say so.
-> Day 1: Foundation. Glass + Rounded + Animated + Effects.
+> Local-only — no GitHub push until review is green (see docs/REVIEW.md).
 
 ## Vision
 
 Better than Caelestia, but ours:
 - **Compositor:** Hyprland (Wayland)
-- **Shell:** AGS v3 (Aylur's GTK Shell) + Astal + GTK4 + TypeScript/JSX
-- **Style:** glassmorphism, rounded 18-24px, animated everywhere, heavy blur/layers
-- **Theme engine:** single `themes/tokens.json` → generates Hyprland conf + AGS SCSS + GTK + foot/kitty/etc
-- **CLI:** `ypsilon` command (theme, wallpaper, reload, screenshot, record)
+- **Shell:** AGS v3 + Astal + GTK4 + TypeScript/JSX
+- **Style:** glassmorphism, rounded, animated everywhere
+- **Theme engine:** `themes/tokens.json` → Hyprland confs + AGS css (`scripts/gen-theme.py`)
+- **CLI:** `scripts/ypsilon` (theme, wallpaper, toggle, osd, doctor)
 
 ## Layout
 
 ```
 Ypsilon/
-  hypr/            Hyprland config (safe, does NOT touch ~/.config/hypr yet)
-    ypsilon.conf   entry — source this to try
-    core/          monitors, env, execs, general, decoration, animations, input, keybinds, rules
-    themes/        generated per-theme hypr colors (future)
-  shell/           AGS v3 shell (GTK4)
-    app.tsx        entry (ags run ./app.tsx)
-    widgets/       Bar, Launcher (stub), ControlCenter (stub)
-    services/      theme, hypr helpers
-    style.scss     glass + rounded + animated
-  themes/
-    tokens.json    single source of truth for colors/radius/blur
+  hypr/
+    ypsilon.conf     entry — source one line to try, remove to revert
+    core/            monitors env general decoration animations input keybinds rules execs misc
+    themes/          GENERATED per-theme colors + current.conf (via gen-theme.py)
+    hyprlock.conf    standalone lockscreen
+    hypridle.conf    standalone idle daemon
+  shell/
+    app.tsx          entry (ags run ./app.tsx) + requestHandler
+    widgets/         Bar Launcher ControlCenter Notifications OSD Powermenu Overview
+    services/        theme hypr audio brightness media notif apps system osd
+    style.scss       layout; style/_generated.css = theme colors
+  themes/tokens.json single source of truth
   scripts/
-    install-deps.sh  paru install ags + astal + tools
-    dev.sh           run shell in dev mode
-    link.sh          SAFELY link into ~/.config (backs up, opt-in)
-    ypsilon          CLI
-  docs/
-    ARCHITECTURE.md
-    ROADMAP.md
-  assets/wallpapers/
+    gen-theme.py       tokens → hypr + css (safe, repo files only)
+    make-wallpaper.py  stdlib PNG gradients (safe)
+    ypsilon            CLI v0.2
+    wallpaper.sh       swww/hyprpaper/swaybg manager (runs only when invoked)
+    install-deps.sh    paru/pacman deps (explicit only)
+    install.sh         backup + link + hook (explicit only)
+    dev.sh / link.sh   dev run / opt-in link helpers
+  docs/  ARCHITECTURE.md ROADMAP.md REVIEW.md
+  assets/wallpapers/   GENERATED PNGs (1366x768)
 ```
 
-## Day 1 quickstart (safe, non-destructive)
+## Status
+
+Built, not yet live-tested. Next: `docs/REVIEW.md` → install-deps → `ags run`.
 
 ```bash
 cd ~/Projects/Ypsilon
-
-# 1. install deps (needs sudo, AUR)
-./scripts/install-deps.sh
-
-# 2. try Hyprland config without breaking Caelestia:
-#    add ONE line to your Hyprland config to test, remove to revert:
-#    source = ~/Projects/Ypsilon/hypr/ypsilon.conf
-hyprctl reload
-
-# 3. run shell in dev (does not autostart, just a window):
-ags run ./shell/app.tsx
-# or
-./scripts/dev.sh
-
-# 4. CLI
-./scripts/ypsilon help
+./scripts/ypsilon doctor
+./scripts/ypsilon gen
+./scripts/ypsilon theme list
 ```
 
-## Rules for this repo
+## Rules
 
-1. Never touch `~/.config/hypr` or `~/.config/caelestia` automatically — only via `link.sh` with backup.
-2. `themes/tokens.json` is truth. Everything else generates from it.
-3. Every widget: glass bg, rounded, 200-300ms animation, hover/active states.
-4. Wayland-only. No X11-isms.
-5. Local git only. No `gh push`, no remote until we decide.
+1. Nothing touches `~/.config` unless you run `install.sh` / `link.sh` yourself.
+2. `themes/tokens.json` is truth; generated files are never hand-edited.
+3. Every widget: glass bg, rounded, animated, hover/active states.
+4. Wayland-only. Local git only, no remote until we decide.
 
-— Day 1, foundation. More tomorrow.
+See `docs/ARCHITECTURE.md` for the full design, `docs/ROADMAP.md` for what's next.

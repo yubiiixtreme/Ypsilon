@@ -1,33 +1,64 @@
 #!/usr/bin/env bash
-# ypsilon CLI v0.1 — Day 1
-# Usage: ypsilon help | theme list | reload | bar | doctor
+# ypsilon CLI v0.2 — explicit actions only. Nothing runs on its own.
+# Live-affecting commands (reload, toggle, osd, bar) act when YOU invoke them.
+# `theme set` regenerates repo files; live-apply only with --apply.
 ROOT=~/Projects/Ypsilon
 cmd=${1:-help}
+
+usage() {
+  echo "ypsilon — our DE CLI (local, v0.2)"
+  echo "  ypsilon help                      this"
+  echo "  ypsilon theme list                list themes"
+  echo "  ypsilon theme set NAME [--apply]  regenerate files (+ live-apply with --apply)"
+  echo "  ypsilon gen                       regenerate themes + wallpapers (repo files only)"
+  echo "  ypsilon wallpaper {list|status|set NAME|next}"
+  echo "  ypsilon shot {full|select}        screenshot to clipboard (live)"
+  echo "  ypsilon record {select|full|stop} screen record to ~/Videos (live)"
+  echo "  ypsilon toggle NAME               ags toggle NAME (live shell)"
+  echo "  ypsilon osd {volume|brightness}   show OSD (live shell)"
+  echo "  ypsilon reload                    hyprctl reload (live)"
+  echo "  ypsilon bar                       ags run shell (dev, live)"
+  echo "  ypsilon doctor                    read-only health check"
+}
+
 case "$cmd" in
-  help|--help|-h)
-    echo "ypsilon — our DE CLI (local, v0.1)"
-    echo "  ypsilon help          this"
-    echo "  ypsilon theme list    list themes in themes/tokens.json"
-    echo "  ypsilon reload        hyprctl reload"
-    echo "  ypsilon bar           ags run shell (dev)"
-    echo "  ypsilon doctor        health check"
-    ;;
+  help|--help|-h) usage;;
   theme)
-    python3 -c "import json; t=json.load(open('$ROOT/themes/tokens.json')); print('active:', t['active']); [print(' -', k) for k in t['themes']]"
-    ;;
-  reload)
-    hyprctl reload && echo "hypr reloaded"
-    ;;
-  bar)
-    ags run $ROOT/shell/app.tsx
-    ;;
+    case "${2:-list}" in
+      list) python3 "$ROOT/scripts/gen-theme.py" --list;;
+      set)
+        name="${3:?usage: ypsilon theme set NAME}"; shift 3
+        python3 "$ROOT/scripts/gen-theme.py" --theme "$name" || exit 1
+        if [ "${1:-}" = "--apply" ]; then
+          hyprctl reload && ags request reload-css && echo "theme applied: $name"
+        else
+          echo "files regenerated. apply with: ypsilon theme set $name --apply"
+        fi;;
+      *) echo "usage: ypsilon theme {list|set NAME}"; exit 1;;
+    esac;;
+  gen)
+    python3 "$ROOT/scripts/gen-theme.py" && python3 "$ROOT/scripts/make-wallpaper.py" && echo "gen OK";;
+  wallpaper) shift; "$ROOT/scripts/wallpaper.sh" "$@";;
+  shot)
+    case "${2:-select}" in
+      full) grim - | wl-copy && echo "shot: fullscreen -> clipboard";;
+      *) grim -g "$(slurp)" - | wl-copy && echo "shot: select -> clipboard";;
+    esac;;
+  record) shift; "$ROOT/scripts/record.sh" "$@";;
+  toggle) ags toggle "${2:?usage: ypsilon toggle NAME}";;
+  osd) ags request osd "${2:-volume}";;
+  reload) hyprctl reload && echo "hypr reloaded";;
+  bar) ags run "$ROOT/shell/app.tsx";;
   doctor)
-    echo "-- ypsilon doctor --"
-    for b in Hyprland hyprctl ags node npm paru grim slurp wl-copy; do
-      command -v $b &>/dev/null && echo "OK  $b: $(command -v $b)" || echo "MISS $b"
+    echo "-- ypsilon doctor (read-only) --"
+    python3 -c "import json; t=json.load(open('$ROOT/themes/tokens.json')); print('tokens OK, active:', t['active'], '| themes:', ', '.join(sorted(t['themes'])))" || echo "TOKENS BROKEN"
+    for f in hypr/ypsilon.conf "hypr/themes/current.conf" shell/app.tsx shell/style.scss shell/style/_generated.css; do
+      [ -f "$ROOT/$f" ] && echo "OK  $f" || echo "MISS $f"
+    done
+    for b in Hyprland hyprctl ags node npm paru grim slurp wl-copy swww hyprlock; do
+      command -v $b &>/dev/null && echo "OK  $b" || echo "MISS $b (install later)"
     done
     echo "session: XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-?} XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-?}"
-    hyprctl monitors 2>/dev/null | head -n 5 || echo "(hyprctl unavailable?)"
-    ;;
-  *) echo "unknown: $cmd — try: ypsilon help"; exit 1;;
+    hyprctl monitors 2>/dev/null | head -n 4 || echo "(hyprctl unavailable?)";;
+  *) echo "unknown: $cmd"; usage; exit 1;;
 esac
