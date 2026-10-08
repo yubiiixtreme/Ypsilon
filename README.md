@@ -11,6 +11,7 @@ Your config is never touched — Ypsilon runs as its own login session, previews
 ![Hyprland](https://img.shields.io/badge/Hyprland-%3E%3D0.53-58E6D9?logo=wayland&logoColor=black)
 ![AGS](https://img.shields.io/badge/AGS-v3-TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?logo=wayland&logoColor=black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
