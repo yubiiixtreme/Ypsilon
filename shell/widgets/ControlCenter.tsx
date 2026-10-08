@@ -7,6 +7,7 @@ import Bluetooth from "gi://AstalBluetooth"
 import { getWp, setVolume, toggleMute } from "../services/audio"
 import { getBrightness, setBrightness } from "../services/brightness"
 import { getNotifd, setDnd } from "../services/notif"
+import { activeTheme } from "../services/theme"
 import { toggleWifi, toggleBt, lock, logout, poweroff } from "../services/system"
 
 // Quick settings: sliders (vol/bright), wifi/bt buttons, DND switch, power.
@@ -68,6 +69,7 @@ export default function ControlCenter() {
           <button class="pill-btn" label="logout" onClicked={logout} />
           <button class="pill-btn" label="power" onClicked={poweroff} />
         </box>
+        <label class="control-sub" label={`theme · ${activeTheme()}`} />
       </box>
     </window>
   ) as never

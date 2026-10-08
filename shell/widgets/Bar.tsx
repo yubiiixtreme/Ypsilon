@@ -94,7 +94,7 @@ function BatPill() {
   return (
     <box class="pill-btn" spacing={4}>
       <image iconName={icon} pixelSize={14} />
-      <label class="status-sub" label={pct((v) => `${Math.round(v * 100)}`)} />
+      <label class="status-sub" label={pct((v) => `${Math.round(v * 100)}%`)} />
     </box>
   )
 }
@@ -108,7 +108,7 @@ function MediaMini() {
       <label class="media-title" label={one((p) => (p?.title || "—").slice(0, 28))} />
       <button
         class="pill-btn"
-        label="⏯"
+        label="play"
         onClicked={() => {
           const p = one()
           if (p) togglePlay(p)
