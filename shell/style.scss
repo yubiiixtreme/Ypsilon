@@ -1,0 +1,57 @@
+// Ypsilon — Glass + Rounded + Animated. GTK4 CSS (no web-only props).
+// Tokens mirror ../../themes/tokens.json (gen script Day 2 inlines them).
+
+window.ypsilon-bar {
+  background: transparent;
+}
+
+.bar-inner {
+  background: rgba(18, 23, 43, 0.72);
+  border: 1px solid rgba(124, 124, 255, 0.28);
+  border-radius: 18px;
+  margin: 10px 12px 0 12px;
+  padding: 6px 14px;
+}
+
+.launch-btn, .power-btn {
+  background: rgba(124, 124, 255, 0.18);
+  border: 1px solid rgba(124, 124, 255, 0.35);
+  border-radius: 9999px;
+  padding: 2px 10px;
+  color: #e6e9f5;
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.launch-btn:hover, .power-btn:hover {
+  background: rgba(124, 124, 255, 0.38);
+}
+
+.clock {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e6e9f5;
+}
+
+.ws-stub, .status-stub {
+  color: #8b93b8;
+  font-size: 13px;
+}
+
+window.ypsilon-launcher .launcher-inner,
+window.ypsilon-control .control-inner {
+  background: rgba(18, 23, 43, 0.82);
+  border: 1px solid rgba(124, 124, 255, 0.28);
+  border-radius: 24px;
+  padding: 28px 36px;
+  color: #e6e9f5;
+}
+
+/* pop-in for layer windows (Hyprland `layers` animation handles motion too) */
+window.ypsilon-launcher, window.ypsilon-control {
+  animation: ypsilon-pop 250ms ease;
+}
+
+@keyframes ypsilon-pop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

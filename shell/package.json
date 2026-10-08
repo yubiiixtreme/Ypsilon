@@ -1,0 +1,10 @@
+{
+  "name": "ypsilon-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ags run ./app.tsx",
+    "types": "ags types -u -d ."
+  }
+}

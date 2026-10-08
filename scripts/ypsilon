@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# ypsilon CLI v0.1 — Day 1
+# Usage: ypsilon help | theme list | reload | bar | doctor
+ROOT=~/Projects/Ypsilon
+cmd=${1:-help}
+case "$cmd" in
+  help|--help|-h)
+    echo "ypsilon — our DE CLI (local, v0.1)"
+    echo "  ypsilon help          this"
+    echo "  ypsilon theme list    list themes in themes/tokens.json"
+    echo "  ypsilon reload        hyprctl reload"
+    echo "  ypsilon bar           ags run shell (dev)"
+    echo "  ypsilon doctor        health check"
+    ;;
+  theme)
+    python3 -c "import json; t=json.load(open('$ROOT/themes/tokens.json')); print('active:', t['active']); [print(' -', k) for k in t['themes']]"
+    ;;
+  reload)
+    hyprctl reload && echo "hypr reloaded"
+    ;;
+  bar)
+    ags run $ROOT/shell/app.tsx
+    ;;
+  doctor)
+    echo "-- ypsilon doctor --"
+    for b in Hyprland hyprctl ags node npm paru grim slurp wl-copy; do
+      command -v $b &>/dev/null && echo "OK  $b: $(command -v $b)" || echo "MISS $b"
+    done
+    echo "session: XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-?} XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-?}"
+    hyprctl monitors 2>/dev/null | head -n 5 || echo "(hyprctl unavailable?)"
+    ;;
+  *) echo "unknown: $cmd — try: ypsilon help"; exit 1;;
+esac
