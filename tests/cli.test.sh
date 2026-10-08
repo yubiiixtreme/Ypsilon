@@ -63,6 +63,21 @@ for sc in install-deps.sh install.sh recover.sh; do
   out=$(yes | timeout 5 "$ROOT/scripts/$sc" 2>&1); rc=$?
   [ "$rc" = 2 ] && echo "$out" | grep -q "terminal" && ok || no "$sc must refuse piped stdin (rc=$rc: $(echo "$out" | head -1))"
 done
+# --- AUR plan (regression: libastal-* exist ONLY as -git providers; --noprovides + plain names = "could not find") ---
+plan() {  # run the planner from install-deps.sh under bash with a fake pacman -T
+  PATH="$T/fakepac:$PATH" bash -c 'eval "$(sed -n "/^AUR_STAGES=(/,/^)/p; /^AUR_OPTIONAL=/p; /^missing_of()/,/^}/p" "$1/scripts/install-deps.sh")"
+    for st in "${AUR_STAGES[@]}"; do echo "[$(missing_of "$st")]"; done' _ "$ROOT"
+}
+mkdir -p "$T/fakepac"
+printf '#!/usr/bin/env bash\n[ "$1" = -T ] && exit 127\nexit 0\n' > "$T/fakepac/pacman"; chmod +x "$T/fakepac/pacman"
+p=$(plan | tr '\n' ' ')
+case "$p" in
+  "[quarrel-git appmenu-glib-translator-git libastal-io-git] [libastal-git libastal-4-git"*"libastal-wireplumber-git] [aylurs-gtk-shell] ") ok;;
+  *) no "AUR plan order wrong: $p";;
+esac
+echo "$p" | grep -q "libastal-meta" && no "AUR plan must not use libastal-meta" || ok
+printf '#!/usr/bin/env bash\nexit 0\n' > "$T/fakepac/pacman"
+[ "$(plan | tr -d '[]\n')" = "" ] && ok || no "AUR plan must be empty when everything is provided"
 expect "install bad flag" "unknown option" "$ROOT/scripts/install.sh" --frobnicate
 
 # --- supervisor: crash loop stops after 5 crashes, with a notification ---
@@ -86,9 +101,10 @@ YPSILON_SKIP_PREFLIGHT=1 YPSILON_RESTART_DELAY=0 timeout 10 "$ROOT/scripts/shell
 
 # --- supervisor: preflight names what is missing ---
 if python3 -c 'import gi' 2>/dev/null; then
+  # independent of what this machine has installed: a library that can never exist must be named
   : > "$T/notifications"
-  timeout 10 "$ROOT/scripts/shell-supervisor.sh" >/dev/null 2>&1
-  grep -q "cannot start.*missing:.*Astal" "$T/notifications" && ok || no "preflight should list missing Astal libs (or they are all installed)"
+  YPSILON_EXTRA_REQUIRED="AstalYpsilonNope:0.1" timeout 10 "$ROOT/scripts/shell-supervisor.sh" >/dev/null 2>&1
+  grep -q "cannot start.*missing:.*AstalYpsilonNope" "$T/notifications" && ok || no "preflight must name a missing library"
 fi
 
 # --- start: idempotent (Hyprland reloads / double exec-once must not duplicate daemons) ---

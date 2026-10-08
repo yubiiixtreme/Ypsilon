@@ -32,7 +32,22 @@ PACMAN_PKGS=(
   ttf-jetbrains-mono-nerd inter-font adwaita-icon-theme
   nodejs npm
 )
-AUR_PKGS=(aylurs-gtk-shell libastal-meta)
+# AUR, in dependency order. Astal libraries exist on the AUR ONLY as -git packages that
+# *provide* the plain names (libastal-hyprland-git provides libastal-hyprland), and
+# libastal-meta drags in ~20 libs Ypsilon never imports. So: exactly the libs the shell uses,
+# by their real names, one stage at a time so every dependency is already installed when the
+# next stage resolves — paru never has to ask "which provider?".
+# Format: "<name an installed package must provide>:<AUR package that provides it>"
+AUR_STAGES=(
+  "quarrel:quarrel-git appmenu-glib-translator:appmenu-glib-translator-git libastal-io:libastal-io-git"
+  "libastal:libastal-git libastal-4:libastal-4-git libastal-apps:libastal-apps-git libastal-battery:libastal-battery-git
+   libastal-bluetooth:libastal-bluetooth-git libastal-hyprland:libastal-hyprland-git libastal-mpris:libastal-mpris-git
+   libastal-network:libastal-network-git libastal-notifd:libastal-notifd-git libastal-power-profiles:libastal-powerprofiles-git
+   libastal-tray:libastal-tray-git libastal-wireplumber:libastal-wireplumber-git"
+  "aylurs-gtk-shell:aylurs-gtk-shell"
+)
+# visualizer only (the shell runs without it)
+AUR_OPTIONAL="libcava:libcava libastal-cava:libastal-cava-git"
 
 if ! command -v pacman >/dev/null; then
   cat <<'MSG'
@@ -66,17 +81,32 @@ fi
 
 AUR=""
 for h in paru yay; do command -v "$h" >/dev/null && { AUR=$h; break; }; done
-mapfile -t AUR_MISSING < <(pacman -T "${AUR_PKGS[@]}" || true)
-if [ ${#AUR_MISSING[@]} -gt 0 ]; then
+if [ "$AUR" = yay ]; then  # yay has no --noprovides
+  AUR_FLAGS=(--needed); [ -n "$YES" ] && AUR_FLAGS+=(--noconfirm)
+fi
+
+# packages of a stage whose provided name is not installed yet
+missing_of() {
+  local entry pkgs=()
+  for entry in $1; do pacman -T "${entry%%:*}" >/dev/null || pkgs+=("${entry##*:}"); done
+  echo "${pkgs[*]}"
+}
+
+for stage in "${AUR_STAGES[@]}"; do
+  read -ra todo <<< "$(missing_of "$stage")"
+  [ ${#todo[@]} -eq 0 ] && continue
   if [ -z "$AUR" ]; then
-    echo "No AUR helper (paru/yay) found. Install one, then: paru -S --needed --noprovides ${AUR_MISSING[*]}"
+    echo "No AUR helper (paru/yay) found. Install one, then re-run this script."
     exit 1
   fi
-  if [ "$AUR" = yay ]; then  # yay has no --noprovides
-    AUR_FLAGS=(--needed); [ -n "$YES" ] && AUR_FLAGS+=(--noconfirm)
-  fi
-  echo "AUR: ${AUR_MISSING[*]} (this builds from source and can take a while)"
-  "$AUR" -S "${AUR_FLAGS[@]}" "${AUR_MISSING[@]}"
+  echo "AUR: ${todo[*]} (builds from source, can take a while)"
+  "$AUR" -S "${AUR_FLAGS[@]}" "${todo[@]}"
+done
+
+read -ra todo <<< "$(missing_of "$AUR_OPTIONAL")"
+if [ ${#todo[@]} -gt 0 ] && [ -n "$AUR" ]; then
+  echo "AUR (optional, audio visualizer): ${todo[*]}"
+  "$AUR" -S "${AUR_FLAGS[@]}" "${todo[@]}" || echo "note: visualizer libs failed to build — Ypsilon works without them"
 fi
 
 # wallpaper daemon (optional): awww is the renamed swww — only if no backend exists yet

@@ -137,7 +137,7 @@ doctor() {
   have ags && okm "ags $(ags --version 2>/dev/null | head -1)" || fix "ags" "AUR: aylurs-gtk-shell"
   if python3 -c 'import gi' 2>/dev/null; then
     for g in Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk4LayerShell:1.0; do
-      python3 -c "import gi,sys; gi.require_version('${g%%:*}','${g##*:}')" 2>/dev/null && okm "typelib ${g%%:*}" || fix "typelib ${g%%:*}" "AUR: libastal-meta (or gtk4-layer-shell)"
+      python3 -c "import gi,sys; gi.require_version('${g%%:*}','${g##*:}')" 2>/dev/null && okm "typelib ${g%%:*}" || fix "typelib ${g%%:*}" "./scripts/install-deps.sh"
     done
   else fix "python-gobject" "pacman -S python-gobject (needed for checks)"; fi
 
@@ -145,7 +145,7 @@ doctor() {
   for t in "grim:screenshots" "slurp:region select" "wl-copy:clipboard" "cliphist:clipboard history" "fuzzel:clipboard picker" \
            "hyprlock:lock screen" "hypridle:idle/lock timers" "brightnessctl:brightness" "playerctl:media keys" "wpctl:volume keys" \
            "nmcli:Wi-Fi" "bluetoothctl:Bluetooth" "notify-send:notifications" "hyprsunset:night light" "hyprpicker:color picker" \
-           "wf-recorder:screen recording" "powerprofilesctl:power profiles"; do
+           "wf-recorder:screen recording"; do
     have "${t%%:*}" && okm "${t%%:*}" || fix "${t%%:*} (${t##*:})" "./scripts/install-deps.sh"
   done
   if have awww-daemon || have swww-daemon || have hyprpaper || have swaybg; then okm "wallpaper backend"; else fix "wallpaper backend" "install awww (or swww)"; fi
@@ -158,9 +158,12 @@ doctor() {
   [ -d /usr/share/icons/Adwaita ] && okm "Adwaita icons" || fix "Adwaita icons" "pacman -S adwaita-icon-theme"
 
   sec "services"
-  for svc in NetworkManager bluetooth upower power-profiles-daemon; do
+  for svc in NetworkManager bluetooth upower; do
     systemctl is-active --quiet "$svc" 2>/dev/null && okm "$svc running" || fix "$svc not running" "sudo systemctl enable --now $svc"
   done
+  # power profiles: the shell talks to the D-Bus API, which power-profiles-daemon OR tuned-ppd provide
+  if busctl --system status net.hadess.PowerProfiles >/dev/null 2>&1; then okm "power profiles service (net.hadess.PowerProfiles)"
+  else fix "no power profiles service" "sudo systemctl enable --now power-profiles-daemon  (or tuned-ppd if you use tuned)"; fi
 
   sec "session"
   echo "      ${XDG_CURRENT_DESKTOP:-?} / ${XDG_SESSION_TYPE:-?}"

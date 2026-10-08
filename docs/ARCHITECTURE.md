@@ -3,7 +3,7 @@
 ## Stack
 
 - **Compositor:** Hyprland 0.56+ (Wayland)
-- **Shell:** AGS v3 `aylurs-gtk-shell` + `libastal-meta` (hyprland, tray, network, bluetooth, battery, mpris, notifd, wireplumber, apps). Brightness has no Astal lib → `brightnessctl`.
+- **Shell:** AGS v3 `aylurs-gtk-shell` + the Astal `-git` libraries Ypsilon imports (io, astal3/4, hyprland, tray, network, bluetooth, battery, mpris, notifd, wireplumber, apps, power-profiles; cava optional) — installed in dependency order by `install-deps.sh`. Brightness has no Astal lib → `brightnessctl`.
 - **Lang:** TypeScript + JSX (Gnim) on GJS, GTK4 (`ags/gtk4`)
 - **Style:** `shell/style.css` (layout, only `@y_*` named colors) + `shell/style/_generated.css` (`@define-color`s from gen-theme.py). Both are read **from disk at runtime** and hot-reloaded via `monitorFile`, so `ypsilon theme set X` re-themes the live shell with no rebuild.
 - **Theme:** `themes/tokens.json` → `hypr/themes/*.conf` + `_generated.css` + `extras/` (foot/kitty/ghostty/fuzzel/gtk) — see `scripts/gen-theme.py`
@@ -49,7 +49,7 @@ Plugins: `services/plugins.ts` discovers `plugins/` + `~/.config/ypsilon/plugins
 Validation (`scripts/check.sh`): hypr conf via `Hyprland --verify-config`, CSS via the real GTK parser, theme sync, TS parse, import/export audit (`check-imports.mjs`), unit tests.
 
 Conventions that prevent whole-shell crashes:
-- Only import `gi://Astal*` libs that ship in libastal-meta; one missing typelib kills the shell at startup.
+- Only import `gi://Astal*` libs that `install-deps.sh` installs (add new ones to its AUR_STAGES and to the supervisor preflight); one missing typelib kills the shell at startup.
 - Optional CLIs (powerprofilesctl, playerctl, brightnessctl) are called through `execAsync(...).catch` — absence degrades a feature, never the shell.
 - `name` prop before `application={app}`; popups use `Popup`, never hand-rolled windows.
 

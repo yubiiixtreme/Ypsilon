@@ -13,7 +13,8 @@ mkdir -p "$RUN"
 notify() { command -v notify-send >/dev/null && notify-send -a Ypsilon -u "$1" -i dialog-warning-symbolic "$2" "$3"; echo "ypsilon: $2 — $3" >&2; }
 
 # name:version pairs the shell imports (see shell/**/*.ts gi:// imports)
-REQUIRED="Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk:4.0 Gtk4LayerShell:1.0"
+# tests append a library that can never exist via YPSILON_EXTRA_REQUIRED
+REQUIRED="${YPSILON_EXTRA_REQUIRED:-} Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk:4.0 Gtk4LayerShell:1.0"
 
 preflight() {
   command -v ags >/dev/null || { echo "ags (aylurs-gtk-shell)"; return; }

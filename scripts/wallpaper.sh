@@ -19,6 +19,17 @@ resolve() { # name-or-path -> path
 }
 current() { if [ -f "$STATE" ]; then cat "$STATE"; else files | head -1; fi; }
 
+RUN=${XDG_RUNTIME_DIR:-/tmp}/ypsilon
+# (re)start a wallpaper daemon for THIS session only (same pid files as `ypsilon start`, so
+# `ypsilon stop` cleans it up; never touches daemons of other sessions)
+session_daemon() {
+  local name=$1; shift
+  local pidf="$RUN/${WAYLAND_DISPLAY:-wl}.$name.pid"
+  if [ -f "$pidf" ]; then kill -- "-$(cat "$pidf")" 2>/dev/null || true; fi  # stale pid file is fine
+  setsid "$@" >>"$RUN/$name.log" 2>&1 </dev/null &
+  echo $! > "$pidf"
+}
+
 # config.json {"theme": {"followWallpaper": true, "autoLight": false}} -> re-theme on every change
 follow_theme() {
   local cfg=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/config.json mode
@@ -32,17 +43,19 @@ follow_theme() {
 
 apply() {
   local img; img=$(resolve "$1")
+  mkdir -p "$RUN"
   [ -n "$img" ] && [ -f "$img" ] || { echo "no such wallpaper: $1 (try: $0 list)"; exit 1; }
   if command -v awww &>/dev/null; then
     awww img "$img" --transition-type grow --transition-duration 1
   elif command -v swww &>/dev/null; then
     swww img "$img" --transition-type grow --transition-duration 1
   elif command -v hyprpaper &>/dev/null; then
-    hyprctl hyprpaper preload "$img" >/dev/null 2>&1 || true
-    hyprctl hyprpaper wallpaper ",$img" >/dev/null 2>&1 || echo "hyprpaper not running"
+    # hyprpaper 0.8 changed its IPC; a generated config + restart works on every version
+    # and never reads your own ~/.config/hypr/hyprpaper.conf
+    printf 'splash = false\nipc = false\n\nwallpaper {\n    monitor =\n    path = %s\n    fit_mode = cover\n}\n' "$img" > "$RUN/hyprpaper.conf"
+    session_daemon hyprpaper hyprpaper -c "$RUN/hyprpaper.conf"
   elif command -v swaybg &>/dev/null; then
-    pkill swaybg 2>/dev/null || true
-    setsid swaybg -i "$img" -m fill >/dev/null 2>&1 &
+    session_daemon swaybg swaybg -i "$img" -m fill
   else
     echo "no backend (install awww). image: $img"; exit 1
   fi
