@@ -1,63 +1,72 @@
-# Ypsilon Review Guide — for the human pass
+# Ypsilon Review Guide
 
-Read top to bottom. Check boxes as you go. Nothing here changes your live
-system until the "Live test" section, and even that is fully revertible.
+## Verified so far (machine-checked, `scripts/check.sh`)
 
-## 1. Static read (no commands)
+- [x] Hypr conf parses under Hyprland 0.56.2 (`--verify-config`) — caught 17 real errors from old syntax
+- [x] CSS parses under GTK 4.22, every `@y_*` color defined
+- [x] **Strict TypeScript type-check** against real Gtk 4 / GLib / Gnim 1.9.1 / AGS 3.1.2 types; Astal types
+      hand-written from the Astal sources (`tools/typecheck/astal.d.ts`) — every Astal property used was checked there
+- [x] Every relative import resolves; every icon name exists in Adwaita
+- [x] Unit tests: calculator, config merge, /proc parsing, app ranking, palette actions, keybind parser, nmcli parsing, battery alerts, wallpaper palette (contrast ≥ WCAG targets)
+- [x] Theme switch (dark/neon/light/auto) regenerates cleanly and re-validates
+- [x] Patterns aligned with the official AGS examples: click-away via `compute_bounds`, tray action-group refresh, per-monitor `<For>` bars with `onCleanup`
+- [x] Null-safety from Astal's source: `Hyprland.get_default()`, `Battery.get_default()`, `Wp.get_default()`, default speaker, focused client/workspace can be null → typed as such, 36 crash sites fixed (widgets degrade instead of throwing)
+- [x] Crash isolation (per-component `guarded`, fallback bar), shell supervisor (preflight, backoff restarts, gives up after 5 crashes/2 min)
+- [x] Works from any clone location (relocation test), hermetic CLI tests incl. idempotent `start`/`stop`, mutation tests prove every checker can fail
+- [x] Bug found via Astal source: `Astal.Slider` fires `change-value` before `value` updates → sliders now use the signal's value argument
 
-- [ ] `themes/tokens.json` — palette sane? radii/blur/anim to taste?
-- [ ] `scripts/gen-theme.py` — outputs match `hypr/themes/*.conf` + `shell/style/_generated.css`?
-- [ ] `hypr/ypsilon.conf` + `hypr/core/*.conf` — any bind that clashes with your Caelestia muscle memory?
-- [ ] `hypr/hyprlock.conf`, `hypr/hypridle.conf` — paths + timeouts OK?
-- [ ] `shell/app.tsx` — windows + requestHandler make sense?
-- [ ] `shell/services/*.ts` — any helper you distrust?
-- [ ] `shell/widgets/*.tsx` — Bar, Launcher, ControlCenter, Notifications, OSD, Powermenu, Overview
-- [ ] `shell/style.scss` — every class used in widgets exists here or in `_generated.css`?
-- [ ] `scripts/ypsilon`, `wallpaper.sh`, `install.sh`, `install-deps.sh`, `dev.sh`, `link.sh`
+## NOT verified — `ags` is not installed here, nothing has run yet
 
-## 2. Safe commands (repo files only, zero live impact)
+Remaining risks: libastal-hyprland vs. Hyprland 0.56 IPC; the installed libastal version vs. the source the
+types were written from (e.g. older builds may lack a property → a console error, fix in astal.d.ts + widget).
 
-```bash
-cd ~/Projects/Ypsilon
-./scripts/ypsilon doctor     # read-only checks
-./scripts/ypsilon gen        # regenerates themes + wallpapers
-./scripts/ypsilon theme list
-git log --oneline            # review history
-```
-
-## 3. Live test (explicit, revertible)
+The shell has never been executed. Type-checking needs `ags types`. First live run is the real test:
 
 ```bash
-./scripts/install-deps.sh          # needs sudo, AUR builds take a while
-ags run ./shell/app.tsx            # first Bar; Ctrl+C to stop, nothing persists
+./scripts/install-deps.sh     # sudo + AUR
+./scripts/ypsilon doctor      # every typelib should say OK
+./scripts/ypsilon try         # nested preview — your session is untouched
 ```
 
-If the Bar shows: try `ags toggle ypsilon-launcher`, `ags request osd volume`,
-`SUPER+Space` (only if you sourced ypsilon.conf — don't yet).
+Verify-live list (APIs used from memory of Astal/Gnim docs; fix whatever the console says):
+- [ ] launcher: focus on open, ↑↓/Enter, icons, `=2+2`, `:foot`
+- [ ] click-outside closes popups; clicks inside a card do NOT close it (GestureClick claim)
+- [ ] tray: `menubutton` + `insert_action_group("dbusmenu", …)` shows app menus
+- [ ] bar status icons: `wifi.iconName`, `speaker.volumeIcon`, `bat.batteryIconName`, `bt.isPowered`
+- [ ] workspaces: scroll over the strip switches; extra occupied workspaces appear
+- [ ] control center: tiles, volume/brightness sliders (brightnessctl), power profile row, media card, theme chips switch the live shell
+- [ ] notifications: toast stack, DND suppresses non-critical, center scrolls, actions fire
+- [ ] OSD shows from media keys (volume + brightness)
+- [ ] dashboard opens from the clock (calendar, stats update every 2s, media)
+- [ ] launcher modes: `;` clipboard, `@` windows, `?` web, empty query shows your most-used apps
+- [ ] control center pages: Wi-Fi list/connect (+ password row), Bluetooth connect, Sound output/input switch
+- [ ] game mode / night light tiles reflect state (`ypsilon gamemode status`)
+- [ ] wallpaper picker thumbnails render + apply; cheatsheet lists binds
+- [ ] `~/.config/ypsilon/config.json` edits apply live (bar position/workspaces need restart)
+- [ ] popups slide in (Revealer); overview lists windows and focuses them
+- [ ] wallpaper themes: `ypsilon theme auto --apply`; the "Wallpaper colors" tile; `theme.followWallpaper`
+- [ ] per-app mixer sliders, Bluetooth battery %, album art + progress
+- [ ] command palette rows in the launcher (type "lock", "neon")
+- [ ] toasts stay quiet over a fullscreen video; REC pill while `ypsilon record` runs
+- [ ] unplug/replug a monitor: bars follow
+- [ ] Settings (`SUPER+I`): every page opens; Desktop sliders change gaps/rounding live; keyboard layout applies; idle timers regenerate hypridle
+- [ ] Updates page lists pending pacman/AUR/flatpak updates (verified offline: real checkupdates/paru output parses 100%); "Update all" opens a terminal
+- [ ] Plugins: enable Pomodoro (bar timer + tile + `pomo` in launcher), Quick links (`!wiki`), Dev ports (`port`); disable removes them without restart
+- [ ] Weather card after setting a location; visualizer bars move while music plays (and stop capturing when paused)
+- [ ] no console errors: `ypsilon logs`
 
-Verify-live list (things I could not prove without running):
-- [ ] tray icons render (`gicon` binding on TrayItem)
-- [ ] workspaces track focus (`focusedWorkspace` binding)
-- [ ] wifi ssid shows (`network.wifi.ssid`)
-- [ ] volume/brightness sliders drag smoothly
-- [ ] battery icon + % look right
-- [ ] media mini appears with a player open
-- [ ] notifications arrive + toast auto-hides + center lists + DND switch works
-- [ ] launcher finds apps, `=2+2`, `:foot` run
-- [ ] OSD shows on `ags request osd volume`
-- [ ] no console errors (`ags run` prints them)
+## Publishing
 
-## 4. Daily-drive trial (only when 3 is green)
+Before pushing: `./scripts/check.sh && tests/checkers.test.sh`. `.github/workflows/check.yml` runs the same on every push.
 
-```bash
-./scripts/install.sh   # backups + links + hypr source line
-hyprctl reload
-```
+## Daily-drive
 
-Revert: remove the `source = ...ypsilon.conf` line from
-`~/.config/hypr/hyprland.conf`, `hyprctl reload`, restore any
-`*.pre-ypsilon-*` backup, `pkill -f 'ags run'` if needed.
+Ypsilon does not edit your Hyprland config (yours may be Lua). `./scripts/install.sh` registers an
+"Ypsilon" login session; pick it at your display manager. Revert: delete `/usr/share/wayland-sessions/ypsilon.desktop`.
 
-## 5. Ship
+## Known gaps
 
-Screenshots → polish pass → GitHub → v0.1. Only when you say so.
+- hyprlock colors follow the theme (lock-current.conf) but hyprlock itself can't be validated offline.
+- Wi-Fi password is passed to `nmcli` as an argument (briefly visible in `ps`).
+- Hypr paths in `keybinds.conf`/`hypridle.conf`/`hyprlock.conf` assume `~/Projects/Ypsilon`.
+- Single-monitor assumption for popups (they open on the focused output by compositor default).

@@ -1,0 +1,16 @@
+{
+  "id": "pomodoro",
+  "name": "Pomodoro",
+  "version": "1.0.0",
+  "description": "Focus timer in the bar: work / short break / long break cycles with notifications.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["notifications"],
+  "settings": [
+    { "key": "work", "label": "Work minutes", "type": "number", "default": 25, "min": 1, "max": 180 },
+    { "key": "shortBreak", "label": "Short break minutes", "type": "number", "default": 5, "min": 1, "max": 60 },
+    { "key": "longBreak", "label": "Long break minutes", "type": "number", "default": 15, "min": 1, "max": 90 },
+    { "key": "cycles", "label": "Work sessions before a long break", "type": "number", "default": 4, "min": 1, "max": 12 },
+    { "key": "autoContinue", "label": "Start the next phase automatically", "type": "boolean", "default": true }
+  ]
+}

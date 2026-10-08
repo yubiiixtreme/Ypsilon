@@ -1,0 +1,19 @@
+# Runs scripts/check.sh on Arch Linux for every push/PR (only matters once the repo is published).
+name: check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: deps
+        run: |
+          pacman -Syu --noconfirm --needed git hyprland gtk4 python-gobject python-pillow nodejs npm \
+            adwaita-icon-theme shellcheck libnotify
+      - uses: actions/checkout@v4
+      - name: typecheck env
+        run: scripts/typecheck.sh --setup
+      - name: check
+        run: scripts/check.sh
+      - name: checker mutation tests
+        run: tests/checkers.test.sh

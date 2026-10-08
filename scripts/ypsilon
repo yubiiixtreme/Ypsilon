@@ -1,24 +1,212 @@
 #!/usr/bin/env bash
-# ypsilon CLI v0.2 — explicit actions only. Nothing runs on its own.
-# Live-affecting commands (reload, toggle, osd, bar) act when YOU invoke them.
-# `theme set` regenerates repo files; live-apply only with --apply.
-ROOT=~/Projects/Ypsilon
+# ypsilon CLI v0.4 — explicit actions only; nothing runs on its own except
+# `ypsilon start`, which the Hyprland config calls once per session.
+ROOT=${YPSILON_ROOT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}
 cmd=${1:-help}
 
 usage() {
-  echo "ypsilon — our DE CLI (local, v0.2)"
-  echo "  ypsilon help                      this"
-  echo "  ypsilon theme list                list themes"
-  echo "  ypsilon theme set NAME [--apply]  regenerate files (+ live-apply with --apply)"
-  echo "  ypsilon gen                       regenerate themes + wallpapers (repo files only)"
-  echo "  ypsilon wallpaper {list|status|set NAME|next}"
-  echo "  ypsilon shot {full|select}        screenshot to clipboard (live)"
-  echo "  ypsilon record {select|full|stop} screen record to ~/Videos (live)"
-  echo "  ypsilon toggle NAME               ags toggle NAME (live shell)"
-  echo "  ypsilon osd {volume|brightness}   show OSD (live shell)"
-  echo "  ypsilon reload                    hyprctl reload (live)"
-  echo "  ypsilon bar                       ags run shell (dev, live)"
-  echo "  ypsilon doctor                    read-only health check"
+  cat <<'USAGE'  # quoted: help text must never execute anything
+ypsilon — our DE CLI (v0.4)
+  ypsilon theme list                list themes
+  ypsilon theme set NAME [--apply]  regenerate files (+ live-apply with --apply)
+  ypsilon theme auto [--light] [--apply]  theme generated from the current wallpaper
+  ypsilon gen                       regenerate themes + wallpapers (repo files only)
+  ypsilon wallpaper {list|files|status|set NAME|PATH|next|restore}
+  ypsilon shot {select|full}        screenshot -> ~/Pictures/Screenshots + clipboard
+  ypsilon record {select|full|stop|toggle}
+  ypsilon pick                      color picker -> clipboard (hyprpicker)
+  ypsilon gamemode [on|off|toggle|status]   kill animations/blur/gaps for max perf
+  ypsilon nightlight [on|off|toggle|status] warm screen (hyprsunset)
+  ypsilon caffeine [on|off|toggle|status]   keep the screen awake (pauses hypridle)
+  ypsilon layout [dwindle|master|toggle]    switch tiling layout
+  ypsilon config [path|edit|init|check]   user config (~/.config/ypsilon/config.json)
+  ypsilon keys                      keybind cheat-sheet (shell popup)
+  ypsilon clip                      clipboard history picker (cliphist + fuzzel)
+  ypsilon lock                      hyprlock with the Ypsilon config
+  ypsilon toggle NAME               toggle a shell window: launcher control dashboard notif-center
+                                    wallpapers cheatsheet overview power
+  ypsilon osd {volume|brightness}   show OSD
+  ypsilon reload                    hyprctl reload + shell css reload
+  ypsilon start                     session bring-up (idempotent): wallpaper, idle, polkit, clipboard, shell
+  ypsilon try                       preview in a NESTED Hyprland window (does not touch your session)
+  ypsilon bar                       run the shell in the foreground (dev)
+  ypsilon restart                   restart the shell (after config changes like bar position)
+  ypsilon stop                      stop the shell and every daemon that start launched
+  ypsilon apply                     apply config.json hypr/input/idle settings now
+  ypsilon updates run               upgrade the system in a terminal (pacman/AUR + flatpak)
+  ypsilon self-update               pull Ypsilon (fast-forward only), regenerate, re-check
+  ypsilon plugin [list|enable ID|disable ID|new ID|run ID CMD|rescan]   plugins
+  ypsilon settings [PAGE]           open the control panel (general appearance bar desktop input network
+                                    bluetooth sound power updates plugins about)
+  ypsilon term CMD...               run CMD in your terminal (config: terminal)
+  ypsilon logs [--prev]             follow the shell log (--prev: log of the last crash)
+  ypsilon health                    which shell components are running / failed
+  ypsilon check                     validate everything (hypr conf, css, types, icons, tests)
+  ypsilon doctor                    read-only environment report with fix hints
+  ypsilon report [FILE]             bundle doctor + checks + logs into one file for bug reports
+USAGE
+}
+
+# once NAME cmd... — start a background process unless this session already has it.
+once() {
+  local name=$1; shift
+  local dir=${XDG_RUNTIME_DIR:-/tmp}/ypsilon pidf
+  mkdir -p "$dir"; pidf="$dir/${WAYLAND_DISPLAY:-wl}.$name.pid"
+  if [ -f "$pidf" ] && kill -0 "$(cat "$pidf")" 2>/dev/null; then return 0; fi
+  command -v "$1" &>/dev/null || { echo "skip $name: $1 not installed"; return 0; }
+  # not `setsid -f`: it forks, so $! would be a dead pid and the guard above would never hold
+  setsid "$@" >/dev/null 2>&1 </dev/null &
+  echo $! > "$pidf"
+}
+
+have() { command -v "$1" &>/dev/null; }
+
+# stop NAME... (or everything this session started): each was setsid'd, so pid == process group
+stop_daemons() {
+  local dir=${XDG_RUNTIME_DIR:-/tmp}/ypsilon f name
+  for f in "$dir/${WAYLAND_DISPLAY:-wl}".*.pid; do
+    [ -f "$f" ] || continue
+    name=${f##*/}; name=${name#"${WAYLAND_DISPLAY:-wl}".}; name=${name%.pid}
+    if [ $# -eq 0 ] || [[ " $* " == *" $name "* ]]; then
+      kill -- "-$(cat "$f")" 2>/dev/null; rm -f "$f"; echo "stopped $name"
+    fi
+  done
+}
+
+# hypr/generated/* bakes in the repo path; (re)create it when missing or after the repo moved
+ensure_generated() {
+  local p="$ROOT/hypr/generated/paths.conf"
+  if [ ! -f "$p" ] || ! grep -qxF "\$YPSILON = $ROOT" "$p"; then
+    python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || echo "ypsilon: gen-theme failed" >&2
+  fi
+}
+
+start() {
+  ensure_generated
+  if [ -z "${YPSILON_NESTED:-}" ] && { pgrep -x hypridle >/dev/null 2>&1 || ags list 2>/dev/null | grep -q .; }; then
+    echo "note: another desktop session seems active (hypridle/ags already running)." >&2
+    echo "Prefer 'ypsilon try' for a safe nested preview — continuing in 3s (Ctrl+C to stop)." >&2
+    sleep 3
+  fi
+  mkdir -p "${XDG_RUNTIME_DIR:-/tmp}/ypsilon"
+  # wallpaper daemon (awww is the renamed swww) + restore last wallpaper
+  for d in awww swww; do
+    if have "$d-daemon"; then once "$d-daemon" "$d-daemon"; sleep 0.6; break; fi
+  done
+  "$ROOT/scripts/wallpaper.sh" restore >/dev/null 2>&1 || true
+  if [ -z "${YPSILON_NESTED:-}" ]; then
+    once hypridle hypridle -c "$ROOT/hypr/generated/hypridle.conf"
+    if [ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]; then
+      once polkit /usr/lib/hyprpolkitagent/hyprpolkitagent
+    fi
+  fi
+  if have wl-paste && have cliphist; then
+    once clip-text wl-paste --type text --watch cliphist store
+    once clip-image wl-paste --type image --watch cliphist store
+  fi
+  # first run: create a config to edit and say where the help is
+  local cfgdir=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon
+  if [ ! -f "$cfgdir/.welcomed" ]; then
+    mkdir -p "$cfgdir"
+    [ -f "$cfgdir/config.json" ] || cp "$ROOT/config.example.json" "$cfgdir/config.json"
+    local mod=SUPER; [ -n "${YPSILON_NESTED:-}" ] && mod=${YPSILON_TRY_MOD:-ALT}
+    (sleep 4; have notify-send && notify-send -a Ypsilon -i preferences-desktop-appearance-symbolic "Welcome to Ypsilon" \
+      "$mod+/ all keybinds · $mod+Space launcher · $mod+C control center"$'\n'"Customize: ypsilon config edit · Problems: ypsilon doctor") &
+    touch "$cfgdir/.welcomed"
+  fi
+  # supervisor: preflight + crash restarts with backoff (scripts/shell-supervisor.sh)
+  YPSILON_ROOT="$ROOT" once shell "$ROOT/scripts/shell-supervisor.sh"
+}
+
+doctor() {
+  local bad=0 hv
+  sec() { printf '\n== %s\n' "$1"; }
+  okm() { echo "OK    $1"; }
+  fix() { echo "MISS  $1  ->  $2"; bad=$((bad + 1)); }
+  echo "ypsilon doctor — root: $ROOT"
+
+  sec "compositor"
+  hv=$(Hyprland --version 2>/dev/null | sed -n 's/^Hyprland \([0-9.]*\).*/\1/p' | head -1)
+  if [ -z "$hv" ]; then fix "Hyprland" "install hyprland (>= 0.53)"
+  elif [ "$(printf '%s\n0.53\n' "$hv" | sort -V | head -1)" != "0.53" ]; then fix "Hyprland $hv" "upgrade to >= 0.53"
+  else okm "Hyprland $hv"; fi
+  if Hyprland --verify-config -c "$ROOT/hypr/ypsilon.conf" 2>&1 | grep -q '^config ok'; then okm "hypr/ypsilon.conf parses"; else fix "hypr/ypsilon.conf has errors" "ypsilon check"; fi
+  [ -f "$ROOT/hypr/generated/paths.conf" ] && okm "hypr/generated/ present" || fix "hypr/generated/" "python3 scripts/gen-theme.py"
+
+  sec "shell (AGS + Astal)"
+  have ags && okm "ags $(ags --version 2>/dev/null | head -1)" || fix "ags" "AUR: aylurs-gtk-shell"
+  if python3 -c 'import gi' 2>/dev/null; then
+    for g in Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk4LayerShell:1.0; do
+      python3 -c "import gi,sys; gi.require_version('${g%%:*}','${g##*:}')" 2>/dev/null && okm "typelib ${g%%:*}" || fix "typelib ${g%%:*}" "AUR: libastal-meta (or gtk4-layer-shell)"
+    done
+  else fix "python-gobject" "pacman -S python-gobject (needed for checks)"; fi
+
+  sec "tools"
+  for t in "grim:screenshots" "slurp:region select" "wl-copy:clipboard" "cliphist:clipboard history" "fuzzel:clipboard picker" \
+           "hyprlock:lock screen" "hypridle:idle/lock timers" "brightnessctl:brightness" "playerctl:media keys" "wpctl:volume keys" \
+           "nmcli:Wi-Fi" "bluetoothctl:Bluetooth" "notify-send:notifications" "hyprsunset:night light" "hyprpicker:color picker" \
+           "wf-recorder:screen recording" "powerprofilesctl:power profiles"; do
+    have "${t%%:*}" && okm "${t%%:*}" || fix "${t%%:*} (${t##*:})" "./scripts/install-deps.sh"
+  done
+  if have awww-daemon || have swww-daemon || have hyprpaper || have swaybg; then okm "wallpaper backend"; else fix "wallpaper backend" "install awww (or swww)"; fi
+  python3 -c "import PIL" 2>/dev/null && okm "python-pillow" || fix "python-pillow (wallpaper themes)" "pacman -S python-pillow"
+  [ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ] && okm "polkit agent" || fix "hyprpolkitagent (password prompts for apps)" "pacman -S hyprpolkitagent"
+
+  sec "look"
+  fc-list 2>/dev/null | grep -qi "Inter" && okm "font Inter" || fix "font Inter" "pacman -S inter-font"
+  fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd" && okm "font JetBrainsMono Nerd" || fix "font JetBrainsMono Nerd" "pacman -S ttf-jetbrains-mono-nerd"
+  [ -d /usr/share/icons/Adwaita ] && okm "Adwaita icons" || fix "Adwaita icons" "pacman -S adwaita-icon-theme"
+
+  sec "services"
+  for svc in NetworkManager bluetooth upower power-profiles-daemon; do
+    systemctl is-active --quiet "$svc" 2>/dev/null && okm "$svc running" || fix "$svc not running" "sudo systemctl enable --now $svc"
+  done
+
+  sec "session"
+  echo "      ${XDG_CURRENT_DESKTOP:-?} / ${XDG_SESSION_TYPE:-?}"
+  [ -f /usr/share/wayland-sessions/ypsilon.desktop ] && okm "login session installed" || echo "info  login session not installed (scripts/install.sh) — 'ypsilon try' works without it"
+  [ -f ~/.config/hypr/hyprland.lua ] && echo "info  your main config is Lua (hyprland.lua); Ypsilon runs as its own session and never edits it"
+  echo
+  [ $bad -eq 0 ] && echo "doctor: all good" || echo "doctor: $bad thing(s) to fix (see -> hints above)"
+  return 0
+}
+
+# terminal: config.json "terminal" (if set), $TERMINAL, then common ones
+pick_terminal() {
+  local t c
+  t=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("terminal",""))' \
+      "${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/config.json" 2>/dev/null)
+  for c in "$t" "${TERMINAL:-}" foot kitty ghostty alacritty wezterm konsole gnome-terminal xterm; do
+    [ -n "$c" ] && have "${c%% *}" && { echo "$c"; return; }
+  done
+}
+
+# term CMD... — run a command in a new terminal window that stays open at the end
+term() {
+  local t; t=$(pick_terminal)
+  [ -n "$t" ] || { echo "no terminal found (set terminal in config.json)"; return 1; }
+  local script="$*; echo; read -rp 'done - press Enter to close'"
+  local -a argv; read -ra argv <<< "$t"
+  case "${argv[0]}" in
+    wezterm) setsid "${argv[@]}" start -- bash -c "$script" >/dev/null 2>&1 & ;;
+    kitty) setsid "${argv[@]}" bash -c "$script" >/dev/null 2>&1 & ;;
+    gnome-terminal) setsid "${argv[@]}" -- bash -c "$script" >/dev/null 2>&1 & ;;
+    *) setsid "${argv[@]}" -e bash -c "$script" >/dev/null 2>&1 & ;;
+  esac
+}
+
+shot() {
+  local dir=~/Pictures/Screenshots f geom
+  mkdir -p "$dir"; f="$dir/ypsilon-$(date +%Y%m%d_%H%M%S).png"
+  if [ "${1:-select}" = "full" ]; then
+    grim "$f" || return 1
+  else
+    geom=$(slurp) || return 0   # Esc in slurp = cancel, not an error
+    grim -g "$geom" "$f" || return 1
+  fi
+  wl-copy < "$f"
+  have notify-send && notify-send -i "$f" "Screenshot saved" "$f"
+  echo "shot -> $f (+ clipboard)"
 }
 
 case "$cmd" in
@@ -27,38 +215,148 @@ case "$cmd" in
     case "${2:-list}" in
       list) python3 "$ROOT/scripts/gen-theme.py" --list;;
       set)
-        name="${3:?usage: ypsilon theme set NAME}"; shift 3
+        name="${3:?usage: ypsilon theme set NAME [--apply]}"
         python3 "$ROOT/scripts/gen-theme.py" --theme "$name" || exit 1
-        if [ "${1:-}" = "--apply" ]; then
-          hyprctl reload && ags request reload-css && echo "theme applied: $name"
+        if [ "${4:-}" = "--apply" ]; then
+          # the running shell watches the generated css and re-applies on its own
+          hyprctl reload >/dev/null && ags request -i ypsilon reload-css >/dev/null 2>&1
+          echo "theme applied: $name"
         else
           echo "files regenerated. apply with: ypsilon theme set $name --apply"
         fi;;
-      *) echo "usage: ypsilon theme {list|set NAME}"; exit 1;;
+      auto)
+        shift 2
+        img=$("$ROOT/scripts/wallpaper.sh" status | sed 's/^current: //')
+        [ -f "$img" ] || { echo "no current wallpaper file (set one first: ypsilon wallpaper set ...)"; exit 1; }
+        light=""; apply=""
+        for a in "$@"; do case $a in --light) light=--light;; --apply) apply=--apply;; esac; done
+        python3 "$ROOT/scripts/palette.py" "$img" --name ypsilon-auto $light || exit 1
+        exec "$0" theme set ypsilon-auto $apply;;
+      *) echo "usage: ypsilon theme {list|set NAME [--apply]|auto [--light] [--apply]}"; exit 1;;
     esac;;
-  gen)
-    python3 "$ROOT/scripts/gen-theme.py" && python3 "$ROOT/scripts/make-wallpaper.py" && echo "gen OK";;
+  gen) python3 "$ROOT/scripts/gen-theme.py" && python3 "$ROOT/scripts/make-wallpaper.py" && echo "gen OK";;
   wallpaper) shift; "$ROOT/scripts/wallpaper.sh" "$@";;
-  shot)
-    case "${2:-select}" in
-      full) grim - | wl-copy && echo "shot: fullscreen -> clipboard";;
-      *) grim -g "$(slurp)" - | wl-copy && echo "shot: select -> clipboard";;
-    esac;;
+  shot) shot "${2:-select}";;
   record) shift; "$ROOT/scripts/record.sh" "$@";;
-  toggle) ags toggle "${2:?usage: ypsilon toggle NAME}";;
-  osd) ags request osd "${2:-volume}";;
-  reload) hyprctl reload && echo "hypr reloaded";;
-  bar) ags run "$ROOT/shell/app.tsx";;
-  doctor)
-    echo "-- ypsilon doctor (read-only) --"
-    python3 -c "import json; t=json.load(open('$ROOT/themes/tokens.json')); print('tokens OK, active:', t['active'], '| themes:', ', '.join(sorted(t['themes'])))" || echo "TOKENS BROKEN"
-    for f in hypr/ypsilon.conf "hypr/themes/current.conf" shell/app.tsx shell/style.scss shell/style/_generated.css; do
-      [ -f "$ROOT/$f" ] && echo "OK  $f" || echo "MISS $f"
-    done
-    for b in Hyprland hyprctl ags node npm paru grim slurp wl-copy swww hyprlock; do
-      command -v $b &>/dev/null && echo "OK  $b" || echo "MISS $b (install later)"
-    done
-    echo "session: XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-?} XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-?}"
-    hyprctl monitors 2>/dev/null | head -n 4 || echo "(hyprctl unavailable?)";;
+  pick)
+    have hyprpicker || { echo "install hyprpicker"; exit 1; }
+    c=$(hyprpicker -a -n) && { have notify-send && notify-send "Color copied" "$c"; echo "$c"; };;
+  gamemode)
+    on() { hyprctl --batch "keyword animations:enabled 0; keyword decoration:blur:enabled 0; keyword decoration:shadow:enabled 0; keyword general:gaps_in 0; keyword general:gaps_out 0; keyword decoration:rounding 0" >/dev/null; }
+    st() { [ "$(hyprctl getoption animations:enabled 2>/dev/null | awk '/int:/{print $2}')" = "0" ] && echo on || echo off; }
+    case "${2:-toggle}" in
+      status) st;;
+      on) on; echo on;;
+      off) hyprctl reload >/dev/null; echo off;;
+      toggle) if [ "$(st)" = on ]; then hyprctl reload >/dev/null; echo off; else on; echo on; fi;;
+      *) echo "usage: ypsilon gamemode [on|off|toggle|status]"; exit 1;;
+    esac;;
+  nightlight)
+    t=${YPSILON_NIGHT_TEMP:-4000}
+    st() { pgrep -x hyprsunset >/dev/null && echo on || echo off; }
+    case "${2:-toggle}" in
+      status) st;;
+      on) have hyprsunset || { echo "install hyprsunset"; exit 1; }; pgrep -x hyprsunset >/dev/null || { setsid hyprsunset -t "$t" >/dev/null 2>&1 </dev/null & }; echo on;;
+      off) pkill -x hyprsunset || true; echo off;;
+      toggle) if [ "$(st)" = on ]; then pkill -x hyprsunset || true; echo off; else "$0" nightlight on; fi;;
+      *) echo "usage: ypsilon nightlight [on|off|toggle|status]"; exit 1;;
+    esac;;
+  layout)
+    cur=$(hyprctl getoption general:layout 2>/dev/null | awk '/str:/{print $2}')
+    case "${2:-toggle}" in
+      status) echo "${cur:-?}";;
+      dwindle|master) hyprctl keyword general:layout "$2" >/dev/null && echo "$2";;
+      toggle) next=$([ "$cur" = master ] && echo dwindle || echo master); hyprctl keyword general:layout "$next" >/dev/null && echo "$next";;
+      *) echo "usage: ypsilon layout [dwindle|master|toggle|status]"; exit 1;;
+    esac;;
+  caffeine)
+    # caffeine on = no idle daemon (no dim/lock/suspend); off = hypridle back
+    st() { pgrep -x hypridle >/dev/null && echo off || echo on; }
+    case "${2:-toggle}" in
+      status) st;;
+      on) pkill -x hypridle || true; echo on;;
+      off) once hypridle hypridle -c "$ROOT/hypr/generated/hypridle.conf"; echo off;;
+      toggle) if [ "$(st)" = on ]; then "$0" caffeine off; else "$0" caffeine on; fi;;
+      *) echo "usage: ypsilon caffeine [on|off|toggle|status]"; exit 1;;
+    esac;;
+  config)
+    cfg=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/config.json
+    case "${2:-path}" in
+      path) echo "$cfg";;
+      init) mkdir -p "$(dirname "$cfg")"; [ -f "$cfg" ] && echo "exists: $cfg" || { cp "$ROOT/config.example.json" "$cfg" && echo "created: $cfg"; };;
+      edit) "$0" config init >/dev/null; "${EDITOR:-nano}" "$cfg"; "$0" config check;;
+      check) NODE_NO_WARNINGS=1 node "$ROOT/scripts/config-check.mjs" "$cfg";;
+      *) echo "usage: ypsilon config [path|init|edit|check]"; exit 1;;
+    esac;;
+  keys) ags toggle -i ypsilon ypsilon-cheatsheet;;
+  clip) cliphist list | fuzzel --dmenu | cliphist decode | wl-copy;;
+  lock) ensure_generated; pidof hyprlock >/dev/null || hyprlock -c "$ROOT/hypr/generated/hyprlock.conf";;
+  toggle) n="${2:?usage: ypsilon toggle NAME (launcher, control, dashboard, wallpapers, ...)}"; ags toggle -i ypsilon "ypsilon-${n#ypsilon-}";;
+  osd) ags request -i ypsilon osd "${2:-volume}";;
+  reload) hyprctl reload && ags request -i ypsilon reload-css && echo "reloaded";;
+  start) start;;
+  try)
+    have Hyprland || { echo "Hyprland not found"; exit 1; }
+    [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || { echo "run this from inside a graphical session (it opens a nested window)"; exit 1; }
+    # Your main session grabs SUPER first, so the preview uses ALT as its modifier.
+    # (override: YPSILON_TRY_MOD=CTRL ypsilon try). Generated config lives in $XDG_RUNTIME_DIR.
+    mod=${YPSILON_TRY_MOD:-ALT}
+    d=${XDG_RUNTIME_DIR:-/tmp}/ypsilon; mkdir -p "$d"; conf="$d/try.conf"
+    sed 's/^\$mod = SUPER/$mod = '"$mod"'/' "$ROOT/hypr/core/keybinds.conf" > "$d/try-keybinds.conf"
+    ensure_generated
+    sed -e "s#^source = core/keybinds.conf#source = $d/try-keybinds.conf#" -e "s#^source = \(core\|themes\|generated\)/#source = $ROOT/hypr/\1/#" "$ROOT/hypr/ypsilon.conf" > "$conf"
+    echo "nested preview: modifier=$mod · exit with $mod+Shift+E, or Ctrl+C here, or close the window"
+    YPSILON_NESTED=1 YPSILON_TRY_MOD=$mod exec Hyprland -c "$conf";;
+  bar) ensure_generated; YPSILON_ROOT="$ROOT" exec ags run "$ROOT/shell/app.tsx";;
+  logs)
+    f=${XDG_RUNTIME_DIR:-/tmp}/ypsilon/shell.log
+    if [ "${2:-}" = "--prev" ]; then f=$f.prev; fi
+    if [ -f "$f" ]; then exec tail -n 200 -f "$f"; else echo "no shell log yet ($f)"; fi;;
+  health) ags request -i ypsilon health 2>/dev/null || echo "shell not running (ypsilon start)";;
+  restart) ags quit -i ypsilon >/dev/null 2>&1; stop_daemons shell >/dev/null; sleep 0.3; start; echo "shell restarted";;
+  term) shift; term "$@";;
+  settings) ags request -i ypsilon settings "${2:-}" >/dev/null 2>&1 || echo "shell not running (ypsilon start)";;
+  plugin|plugins)
+    case "${2:-list}" in
+      run) shift 2; ags request -i ypsilon plugin "$@" 2>/dev/null || echo "shell not running";;
+      rescan) ags request -i ypsilon plugins-rescan 2>/dev/null || echo "shell not running";;
+      *) shift; python3 "$ROOT/scripts/plugin.py" "$@";;
+    esac;;
+  updates)
+    case "${2:-run}" in
+      run)
+        aur=""; for h in paru yay; do have "$h" && { aur=$h; break; }; done
+        if [ -n "$aur" ]; then cmd="$aur -Syu"; else cmd="sudo pacman -Syu"; fi
+        have flatpak && cmd="$cmd && flatpak update"
+        term "echo '== Ypsilon: system update =='; $cmd";;
+      *) echo "usage: ypsilon updates run   (the shell's Updates page shows what's pending)"; exit 1;;
+    esac;;
+  self-update)
+    git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || { echo "not a git checkout"; exit 1; }
+    if [ -z "$(git -C "$ROOT" remote)" ]; then echo "local repo without a remote - nothing to pull"; exit 0; fi
+    if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]; then echo "you have local changes - commit or stash them first"; exit 1; fi
+    git -C "$ROOT" pull --ff-only && python3 "$ROOT/scripts/gen-theme.py" >/dev/null && "$ROOT/scripts/check.sh" \
+      && { ags request -i ypsilon reload-css >/dev/null 2>&1; echo "updated - run 'ypsilon restart' to load the new shell"; };;
+  apply)
+    # config.json -> hypr/generated/{user,hypridle}.conf, then make Hyprland + hypridle use it
+    python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || { echo "gen failed"; exit 1; }
+    hyprctl reload >/dev/null 2>&1 || true
+    if [ -f "${XDG_RUNTIME_DIR:-/tmp}/ypsilon/${WAYLAND_DISPLAY:-wl}.hypridle.pid" ]; then
+      stop_daemons hypridle >/dev/null; once hypridle hypridle -c "$ROOT/hypr/generated/hypridle.conf"
+    fi
+    echo "applied";;
+  stop) ags quit -i ypsilon >/dev/null 2>&1; stop_daemons;;
+  check) exec "$ROOT/scripts/check.sh";;
+  doctor) doctor;;
+  report)
+    out=${2:-$HOME/ypsilon-report-$(date +%Y%m%d_%H%M%S).txt}
+    {
+      echo "# Ypsilon report $(date -Is)"; echo "root: $ROOT"; git -C "$ROOT" log -1 --format='commit: %h %s' 2>/dev/null
+      uname -sr; echo; doctor; echo; echo "## check"; "$ROOT/scripts/check.sh" 2>&1
+      echo; echo "## config"; "$0" config check 2>&1
+      echo; echo "## shell health"; ags request -i ypsilon health 2>&1
+      for f in shell.log shell.log.prev; do echo; echo "## $f (last 80 lines)"; tail -n 80 "${XDG_RUNTIME_DIR:-/tmp}/ypsilon/$f" 2>/dev/null || echo "(none)"; done
+    } > "$out" 2>&1
+    echo "report written: $out  (attach it to a bug report)";;
   *) echo "unknown: $cmd"; usage; exit 1;;
 esac

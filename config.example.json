@@ -1,0 +1,26 @@
+{
+  "bar": {
+    "position": "top",
+    "clock24h": true,
+    "showSeconds": false,
+    "showWindowTitle": true,
+    "showMedia": true,
+    "showTray": true,
+    "showSysinfo": true
+  },
+  "workspaces": 5,
+  "battery": {
+    "warnAt": 20,
+    "criticalAt": 8
+  },
+  "launcher": {
+    "webSearch": "https://duckduckgo.com/?q=%s",
+    "maxResults": 7
+  },
+  "osdTimeoutMs": 1600,
+  "theme": {
+    "followWallpaper": false,
+    "autoLight": false
+  },
+  "reduceMotion": false
+}

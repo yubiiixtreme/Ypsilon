@@ -1,56 +1,86 @@
 import app from "ags/gtk4/app"
 import Gtk from "gi://Gtk"
+import GLib from "gi://GLib"
+import Pango from "gi://Pango"
 import { Astal } from "ags/gtk4"
 import { createBinding, createState, For } from "ags"
-import GLib from "gi://GLib"
-import { getNotifd } from "../services/notif"
+import Notifd from "gi://AstalNotifd"
+import { getNotifd, setDnd, timeLabel } from "../services/notif"
+import { getHypr } from "../services/hypr"
+import Popup from "./Popup"
 
-type Action = { id: string; label: string }
-type Notif = {
-  id: number
-  summary: string
-  body: string
-  appName?: string
-  urgency?: number
-  actions?: Action[]
-  dismiss(): void
-  invoke(id: string): void
-}
+type Notif = Notifd.Notification
+const CRITICAL = Notifd.Urgency.CRITICAL
 
-const dismissSafe = (n: Notif) => {
+// bodies may carry Pango markup (<b>, <i>, <a>); only enable it when it parses, else show raw text
+const looksLikeMarkup = (body: string) => {
+  if (!/<[a-z/][^>]*>/i.test(body)) return false
   try {
-    n.dismiss()
-  } catch (e) {
-    print(`ypsilon notif: ${e}`)
+    return Pango.parse_markup(body, -1, "\0")[0]
+  } catch {
+    return false
   }
 }
 
-function NotifRow({ n }: { n: Notif }) {
-  const urgent = n.urgency === 2
+const guard = (what: string, fn: () => void) => {
+  try {
+    fn()
+  } catch (e) {
+    print(`ypsilon ${what}: ${e}`)
+  }
+}
+
+function Actions({ n, after }: { n: Notif; after?: () => void }) {
+  const actions = n.actions ?? []
+  if (actions.length === 0) return <box />
   return (
-    <box class={`notif-row ${urgent ? "critical" : ""}`} orientation={Gtk.Orientation.VERTICAL} spacing={4}>
+    <box spacing={6}>
+      {actions.map((a) => (
+        <button
+          class="pill-btn"
+          label={a.label}
+          onClicked={() =>
+            guard("notif action", () => {
+              n.invoke(a.id)
+              after?.()
+            })
+          }
+        />
+      ))}
+    </box>
+  )
+}
+
+function Card({ n, onClose, after }: { n: Notif; onClose: () => void; after?: () => void }) {
+  return (
+    <box class={`notif-row${n.urgency === CRITICAL ? " critical" : ""}`} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <box spacing={8}>
-        <label class="notif-summary" label={n.summary || "(no title)"} />
-        <button class="pill-btn" label="x" onClicked={() => dismissSafe(n)} />
+        {/* app_icon may be an icon name or an absolute file path */}
+        {n.appIcon?.startsWith("/") ? (
+          <image file={n.appIcon} pixelSize={16} />
+        ) : (
+          <image iconName={n.appIcon || n.desktopEntry || "dialog-information-symbolic"} pixelSize={16} />
+        )}
+        <label class="notif-app" hexpand halign={Gtk.Align.START} label={`${n.appName || "app"} · ${timeLabel(n.time ?? 0)}`} />
+        <button class="icon-btn" onClicked={onClose} tooltipText="dismiss">
+          <image iconName="window-close-symbolic" pixelSize={11} />
+        </button>
       </box>
-      {n.body !== "" && <label class="notif-body" label={n.body} wrap />}
-      {(n.actions?.length ?? 0) > 0 && (
-        <box spacing={6}>
-          {(n.actions ?? []).map((a) => (
-            <button
-              class="pill-btn"
-              label={a.label}
-              onClicked={() => {
-                try {
-                  n.invoke(a.id)
-                } catch (e) {
-                  print(`ypsilon notif action: ${e}`)
-                }
-              }}
-            />
-          ))}
+      <box spacing={10}>
+        {/* image hint: a file path (avatars, album art, screenshots) */}
+        {!!n.image && GLib.file_test(n.image, GLib.FileTest.EXISTS) && (
+          <box class="notif-image" overflow={Gtk.Overflow.HIDDEN} valign={Gtk.Align.START}>
+            <image file={n.image} pixelSize={48} />
+          </box>
+        )}
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={3} hexpand>
+          <label class="notif-summary" halign={Gtk.Align.START} wrap xalign={0} label={n.summary || "(no title)"} />
+          {n.body !== "" && (
+            <label class="notif-body" halign={Gtk.Align.START} wrap xalign={0} maxWidthChars={44} useMarkup={looksLikeMarkup(n.body)} label={n.body} />
+          )}
         </box>
-      )}
+      </box>
+      <Actions n={n} after={after} />
     </box>
   )
 }
@@ -59,84 +89,90 @@ function NotifRow({ n }: { n: Notif }) {
 export function NotificationCenter() {
   const notifd = getNotifd()
   const list = createBinding(notifd, "notifications")
+  const dnd = createBinding(notifd, "dontDisturb")
 
-  const clearAll = () => {
-    try {
-      for (const n of list() as unknown as Notif[]) dismissSafe(n)
-    } catch (e) {
-      print(`ypsilon notif clear: ${e}`)
-    }
-  }
+  const clearAll = () => guard("notif clear", () => list().forEach((n) => n.dismiss()))
 
   return (
-    <window
-      visible={false}
-      name="ypsilon-notif-center"
-      namespace="ypsilon-notif-center"
-      class="ypsilon-notif-center"
-      anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.RIGHT}
-      application={app}
-    >
-      <box class="notif-center-inner" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <box spacing={8}>
-          <label class="control-title" label="notifications" />
-          <button class="pill-btn" label="clear" onClicked={clearAll} />
-        </box>
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+    <Popup name="ypsilon-notif-center" variant="corner" halign={Gtk.Align.END} spacing={10}>
+      <box spacing={8}>
+        <label class="title" hexpand halign={Gtk.Align.START} label="notifications" />
+        <label class="sub" label="dnd" />
+        <switch active={dnd} valign={Gtk.Align.CENTER} onNotifyActive={({ active }) => setDnd(active)} />
+        <button class="pill-btn" label="clear" onClicked={clearAll} />
+      </box>
+      <scrolledwindow
+        hscrollbarPolicy={Gtk.PolicyType.NEVER}
+        propagateNaturalHeight
+        maxContentHeight={520}
+        visible={list((l) => l.length > 0)}
+      >
+        <box class="notif-center-list" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
           <For each={list}>
-            {(n) => <NotifRow n={(n as unknown) as Notif} />}
+            {(n) => <Card n={n} onClose={() => guard("notif dismiss", () => n.dismiss())} />}
           </For>
         </box>
-        {<label class="control-sub" visible={list((l) => l.length === 0)} label="all caught up ✦" />}
-      </box>
-    </window>
-  ) as never
+      </scrolledwindow>
+      <label class="sub" visible={list((l) => l.length === 0)} label="all caught up ✦" />
+    </Popup>
+  )
 }
 
-// New-notification toast (top center, auto-hides).
+// New-notification toasts (top center, stacked, auto-hide).
+// Quiet while DND is on or a fullscreen app is focused (games, video) — critical ones always show.
 export function Toast() {
-  const [current, setCurrent] = createState<Notif | null>(null)
-  let gen = 0
-
+  const [toasts, setToasts] = createState<Notif[]>([])
   const notifd = getNotifd()
-  notifd.connect("notified", (_src: object, id: number) => {
-    try {
-      const n = (notifd.get_notification(id) as unknown) as Notif
-      setCurrent(n)
-      const g = ++gen
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 4500, () => {
-        if (g === gen) setCurrent(null)
-        return GLib.SOURCE_REMOVE
-      })
-    } catch (e) {
-      print(`ypsilon toast: ${e}`)
-    }
+  const timers = new Map<number, number>() // notification id -> GLib source id
+
+  const remove = (id: number) => {
+    const t = timers.get(id)
+    if (t !== undefined) GLib.source_remove(t)
+    timers.delete(id)
+    setToasts((list) => list.filter((n) => n.id !== id))
+  }
+
+  const quiet = () => notifd.dontDisturb || !!getHypr()?.focusedWorkspace?.hasFullscreen
+
+  notifd.connect("notified", (_src, id) => {
+    guard("toast", () => {
+      const n = notifd.get_notification(id)
+      if (!n || (quiet() && n.urgency !== CRITICAL)) return
+      // a replaced notification (same id, e.g. progress updates) restarts its own timer
+      const old = timers.get(id)
+      if (old !== undefined) GLib.source_remove(old)
+      setToasts((list) => [...list.filter((t) => t.id !== id), n].slice(-3))
+      timers.set(
+        id,
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, n.urgency === CRITICAL ? 9000 : 4500, () => {
+          timers.delete(id)
+          setToasts((list) => list.filter((t) => t.id !== id))
+          return GLib.SOURCE_REMOVE
+        }),
+      )
+    })
   })
+  notifd.connect("resolved", (_src, id) => remove(id))
 
   return (
     <window
-      visible={current((c) => c !== null)}
+      visible={toasts((t) => t.length > 0)}
       name="ypsilon-toast"
       namespace="ypsilon-toast"
       class="ypsilon-toast"
+      layer={Astal.Layer.OVERLAY}
       anchor={Astal.WindowAnchor.TOP}
       application={app}
     >
-      <box halign={Gtk.Align.CENTER}>
-        <box class="toast-inner" spacing={10}>
-          <label class="notif-summary" label={current((c) => c?.summary ?? "")} />
-          <label class="notif-body" label={current((c) => (c?.body ?? "").slice(0, 80))} />
-          <button
-            class="pill-btn"
-            label="x"
-            onClicked={() => {
-              const n = current()
-              if (n) dismissSafe(n)
-              setCurrent(null)
-            }}
-          />
-        </box>
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={8} halign={Gtk.Align.CENTER}>
+        <For each={toasts}>
+          {(n) => (
+            <box class={`toast-inner${n.urgency === CRITICAL ? " critical" : ""}`}>
+              <Card n={n} onClose={() => remove(n.id)} after={() => remove(n.id)} />
+            </box>
+          )}
+        </For>
       </box>
     </window>
-  ) as never
+  )
 }

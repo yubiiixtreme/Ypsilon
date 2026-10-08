@@ -1,27 +1,19 @@
-# Ypsilon Roadmap — build locally, review, then ship
+# Ypsilon Roadmap
 
-## Build sprint (local-only, this session)
-- [x] Repo scaffold, local git, no remote
-- [x] `hypr/` glass+rounded+animated base + namespace layerrules
-- [x] `hyprlock.conf` + `hypridle.conf` (standalone)
-- [x] Theme engine: `gen-theme.py` (tokens → hypr confs + AGS css), 3 themes
-- [x] Wallpapers: `make-wallpaper.py` → 3× 1366x768 PNGs
-- [x] Shell: Bar, Launcher, ControlCenter, Notifications+Toast, OSD, Powermenu, Overview
-- [x] Services: theme/hypr/audio/brightness/media/notif/apps/system/osd
-- [x] `style.scss` + `_generated.css`, `ypsilon` CLI v0.2, `wallpaper.sh`, `install.sh` (file only)
-- [ ] Live test (needs: install-deps, `ags run`, fix whatever reality says)
-- [ ] Docs REVIEW checklist (see docs/REVIEW.md)
+## Done
+- [x] Hypr glass base, validated against Hyprland 0.56.2 (`scripts/check.sh`)
+- [x] Theme engine (tokens → hypr + css + terminal/launcher extras), runtime hot-reload in the shell
+- [x] Shell: bar, launcher, control center, notifications+toasts, OSD, powermenu, overview, calendar
+- [x] CLI v0.3: start/try/check/doctor/shot/clip/lock, idempotent session bring-up
+- [x] Own login session instead of editing the user's Hyprland config
 
-## Review gate (you go through everything)
-- [ ] Read every file in `hypr/`, `shell/`, `scripts/`, `themes/`
-- [ ] Run `ypsilon doctor` + `ypsilon gen`
-- [ ] Run `./scripts/install-deps.sh`, then `ags run ./shell/app.tsx`
-- [ ] Work through docs/REVIEW.md, file issues as notes
-- [ ] Decide: daily-drive Ypsilon vs keep Caelestia fallback
+- [x] Launcher modes + frecency, control-center pages, dashboard, wallpaper picker, keybind cheatsheet, game mode, night light, battery alerts, user config, hyprlock theming, import audit
+- [x] Strict typecheck + icon audit, wallpaper-generated themes, command palette, per-app mixer, live Wi-Fi list, album art, hotplug bars, caffeine, layout toggle, smart toast quiet mode, own AGS instance + logs
+- [x] Reliability pass: portable paths, null-safe services, crash isolation + supervisor, config diagnostics (did-you-mean), doctor with fix hints, `report`/`health`/`stop`, uninstall, start-hyprland session, Hyprland version gate, non-Arch guidance, shellcheck, CI workflow, checker mutation tests, keybind conflict test, reduceMotion
+- [x] Settings app (12 pages, live Hyprland/idle/input control), Updates page (pacman/AUR/flatpak + self-update), plugin system (API v1, isolation, CLI, 3 bundled plugins, docs), weather, cava visualizer, CPU/mem graphs
 
-## Ship (only after review)
-- [ ] `install.sh` run (backs up, links, hooks hypr)
-- [ ] Screenshots + polish pass
-- [ ] GitHub push + release v0.1
-
-No push until the review gate is green.
+## Next (needs a live `ags run`)
+- [ ] First live run, fix runtime/API surprises (see docs/REVIEW.md)
+- [ ] Monitor layout / scaling panel
+- [ ] Per-monitor popup placement, workspace window thumbnails in the overview
+- [ ] Screenshots in the README after the first live run

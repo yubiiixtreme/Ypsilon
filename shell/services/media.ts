@@ -8,22 +8,13 @@ export function getMpris() {
   return _m
 }
 
-type Player = {
-  available: boolean
-  title?: string
-  artist?: string
-  playbackStatus?: string
-  play_pause(): void
-  next(): void
-  previous(): void
-}
+type Player = { play_pause(): void; next(): void; previous(): void }
 
-function safe<T>(fn: () => T): T | null {
+function safe(fn: () => void) {
   try {
-    return fn()
+    fn()
   } catch (e) {
     print(`ypsilon media: ${e}`)
-    return null
   }
 }
 

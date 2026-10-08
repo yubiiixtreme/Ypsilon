@@ -1,55 +1,55 @@
-import app from "ags/gtk4/app"
 import Gtk from "gi://Gtk"
-import { Astal } from "ags/gtk4"
-import { createBinding, createComputed } from "ags"
-import { getHypr, STRIP, gotoWorkspace } from "../services/hypr"
+import app from "ags/gtk4/app"
+import { createBinding, createComputed, For } from "ags"
+import { hyprClients, hyprFocusedWorkspace, gotoWorkspace, focusAddress } from "../services/hypr"
+import { config } from "../services/config"
+import Popup from "./Popup"
 
-// Workspace overview sheet. Toggle with: ags toggle ypsilon-overview (SUPER+Tab).
+// Workspace overview: every workspace with its windows; click to jump / focus.
+// Toggle with: ags toggle ypsilon-overview (SUPER+Tab).
 export default function Overview() {
-  const hypr = getHypr()
-  const spaces = createBinding(hypr, "workspaces")
-  const focused = createBinding(hypr, "focusedWorkspace")
-  const clients = createBinding(hypr, "clients")
-  const focusedClient = createBinding(hypr, "focusedClient")
-
-  const activeId = createComputed(() => focused()?.id ?? -1)
-  const occupied = createComputed(() => new Set(spaces().map((w) => w.id)))
-  const state = createComputed(() => ({ active: activeId(), occ: occupied() }))
+  const clients = hyprClients()
+  const focused = hyprFocusedWorkspace()
+  const hide = () => app.get_window("ypsilon-overview")?.set_visible(false)
 
   return (
-    <window
-      visible={false}
-      name="ypsilon-overview"
-      namespace="ypsilon-overview"
-      class="ypsilon-overview"
-      anchor={Astal.WindowAnchor.TOP}
-      application={app}
-    >
-      <box halign={Gtk.Align.CENTER}>
-        <box class="overview-inner" orientation={Gtk.Orientation.VERTICAL} spacing={12}>
-          <label class="overview-title" label="overview" />
-          <box class="ws-grid" spacing={8}>
-            {STRIP.map((id) => (
+    <Popup name="ypsilon-overview" spacing={12}>
+      <label class="title" label="overview" halign={Gtk.Align.CENTER} />
+      <box spacing={10} homogeneous>
+        {Array.from({ length: Math.min(config().workspaces, 6) }, (_, i) => i + 1).map((id) => {
+          const mine = createComputed(() => clients().filter((c) => c.workspace?.id === id))
+          return (
+            <box
+              class={focused((f) => `ws-card${f?.id === id ? " active" : ""}`)}
+              orientation={Gtk.Orientation.VERTICAL}
+              spacing={4}
+            >
               <button
-                class={state((s) => `ws-btn big${id === s.active ? " active" : ""}${s.occ.has(id) ? " occupied" : ""}`)}
+                class="ws-btn big"
                 label={String(id)}
                 onClicked={() => {
                   gotoWorkspace(id)
-                  app.get_window("ypsilon-overview")?.set_visible(false)
+                  hide()
                 }}
               />
-            ))}
-          </box>
-          <label
-            class="control-sub"
-            label={createComputed(() => {
-              const c = focusedClient()
-              const n = clients().length
-              return `${n} window${n === 1 ? "" : "s"} · ${c?.title ? c.title.slice(0, 40) : "no focus"}`
-            })}
-          />
-        </box>
+              <For each={mine}>
+                {(c) => (
+                  <button
+                    class="client-row"
+                    onClicked={() => {
+                      focusAddress(c.address)
+                      hide()
+                    }}
+                  >
+                    <label label={(c.title || c.class || "window").slice(0, 22)} halign={Gtk.Align.START} />
+                  </button>
+                )}
+              </For>
+              <label class="sub" label="empty" visible={mine((m) => m.length === 0)} />
+            </box>
+          )
+        })}
       </box>
-    </window>
-  ) as never
+    </Popup>
+  )
 }

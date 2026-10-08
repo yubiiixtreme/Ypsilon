@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "ags run ./app.tsx",
-    "types": "ags types -u -d ."
+    "types": "ags types -u -d .",
+    "check": "../scripts/check.sh",
+    "test": "node --test ../tests/"
   }
 }

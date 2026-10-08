@@ -1,0 +1,11 @@
+import "@girs/gjs"
+import "@girs/gjs/dom"
+import "@girs/gtk-4.0/gtk-4.0-ambient"
+import "@girs/gdk-4.0/gdk-4.0-ambient"
+import "@girs/glib-2.0/glib-2.0-ambient"
+import "@girs/gio-2.0/gio-2.0-ambient"
+import "@girs/gobject-2.0/gobject-2.0-ambient"
+import "@girs/graphene-1.0/graphene-1.0-ambient"
+import "@girs/gjs/ambient"
+declare module "*.css" { const s: string; export default s }
+import "@girs/pango-1.0/pango-1.0-ambient"

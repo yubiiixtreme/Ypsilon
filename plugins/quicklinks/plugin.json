@@ -1,0 +1,14 @@
+{
+  "id": "quicklinks",
+  "name": "Quick links",
+  "version": "1.0.0",
+  "description": "Bookmarks in the launcher: type ! then a name (e.g. !wiki).",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec"],
+  "settings": [
+    { "key": "links", "label": "Links (name=url, separated by ;)", "type": "string",
+      "default": "GitHub=https://github.com; Arch Wiki=https://wiki.archlinux.org; Hyprland Wiki=https://wiki.hypr.land; AGS docs=https://aylur.github.io/ags/",
+      "placeholder": "Name=https://… ; Other=https://…" }
+  ]
+}

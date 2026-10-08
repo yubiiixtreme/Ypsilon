@@ -1,0 +1,12 @@
+{
+  "id": "dev-ports",
+  "name": "Dev ports",
+  "version": "1.0.0",
+  "description": "Type 'port' in the launcher to list local servers listening on TCP and open them in the browser.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec"],
+  "settings": [
+    { "key": "hideSystem", "label": "Hide ports below 1024", "type": "boolean", "default": true }
+  ]
+}

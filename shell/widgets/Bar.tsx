@@ -1,160 +1,327 @@
-import app from "ags/gtk4/app"
+import Gtk from "gi://Gtk"
+import GLib from "gi://GLib"
 import { Astal } from "ags/gtk4"
-import { createBinding, createComputed, For } from "ags"
+import { createBinding, createComputed, For, onCleanup } from "ags"
+import Gdk from "gi://Gdk"
 import { createPoll } from "ags/time"
 import Tray from "gi://AstalTray"
 import Network from "gi://AstalNetwork"
-import Battery from "gi://AstalBattery"
+import Bluetooth from "gi://AstalBluetooth"
 import Mpris from "gi://AstalMpris"
-import { getHypr, STRIP, gotoWorkspace } from "../services/hypr"
-import { getWp, toggleMute } from "../services/audio"
+import { hyprWorkspaces, hyprFocusedWorkspace, hyprFocusedClient, gotoWorkspace, stepWorkspace } from "../services/hypr"
+import { defaultSpeaker } from "../services/audio"
+import { getBattery } from "../services/battery"
+import { getNotifd } from "../services/notif"
 import { togglePlay } from "../services/media"
+import { toggleWindow as toggle } from "../services/shell"
+import { config } from "../services/config"
+import { cpu, mem, temp } from "../services/sysinfo"
+import { pct } from "../lib/sysinfo"
+import { toggleRecording } from "../services/system"
+import { barItems } from "../services/plugins"
+import { updates } from "../services/updates"
+import { openSettings } from "./settings/SettingsApp"
+import Visualizer from "./Visualizer"
+import { guarded } from "../services/health"
+
+const RECORD_PID = `${GLib.get_user_cache_dir()}/ypsilon/record.pid`
 
 function Workspaces() {
-  const hypr = getHypr()
-  const spaces = createBinding(hypr, "workspaces")
-  const focused = createBinding(hypr, "focusedWorkspace")
+  const spaces = hyprWorkspaces()
+  const focused = hyprFocusedWorkspace()
 
-  const occupied = createComputed(() => new Set(spaces().map((w) => w.id)))
-  const activeId = createComputed(() => focused()?.id ?? -1)
-  const state = createComputed(() => ({ active: activeId(), occ: occupied() }))
+  // fixed strip + any occupied workspace beyond it (e.g. 7), sorted
+  const ids = createComputed(() => {
+    const all = new Set<number>(Array.from({ length: config().workspaces }, (_, i) => i + 1))
+    for (const w of spaces()) if (w.id > 0) all.add(w.id)
+    return [...all].sort((a, b) => a - b)
+  })
+  const state = createComputed(() => ({ active: focused()?.id ?? -1, occ: new Set(spaces().map((w) => w.id)) }))
+
+  // scroll over the strip to step workspaces
+  const scroll = (box: Gtk.Box) => {
+    const c = new Gtk.EventControllerScroll({ flags: Gtk.EventControllerScrollFlags.VERTICAL })
+    c.connect("scroll", (_c: unknown, _dx: number, dy: number) => {
+      stepWorkspace(dy > 0 ? 1 : -1)
+      return true
+    })
+    box.add_controller(c)
+  }
 
   return (
-    <box class="ws-strip" spacing={4}>
-      {STRIP.map((id) => (
-        <button
-          class={state((s) => `ws-btn${id === s.active ? " active" : ""}${s.occ.has(id) ? " occupied" : ""}`)}
-          label={String(id)}
-          onClicked={() => gotoWorkspace(id)}
-        />
-      ))}
+    <box class="ws-strip" spacing={3} $={scroll}>
+      <For each={ids}>
+        {(id) => (
+          <button
+            class={state((s) => `ws-btn${id === s.active ? " active" : ""}${s.occ.has(id) ? " occupied" : ""}`)}
+            label={String(id)}
+            onClicked={() => gotoWorkspace(id)}
+          />
+        )}
+      </For>
     </box>
   )
+}
+
+function ActiveWindow() {
+  const focused = hyprFocusedClient()
+  const title = createComputed(() => (focused()?.title ?? "").slice(0, 46))
+  return (
+    <label
+      class="window-title"
+      visible={createComputed(() => config().bar.showWindowTitle && title() !== "")}
+      label={title}
+    />
+  )
+}
+
+// official AGS pattern: the dbusmenu action group can be replaced at runtime
+function initTray(btn: Gtk.MenuButton, item: Tray.TrayItem) {
+  const sync = () => {
+    btn.menuModel = item.menuModel
+    btn.insert_action_group("dbusmenu", item.actionGroup)
+  }
+  sync()
+  item.connect("notify::action-group", sync)
+  item.connect("notify::menu-model", sync)
 }
 
 function TrayBox() {
-  const tray = Tray.get_default()
-  const items = createBinding(tray, "items")
+  const items = createBinding(Tray.get_default(), "items")
   return (
-    <box class="tray-box" spacing={2}>
+    <box class="tray-box" spacing={2} visible={config((c) => c.bar.showTray)}>
       <For each={items}>
         {(item) => (
-          <button
-            class="tray-btn"
-            tooltipText={item.title || "tray"}
-            onClicked={() => {
-              try {
-                item.activate(0, 0)
-              } catch (e) {
-                print(`ypsilon tray: ${e}`)
-              }
-            }}
-          >
-            <image gicon={createBinding(item, "gicon")} />
-          </button>
+          <menubutton class="tray-btn" tooltipMarkup={createBinding(item, "tooltipMarkup")} $={(self) => initTray(self, item)}>
+            <image gicon={createBinding(item, "gicon")} pixelSize={16} />
+          </menubutton>
         )}
       </For>
-      {<label class="tray-empty" visible={items((l) => l.length === 0)} label="no tray" />}
     </box>
   )
 }
 
-function NetPill() {
-  const net = Network.get_default()
-  const wifi = createBinding(net, "wifi")
-  const ssid = createComputed(() => wifi()?.ssid || "offline")
-  return (
-    <button class="pill-btn" onClicked={() => app.get_window("ypsilon-control")?.set_visible(true)}>
-      <label class="status-sub" label={ssid((s) => `wifi ${s}`)} />
-    </button>
-  )
-}
-
-function VolPill() {
-  const speaker = createBinding(getWp().audio, "defaultSpeaker")
-  const pct = createComputed(() => (speaker() ? Math.round(speaker().volume * 100) : 0))
-  const muted = createComputed(() => (speaker() ? speaker().mute : false))
-  return (
-    <button class="pill-btn" onClicked={toggleMute}>
-      <label class="status-sub" label={pct((v) => (muted() ? "muted" : `vol ${v}`))} />
-    </button>
-  )
-}
-
-function BatPill() {
-  const bat = Battery.get_default()
+function BatteryPill() {
+  const bat = getBattery()
+  if (!bat) return <box visible={false} /> // no UPower: no battery widget
   const pct = createBinding(bat, "percentage")
-  const icon = createComputed(() => {
-    const v = pct()
-    if (v > 0.8) return "battery-full-symbolic"
-    if (v > 0.4) return "battery-good-symbolic"
-    if (v > 0.15) return "battery-low-symbolic"
-    return "battery-caution-symbolic"
-  })
   return (
-    <box class="pill-btn" spacing={4}>
-      <image iconName={icon} pixelSize={14} />
+    <box spacing={4} visible={createBinding(bat, "isPresent")}>
+      <image iconName={createBinding(bat, "batteryIconName")} pixelSize={15} />
       <label class="status-sub" label={pct((v) => `${Math.round(v * 100)}%`)} />
     </box>
+  )
+}
+
+function Status() {
+  const net = Network.get_default()
+  const wifi = createBinding(net, "wifi")
+  const wired = createBinding(net, "wired")
+  const primary = createBinding(net, "primary")
+  // wired-only machines must not show a "wifi offline" icon
+  const netIcon = createComputed(() =>
+    primary() === Network.Primary.WIRED
+      ? wired()?.iconName || "network-wired-symbolic"
+      : wifi()?.iconName || (wired() ? "network-wired-disconnected-symbolic" : "network-wireless-offline-symbolic"),
+  )
+
+  const btOn = createBinding(Bluetooth.get_default(), "isPowered")
+  const speaker = defaultSpeaker()
+  const volIcon = createComputed(() => speaker()?.volumeIcon || "audio-volume-muted-symbolic")
+
+  return (
+    <button class="status-group" onClicked={() => toggle("ypsilon-control")} tooltipText="control center">
+      <box spacing={8}>
+        <image iconName={netIcon} pixelSize={15} />
+        <image iconName="bluetooth-active-symbolic" pixelSize={15} visible={btOn} />
+        <image iconName={volIcon} pixelSize={15} />
+        <BatteryPill />
+      </box>
+    </button>
+  )
+}
+
+function Sysinfo() {
+  return (
+    <button
+      class="sys-pill"
+      visible={config((c) => c.bar.showSysinfo)}
+      onClicked={() => toggle("ypsilon-dashboard")}
+      tooltipText={createComputed(() => `cpu ${pct(cpu())} · mem ${pct(mem())}${temp() === null ? "" : ` · ${temp()}°C`}`)}
+    >
+      <box spacing={10}>
+        <box spacing={4}>
+          <image iconName="computer-symbolic" pixelSize={13} />
+          <label class="status-sub" label={cpu((v) => pct(v))} />
+        </box>
+        <box spacing={4}>
+          <image iconName="drive-harddisk-symbolic" pixelSize={13} />
+          <label class="status-sub" label={mem((v) => pct(v))} />
+        </box>
+      </box>
+    </button>
+  )
+}
+
+function UpdatesBadge() {
+  const n = updates((l) => l.length)
+  return (
+    <button
+      class="icon-btn updates-btn"
+      visible={createComputed(() => config().bar.showUpdates && n() > 0)}
+      onClicked={() => openSettings("updates")}
+      tooltipText={n((c) => `${c} update${c === 1 ? "" : "s"} available`)}
+    >
+      <box spacing={5}>
+        <image iconName="software-update-available-symbolic" pixelSize={14} />
+        <label class="status-sub" label={n((c) => String(c))} />
+      </box>
+    </button>
+  )
+}
+
+function Bell() {
+  const notifd = getNotifd()
+  const list = createBinding(notifd, "notifications")
+  const dnd = createBinding(notifd, "dontDisturb")
+  const icon = dnd((d) => (d ? "notifications-disabled-symbolic" : "preferences-system-notifications-symbolic"))
+  return (
+    <button class="icon-btn" onClicked={() => toggle("ypsilon-notif-center")} tooltipText="notifications">
+      <box spacing={5}>
+        <image iconName={icon} pixelSize={15} />
+        <label class="badge" visible={list((l) => l.length > 0)} label={list((l) => String(l.length))} />
+      </box>
+    </button>
   )
 }
 
 function MediaMini() {
   const players = createBinding(Mpris.get_default(), "players")
   const one = createComputed(() => players().find((p) => p.available) ?? null)
+  const playing = createComputed(() => one()?.playbackStatus === Mpris.PlaybackStatus.PLAYING)
   return (
-    <box class="media-mini" spacing={6} visible={one((p) => p !== null)}>
-      <label class="accent" label="♪" />
+    <box class="media-mini" spacing={6} visible={createComputed(() => config().bar.showMedia && one() !== null)}>
+      <label class="accent" label="♪" visible={createComputed(() => !(config().bar.showVisualizer && playing()))} />
+      <box visible={config((c) => c.bar.showVisualizer)}>
+        <Visualizer width={44} height={14} when={playing} />
+      </box>
       <label class="media-title" label={one((p) => (p?.title || "—").slice(0, 28))} />
       <button
-        class="pill-btn"
-        label="play"
+        class="icon-btn"
         onClicked={() => {
           const p = one()
           if (p) togglePlay(p)
         }}
-      />
+      >
+        <image
+          iconName={playing((p) => (p ? "media-playback-pause-symbolic" : "media-playback-start-symbolic"))}
+          pixelSize={13}
+        />
+      </button>
     </box>
   )
 }
 
-export default function Bar(monitor: number) {
-  const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
-  const clock = createPoll("", 1000, 'date "+%a %d %b · %H:%M"')
+/** widgets contributed by plugins (api.bar.add); a failing widget only drops itself */
+function PluginSlot({ position }: { position: "left" | "center" | "right" }) {
+  const items = createComputed(() =>
+    barItems()
+      .filter((i) => i.position === position)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+  )
+  return (
+    <box class="plugin-slot" spacing={6}>
+      <For each={items}>
+        {(item) => guarded(`plugin ${item.pluginId} bar widget`, () => item.widget()) ?? <box />}
+      </For>
+    </box>
+  )
+}
 
-  const toggle = (name: string) => {
-    const w = app.get_window(name)
-    if (w) w.visible = !w.visible
-  }
+function RecordingDot() {
+  const recording = createPoll(false, 1000, () => GLib.file_test(RECORD_PID, GLib.FileTest.EXISTS))
+  return (
+    <button class="rec-btn" visible={recording} onClicked={toggleRecording} tooltipText="recording — click to stop">
+      <box spacing={6}>
+        <image iconName="media-record-symbolic" pixelSize={13} />
+        <label class="status-sub" label="REC" />
+      </box>
+    </button>
+  )
+}
+
+export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
+  let win: Astal.Window
+  // root windows are not destroyed automatically: when the monitor is unplugged, the parent
+  // <For> in app.tsx disposes this scope and we destroy the window (official AGS pattern)
+  onCleanup(() => win.destroy())
+  const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
+  const bottom = config().bar.position === "bottom" // position change needs a shell restart
+  const clock = createPoll("", 1000, () => {
+    const c = config().bar
+    const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%I:%M:%S %p" : "%I:%M %p"
+    return GLib.DateTime.new_now_local().format(`%a %d %b · ${time}`) ?? ""
+  })
 
   return (
     <window
+      $={(self) => (win = self)}
       visible
-      name={`ypsilon-bar-${monitor}`}
+      name={`ypsilon-bar-${gdkmonitor.connector}`}
       namespace="ypsilon-bar"
-      class="ypsilon-bar"
-      monitor={monitor}
+      class={`ypsilon-bar${bottom ? " bottom" : ""}`}
+      gdkmonitor={gdkmonitor}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      anchor={TOP | LEFT | RIGHT}
-      application={app}
+      anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
     >
-      <centerbox class="bar-inner">
+      <centerbox class={`bar-inner${bottom ? " bottom" : ""}`}>
         <box $type="start" class="bar-left" spacing={8}>
-          <button class="launch-btn" label="✦ apps" onClicked={() => toggle("ypsilon-launcher")} />
+          <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
+            <image iconName="view-app-grid-symbolic" pixelSize={15} />
+          </button>
           <Workspaces />
+          <ActiveWindow />
+          <PluginSlot position="left" />
         </box>
         <box $type="center" class="bar-center" spacing={10}>
-          <label class="clock" label={clock} />
+          <button onClicked={() => toggle("ypsilon-dashboard")}>
+            <label class="clock" label={clock} />
+          </button>
           <MediaMini />
+          <PluginSlot position="center" />
         </box>
         <box $type="end" class="bar-right" spacing={6}>
+          <PluginSlot position="right" />
+          <RecordingDot />
+          <Sysinfo />
+          <UpdatesBadge />
           <TrayBox />
-          <NetPill />
-          <VolPill />
-          <BatPill />
-          <button class="power-btn" label="power" onClicked={() => toggle("ypsilon-power")} />
+          <Bell />
+          <Status />
+          <button class="icon-btn power-btn" onClicked={() => toggle("ypsilon-power")} tooltipText="power">
+            <image iconName="system-shutdown-symbolic" pixelSize={15} />
+          </button>
         </box>
       </centerbox>
     </window>
-  ) as never
+  )
+}
+
+/** Minimal bar used when the real one fails to build: clock + launcher + a hint. */
+export function FallbackBar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
+  let win: Astal.Window
+  onCleanup(() => win.destroy())
+  const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
+  const clock = createPoll("", 1000, () => GLib.DateTime.new_now_local().format("%H:%M") ?? "")
+  return (
+    <window $={(self) => (win = self)} visible namespace="ypsilon-bar" class="ypsilon-bar" gdkmonitor={gdkmonitor} exclusivity={Astal.Exclusivity.EXCLUSIVE} anchor={TOP | LEFT | RIGHT}>
+      <centerbox class="bar-inner">
+        <button $type="start" class="icon-btn" onClicked={() => toggle("ypsilon-launcher")}>
+          <image iconName="view-app-grid-symbolic" pixelSize={15} />
+        </button>
+        <label $type="center" class="clock" label={clock} />
+        <label $type="end" class="status-sub" label="bar failed to load · ypsilon logs" />
+      </centerbox>
+    </window>
+  )
 }
