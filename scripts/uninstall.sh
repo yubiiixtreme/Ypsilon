@@ -5,6 +5,8 @@ ROOT=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
 SESSION=/usr/share/wayland-sessions/ypsilon.desktop
 
 echo "== Ypsilon uninstall =="
+# first hand the login screen back to your previous default session
+"$ROOT/scripts/default-session.sh" restore 2>/dev/null || true
 if [ -f "$SESSION" ]; then sudo rm -f "$SESSION" && echo "removed $SESSION"; else echo "no session entry"; fi
 
 # older versions linked ~/.config/ags -> repo/shell; only remove it if it points at us

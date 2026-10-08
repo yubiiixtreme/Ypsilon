@@ -57,6 +57,14 @@ expect "updates usage"   "usage: ypsilon updates run"  "$Y" updates bogus
 expect "toggle usage"    "usage: ypsilon toggle"         "$Y" toggle
 expect "record usage"    "usage: record.sh"              "$ROOT/scripts/record.sh" bogus
 
+# --- installers refuse piped stdin (regression: `yes | install.sh` looped on a numeric prompt
+#     and filled a RAM-backed /tmp with a 2.8 GB log); they must exit before any sudo/pacman ---
+for sc in install-deps.sh install.sh recover.sh; do
+  out=$(yes | timeout 5 "$ROOT/scripts/$sc" 2>&1); rc=$?
+  [ "$rc" = 2 ] && echo "$out" | grep -q "terminal" && ok || no "$sc must refuse piped stdin (rc=$rc: $(echo "$out" | head -1))"
+done
+expect "install bad flag" "unknown option" "$ROOT/scripts/install.sh" --frobnicate
+
 # --- supervisor: crash loop stops after 5 crashes, with a notification ---
 cat > "$T/bin/ags" <<'SH'
 #!/usr/bin/env bash

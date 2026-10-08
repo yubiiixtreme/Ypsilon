@@ -19,12 +19,17 @@ Your config is never touched — Ypsilon runs as its own login session, previews
 
 ```bash
 git clone https://github.com/yubiiixtreme/Ypsilon.git ~/Ypsilon && cd ~/Ypsilon
-./scripts/install-deps.sh      # pacman + AUR (aylurs-gtk-shell, libastal-meta)
-./scripts/ypsilon doctor       # every missing piece, with the exact fix
-./scripts/ypsilon try          # nested preview (uses ALT, exits with ALT+Shift+E)
-./scripts/install.sh           # adds an "Ypsilon" login session — undo anytime:
-./scripts/uninstall.sh
+./scripts/install.sh --make-default
 ```
+
+Run it **in a terminal** — it refuses piped input, so `yes | install.sh` can't loop. It installs only
+what's missing (**no system upgrade**; existing alternatives such as `tuned-ppd` are kept), runs every
+check, **boots Ypsilon in a nested window and requires the shell to report healthy**, and only then adds
+the "Ypsilon" login session and makes SDDM preselect it. Your old session stays in the login list:
+`scripts/default-session.sh restore` switches the default back, `scripts/uninstall.sh` removes it all.
+
+Separately: `ypsilon doctor` (what's missing + fix), `ypsilon try` (nested preview, ALT = modifier,
+ALT+Shift+E exits), `scripts/verify-live.sh`. Hit by an older installer? `scripts/recover.sh`.
 
 Non-Arch: `install-deps.sh` prints the package list for your distro. Everything lives in the repo and works from any clone location — move it and paths regenerate on next start.
 
