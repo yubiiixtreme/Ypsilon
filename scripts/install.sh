@@ -57,18 +57,12 @@ else
   [ -n "$MAKE_DEFAULT" ] && { echo "--make-default needs the live test; run this from your desktop."; exit 1; }
 fi
 
-step "5/6 login session"
-SH=$(command -v start-hyprland 2>/dev/null || true)
-if [ -n "$SH" ]; then
-  EXEC="$(readlink -f "$SH") -- -c \"$ROOT/hypr/ypsilon.conf\""   # watchdog wrapper, like the stock session
-else
-  EXEC="$(command -v Hyprland) -c \"$ROOT/hypr/ypsilon.conf\""
-fi
+step "5/6 login session (startup is logged to ~/.local/share/ypsilon/logs/)"
 sudo tee "$SESSION" >/dev/null <<DESKTOP
 [Desktop Entry]
 Name=Ypsilon
 Comment=Ypsilon desktop (Hyprland + AGS)
-Exec=$EXEC
+Exec=$ROOT/scripts/session.sh
 Type=Application
 DesktopNames=Hyprland
 DESKTOP
