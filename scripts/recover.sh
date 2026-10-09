@@ -6,7 +6,7 @@
 #
 #  1. stale pacman lock (only when no package manager is running)
 #  2. tuned-ppd replaced by power-profiles-daemon -> put tuned-ppd back
-#  3. Quickshell (Caelestia etc.) built against an older Qt than installed -> rebuild it
+#  3. Quickshell-based shells built against an older Qt than installed -> rebuild it
 #  4. kernel upgraded under you -> tell you to reboot (and that the LTS entry is a fallback)
 set -uo pipefail
 [ -t 0 ] || { echo "recover: run this in a terminal (it asks before every change)" >&2; exit 2; }
@@ -43,7 +43,7 @@ if [ -n "$qs" ] && pacman -Q qt6-base >/dev/null 2>&1; then
   built=$(date -d "$(pacman -Qi "$qs" | sed -n 's/^Build Date *: //p')" +%s 2>/dev/null || echo 0)
   qt=$(date -d "$(pacman -Qi qt6-base | sed -n 's/^Install Date *: //p')" +%s 2>/dev/null || echo 0)
   if [ "$built" -lt "$qt" ]; then
-    echo "$qs was built before your current Qt was installed — Quickshell shells (e.g. Caelestia) may crash."
+    echo "$qs was built before your current Qt was installed — other Quickshell-based shells may crash."
     if [ -n "$AUR" ] && ask "Rebuild $qs now with $AUR (takes a few minutes)?"; then
       "$AUR" -S --rebuild "$qs" && echo "$qs rebuilt"
     fi

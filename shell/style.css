@@ -49,6 +49,12 @@ button {
 .pill-btn:active, .icon-btn:active { background: @y_strong; }
 .pill-btn.on, .icon-btn.on { background: @y_strong; border-color: @y_primary; }
 
+.launch-logo {
+  font-size: 17px;
+  font-weight: 800;
+  color: @y_primary;
+}
+
 entry.search {
   background: @y_bg_alt;
   border: 1px solid @y_border;

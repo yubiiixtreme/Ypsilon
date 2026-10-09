@@ -277,7 +277,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       <centerbox class={`bar-inner${bottom ? " bottom" : ""}`}>
         <box $type="start" class="bar-left" spacing={8}>
           <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
-            <image iconName="view-app-grid-symbolic" pixelSize={15} />
+            <label class="launch-logo" label="✦" />
           </button>
           <Workspaces />
           <ActiveWindow />
@@ -316,8 +316,8 @@ export function FallbackBar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   return (
     <window $={(self) => (win = self)} visible namespace="ypsilon-bar" class="ypsilon-bar" gdkmonitor={gdkmonitor} exclusivity={Astal.Exclusivity.EXCLUSIVE} anchor={TOP | LEFT | RIGHT}>
       <centerbox class="bar-inner">
-        <button $type="start" class="icon-btn" onClicked={() => toggle("ypsilon-launcher")}>
-          <image iconName="view-app-grid-symbolic" pixelSize={15} />
+        <button $type="start" class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")}>
+          <label class="launch-logo" label="✦" />
         </button>
         <label $type="center" class="clock" label={clock} />
         <label $type="end" class="status-sub" label="bar failed to load · ypsilon logs" />
