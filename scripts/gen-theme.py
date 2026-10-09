@@ -208,6 +208,9 @@ def regenerate(active):
         extras(name, t)
     # extras/current/*: always the ACTIVE theme under fixed names (gitignored)
     extras(active, themes[active], os.path.join(EXTRA_DIR, "current"), plain_names=True)
+    # plain key=#hex for scripts (extras/fish_greeting.fish colours itself with it)
+    with open(os.path.join(EXTRA_DIR, "current", "palette.txt"), "w") as f:
+        f.write("".join("%s=%s\n" % (k, themes[active][k]) for k in ("primary", "accent", "fg", "muted")))
     with open(os.path.join(HYPR_DIR, "current.conf"), "w") as f:
         f.write("# GENERATED active theme: %s (via gen-theme.py --theme)\n" % active)
         f.write(theme_hypr(active, themes[active]).split("\n", 1)[1])

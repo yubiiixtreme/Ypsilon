@@ -4,7 +4,7 @@ import Gdk from "gi://Gdk"
 import GLib from "gi://GLib"
 import Graphene from "gi://Graphene"
 import { Astal } from "ags/gtk4"
-import { config } from "../services/config"
+import { config, configValue } from "../services/config"
 
 type Props = {
   /** window name used by `ags toggle <name>` */
@@ -100,7 +100,10 @@ export default function Popup({
         >
           <box
             $={(self) => (card = self)}
-            class={`popup-card ${variant === "sheet" ? "top-sheet" : variant === "panel" ? "panel" : "corner"}`}
+            class={configValue((c) => c.bar.position)(
+              // corner cards open just below a top bar instead of covering it
+              (pos) => `popup-card ${variant === "sheet" ? "top-sheet" : variant === "panel" ? "panel" : "corner"}${variant === "corner" && pos === "top" ? " under-bar" : ""}`,
+            )}
             orientation={Gtk.Orientation.VERTICAL}
             spacing={spacing}
           >

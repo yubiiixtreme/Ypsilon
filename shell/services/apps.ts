@@ -1,7 +1,9 @@
 // Ypsilon apps service — lazy AstalApps index, ranked by fuzzy match + launch habits.
 import Apps from "gi://AstalApps"
+import GLib from "gi://GLib"
 import { rank, frecency } from "../lib/rank"
-import { getUsage } from "./usage"
+import { getUsage, recordLaunch } from "./usage"
+import { detach } from "./system"
 
 let _apps: Apps.Apps | null = null
 
@@ -17,6 +19,15 @@ export function getApps() {
 }
 
 export const appId = (a: Apps.Application) => a.entry || a.name
+
+const hasGtkLaunch = GLib.find_program_in_path("gtk-launch") !== null
+
+/** launch detached from the shell (see `detach`), remembered for ranking */
+export function launchApp(a: Apps.Application) {
+  recordLaunch(appId(a))
+  if (a.entry && hasGtkLaunch) detach(`gtk-launch ${GLib.shell_quote(a.entry)}`)
+  else a.launch()
+}
 const now = () => Math.floor(Date.now() / 1000)
 
 export function queryApps(q: string, limit = 7): Apps.Application[] {

@@ -1,5 +1,7 @@
 import Gtk from "gi://Gtk"
+import Gdk from "gi://Gdk"
 import GLib from "gi://GLib"
+import GdkPixbuf from "gi://GdkPixbuf"
 import { createState, For } from "ags"
 import { execAsync } from "ags/process"
 import { cliPath, wallpaperSet } from "../services/system"
@@ -13,8 +15,27 @@ export const loadWallpapers = () =>
     .then((out) => setFiles(out.split("\n").filter(Boolean)))
     .catch((e) => print(`ypsilon wallpapers: ${e}`))
 
+// decoded at thumbnail size (2× for HiDPI): a 4K wallpaper would otherwise cost ~33 MB of
+// memory and a full-resolution decode per thumbnail every time the picker opens
+const THUMB_W = 380
+const THUMB_H = 220
+const thumbCache = new Map<string, Gdk.Texture>()
+function thumbTexture(path: string): Gdk.Texture | null {
+  let tex = thumbCache.get(path)
+  if (!tex) {
+    try {
+      tex = Gdk.Texture.new_for_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path, THUMB_W, THUMB_H * 2, true))
+      thumbCache.set(path, tex)
+    } catch (e) {
+      print(`ypsilon wallpapers: ${path}: ${e}`)
+      return null
+    }
+  }
+  return tex
+}
+
 const thumb = (path: string) => (pic: Gtk.Picture) => {
-  pic.set_filename(path)
+  pic.set_paintable(thumbTexture(path))
   pic.set_content_fit(Gtk.ContentFit.COVER)
   pic.set_overflow(Gtk.Overflow.HIDDEN) // clip to the css border-radius
 }

@@ -28,6 +28,18 @@ export function defaultSpeaker(): Accessor<Wp.Endpoint | null> {
   return a ? createBinding(a, "defaultSpeaker") : constant(null)
 }
 
+type SpeakerProp = "volume" | "mute" | "volumeIcon" | "description"
+/**
+ * One property of the default output, live. AstalWp hands out a placeholder endpoint at startup
+ * and fills that same object in once PipeWire answers (no notify::default-speaker), so reading
+ * `defaultSpeaker()?.volume` freezes at "muted, 0" — always bind through to the property.
+ */
+export function speakerProp<P extends SpeakerProp>(prop: P): Accessor<Wp.Endpoint[P] | null> {
+  const a = getAudio()
+  if (!a) return constant(null)
+  return createBinding(a, "defaultSpeaker", prop as SpeakerProp) as unknown as Accessor<Wp.Endpoint[P] | null>
+}
+
 export function audioList(prop: "speakers" | "microphones"): Accessor<Wp.Endpoint[]>
 export function audioList(prop: "streams"): Accessor<Wp.Stream[]>
 export function audioList(prop: "speakers" | "microphones" | "streams"): Accessor<Wp.Node[]> {

@@ -38,6 +38,8 @@ ypsilon — our DE CLI (v0.4)
   ypsilon plugin [list|enable ID|disable ID|new ID|run ID CMD|rescan]   plugins
   ypsilon settings [PAGE]           open the control panel (general appearance bar desktop input network
                                     bluetooth sound power updates plugins about)
+  ypsilon terminal                  open your terminal (Settings → Apps, else the first one installed)
+  ypsilon browser                   open your default web browser
   ypsilon term CMD...               run CMD in your terminal (config: terminal)
   ypsilon logs [--prev]             follow the shell log (--prev: log of the last crash)
   ypsilon health                    which shell components are running / failed
@@ -60,6 +62,8 @@ once() {
 }
 
 have() { command -v "$1" &>/dev/null; }
+# ours NAME — true when this session's `once NAME` process is alive
+ours() { local f=${XDG_RUNTIME_DIR:-/tmp}/ypsilon/${WAYLAND_DISPLAY:-wl}.$1.pid; [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null; }
 
 # stop NAME... (or everything this session started): each was setsid'd, so pid == process group
 stop_daemons() {
@@ -83,7 +87,8 @@ ensure_generated() {
 
 start() {
   ensure_generated
-  if [ -z "${YPSILON_NESTED:-}" ] && { pgrep -x hypridle >/dev/null 2>&1 || ags list 2>/dev/null | grep -q .; }; then
+  # (our own hypridle from this session is not "another session": `ypsilon restart` must not stall)
+  if [ -z "${YPSILON_NESTED:-}" ] && ! ours hypridle && { pgrep -x hypridle >/dev/null 2>&1 || ags list 2>/dev/null | grep -q .; }; then
     echo "note: another desktop session seems active (hypridle/ags already running)." >&2
     echo "Prefer 'ypsilon try' for a safe nested preview — continuing in 3s (Ctrl+C to stop)." >&2
     sleep 3
@@ -318,6 +323,16 @@ case "$cmd" in
   health) ags request -i ypsilon health 2>/dev/null || echo "shell not running (ypsilon start)";;
   restart) ags quit -i ypsilon >/dev/null 2>&1; stop_daemons shell >/dev/null; sleep 0.3; start; echo "shell restarted";;
   term) shift; term "$@";;
+  terminal)
+    t=$(pick_terminal)
+    [ -n "$t" ] || { have notify-send && notify-send -a Ypsilon "No terminal found" "Install foot or kitty, or set one in Settings → Apps"; exit 1; }
+    read -ra argv <<< "$t"; exec "${argv[@]}";;
+  browser)
+    # the browser you picked as default (xdg-settings), else the first one installed
+    d=$(xdg-settings get default-web-browser 2>/dev/null || true)
+    if [ -n "$d" ] && have gtk-launch && gtk-launch "$d" >/dev/null 2>&1; then exit 0; fi
+    for b in firefox chromium google-chrome-stable brave zen-browser librewolf vivaldi-stable epiphany; do have "$b" && exec "$b"; done
+    have notify-send && notify-send -a Ypsilon "No web browser found" "Install one, e.g. firefox or chromium"; exit 1;;
   settings) ags request -i ypsilon settings "${2:-}" >/dev/null 2>&1 || echo "shell not running (ypsilon start)";;
   plugin|plugins)
     case "${2:-list}" in

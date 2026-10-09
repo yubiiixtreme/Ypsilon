@@ -1,9 +1,9 @@
 import Gtk from "gi://Gtk"
 import { createComputed, For, With } from "ags"
-import { execAsync } from "ags/process"
 import { plugins, setPluginEnabled, rescanPlugins, pluginSettingsAccessor, type PluginInfo } from "../../services/plugins"
 import { writeConfig } from "../../services/config"
 import { CONFIG_DIR } from "../../services/config"
+import { openUri } from "../../services/system"
 import type { SettingSpec } from "../../lib/plugins"
 import { Section, SettingsRow, ButtonRow, debouncedWrite } from "./controls"
 
@@ -95,7 +95,7 @@ export default function PluginsPage() {
       <Section title="Manage">
         <ButtonRow label="Rescan plugin folders" sub={count((n) => `${n} running`)} button="Rescan" icon="view-refresh-symbolic" onClicked={rescanPlugins} />
         <ButtonRow label="Your plugins folder" sub={`${CONFIG_DIR}/plugins — create one with: ypsilon plugin new my-plugin`} button="Open" icon="folder-symbolic"
-          onClicked={() => execAsync(["xdg-open", `${CONFIG_DIR}/plugins`]).catch(() => {})} />
+          onClicked={() => openUri(`${CONFIG_DIR}/plugins`)} />
       </Section>
       <With value={count}>{() => <box />}</With>
     </box>

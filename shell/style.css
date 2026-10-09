@@ -16,10 +16,11 @@ window.ypsilon-osd {
   background: transparent;
 }
 
-/* autohide grab handle: a faint 3px sliver at the screen edge */
+/* autohide hover strip at the screen edge. Must not be fully transparent: an empty GTK4 layer
+ * surface gets no pointer events and spins the shell + compositor (1% black is invisible). */
 .sliver {
   min-height: 3px;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.01);
 }
 
 label { color: @y_fg; }
@@ -59,23 +60,11 @@ button {
   font-size: 17px;
   font-weight: 800;
   color: @y_primary;
-  animation: logo-breathe 3.2s ease-in-out infinite;
+  /* no infinite animations anywhere: each one re-renders the bar every frame (and Hyprland re-blurs
+   * behind it) for as long as the shell runs — that is what spins laptop fans up */
+  transition: color 200ms ease;
 }
-
-@keyframes logo-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.75; }
-}
-
-@keyframes logo-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.75; }
-}
-
-@keyframes logo-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.75; }
-}
+.launch-btn:hover .launch-logo { color: @y_accent; }
 
 entry.search {
   background: @y_bg_alt;
@@ -202,6 +191,7 @@ button:hover .clock { background: @y_soft; }
 }
 .popup-card.top-sheet { margin-top: 90px; min-width: 460px; }
 .popup-card.corner { margin: 12px; min-width: 360px; }
+.popup-card.corner.under-bar { margin-top: 74px; }
 
 /* launcher */
 .app-row {
@@ -253,10 +243,8 @@ button:hover .clock { background: @y_soft; }
   background: @y_bad;
   border-radius: 9999px;
   padding: 3px 10px;
-  animation: rec-pulse 1.4s ease-in-out infinite;
 }
 .rec-btn label, .rec-btn image { color: @y_bg; font-weight: 800; }
-@keyframes rec-pulse { 0% { opacity: 1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
 
 /* notifications */
 .notif-row {
@@ -336,6 +324,7 @@ window.ypsilon-osd .osd-inner {
   transition: background 180ms ease;
 }
 .sys-pill:hover { background: @y_soft; }
+.sys-key { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: @y_primary; }
 
 /* wallpapers */
 .thumb-btn { border-radius: 14px; padding: 3px; border: 2px solid transparent; transition: border-color 160ms ease; }

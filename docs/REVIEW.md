@@ -64,9 +64,19 @@ Before pushing: `./scripts/check.sh && tests/checkers.test.sh`. `.github/workflo
 Ypsilon does not edit your Hyprland config (yours may be Lua). `./scripts/install.sh` registers an
 "Ypsilon" login session; pick it at your display manager. Revert: delete `/usr/share/wayland-sessions/ypsilon.desktop`.
 
+## Learned from live runs
+
+- A layer window whose content renders nothing (e.g. a fully transparent hover strip) never gets a
+  real surface: Hyprland lists it as an empty 200×200 layer, it receives no pointer events, and the
+  shell re-renders it in a loop (~120 wakeups/s, plus constant compositor frames → hot laptop).
+  Anything meant to be invisible but hoverable needs a tiny alpha (`rgba(0,0,0,0.01)`).
+- GTK4 windows grow but never shrink on their own: after hiding content, `set_default_size(1, 1)`
+  (not `-1, -1`, which also drops the full-width stretch of a left+right anchored bar).
+- `ags/file` `monitorFile` stops for good once the file is deleted → `services/watch.ts` watches the folder.
+- No infinite CSS animations: each one redraws its window every frame for as long as the shell runs.
+
 ## Known gaps
 
 - hyprlock colors follow the theme (lock-current.conf) but hyprlock itself can't be validated offline.
 - Wi-Fi password is passed to `nmcli` as an argument (briefly visible in `ps`).
-- Hypr paths in `keybinds.conf`/`hypridle.conf`/`hyprlock.conf` assume `~/Projects/Ypsilon`.
 - Single-monitor assumption for popups (they open on the focused output by compositor default).

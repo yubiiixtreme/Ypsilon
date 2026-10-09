@@ -35,7 +35,7 @@ export type Config = {
 export const DEFAULTS: Config = {
   bar: {
     position: "top",
-    autohide: true,
+    autohide: false,
     clock24h: true,
     showSeconds: false,
     showWindowTitle: true,

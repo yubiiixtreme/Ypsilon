@@ -4,7 +4,8 @@ import { execAsync } from "ags/process"
 import Network from "gi://AstalNetwork"
 import Bluetooth from "gi://AstalBluetooth"
 import PowerProfiles from "gi://AstalPowerProfiles"
-import { defaultSpeaker, setVolume, toggleMute } from "../services/audio"
+import { speakerProp, setVolume, toggleMute } from "../services/audio"
+import { shortDeviceName } from "../lib/audio"
 import { brightness, refreshBrightness, setBrightness } from "../services/brightness"
 import { getNotifd, setDnd } from "../services/notif"
 import { currentTheme, setCurrentTheme, themeNames, setAutoTheme } from "../services/theme"
@@ -71,7 +72,7 @@ function PluginTiles() {
     <box orientation={Gtk.Orientation.VERTICAL} spacing={8} visible={rows((r) => r.length > 0)}>
       <For each={rows}>
         {(pair) => (
-          <box spacing={8}>
+          <box spacing={8} homogeneous>
             {pair.map(
               (t) =>
                 guarded(`plugin ${t.pluginId} tile`, () => (
@@ -93,10 +94,9 @@ export default function ControlCenter() {
     if (p === "wifi") refreshWifi()
   }
 
-  const speaker = defaultSpeaker()
-  const vol = createComputed(() => speaker()?.volume ?? 0)
-  const volIcon = createComputed(() => speaker()?.volumeIcon || "audio-volume-medium-symbolic")
-  const outName = createComputed(() => (speaker()?.description || "output").slice(0, 22))
+  const vol = speakerProp("volume")((v) => v ?? 0)
+  const volIcon = speakerProp("volumeIcon")((i) => i || "audio-volume-medium-symbolic")
+  const outName = speakerProp("description")((d) => shortDeviceName(d))
 
   const wifi = createBinding(Network.get_default(), "wifi")
   const ssid = createComputed(() => (wifi()?.enabled ? wifi()?.ssid || "on" : "off"))
@@ -126,19 +126,19 @@ export default function ControlCenter() {
       <box orientation={Gtk.Orientation.VERTICAL} spacing={12} visible={page((p) => p === "main")}>
         <label class="title" label="control" halign={Gtk.Align.START} />
 
-        <box spacing={8}>
+        <box spacing={8} homogeneous>
           <Tile icon="network-wireless-symbolic" title="Wi-Fi" sub={ssid} on={wifiOn} onClicked={toggleWifi} onMore={go("wifi")} />
           <Tile icon="bluetooth-symbolic" title="Bluetooth" sub={bt((o) => (o ? "on" : "off"))} on={bt} onClicked={() => toggleBt(bt())} onMore={go("bt")} />
         </box>
-        <box spacing={8}>
+        <box spacing={8} homogeneous>
           <Tile icon={volIcon} title="Sound" sub={outName} on={always} onClicked={toggleMute} onMore={go("audio")} />
           <Tile icon="notifications-disabled-symbolic" title="Do not disturb" sub={dnd((d) => (d ? "on" : "off"))} on={dnd} onClicked={() => setDnd(!dnd())} />
         </box>
-        <box spacing={8}>
+        <box spacing={8} homogeneous>
           <Tile icon="night-light-symbolic" title="Night light" sub={night.state} on={night.state((s) => s === "on")} onClicked={night.flip} />
           <Tile icon="applications-games-symbolic" title="Game mode" sub={game.state} on={game.state((s) => s === "on")} onClicked={game.flip} />
         </box>
-        <box spacing={8}>
+        <box spacing={8} homogeneous>
           <Tile icon="emoji-food-symbolic" title="Caffeine" sub={caffeine.state((c) => (c === "on" ? "staying awake" : "off"))} on={caffeine.state((c) => c === "on")} onClicked={caffeine.flip} />
           <Tile icon="applications-graphics-symbolic" title="Wallpaper colors" sub={currentTheme((t) => (t === "ypsilon-auto" ? "on" : "generate"))} on={currentTheme((t) => t === "ypsilon-auto")} onClicked={() => setAutoTheme().then(() => setCurrentTheme("ypsilon-auto"))} />
         </box>

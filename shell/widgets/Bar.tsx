@@ -1,7 +1,7 @@
 import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
 import { Astal } from "ags/gtk4"
-import { createBinding, createComputed, createState, For, onCleanup } from "ags"
+import { createBinding, createComputed, createEffect, createState, For, onCleanup } from "ags"
 import Gdk from "gi://Gdk"
 import { createPoll } from "ags/time"
 import Tray from "gi://AstalTray"
@@ -9,12 +9,12 @@ import Network from "gi://AstalNetwork"
 import Bluetooth from "gi://AstalBluetooth"
 import Mpris from "gi://AstalMpris"
 import { hyprWorkspaces, hyprFocusedWorkspace, hyprFocusedClient, gotoWorkspace, stepWorkspace } from "../services/hypr"
-import { defaultSpeaker } from "../services/audio"
+import { speakerProp } from "../services/audio"
 import { getBattery } from "../services/battery"
 import { getNotifd } from "../services/notif"
 import { togglePlay } from "../services/media"
 import { toggleWindow as toggle } from "../services/shell"
-import { config } from "../services/config"
+import { config, configValue } from "../services/config"
 import { cpu, mem, temp } from "../services/sysinfo"
 import { pct } from "../lib/sysinfo"
 import { toggleRecording } from "../services/system"
@@ -23,6 +23,7 @@ import { updates } from "../services/updates"
 import { openSettings } from "./settings/SettingsApp"
 import Visualizer from "./Visualizer"
 import { guarded } from "../services/health"
+import { watchFile } from "../services/watch"
 
 const RECORD_PID = `${GLib.get_user_cache_dir()}/ypsilon/record.pid`
 
@@ -76,7 +77,7 @@ function ActiveWindow() {
 }
 
 // official AGS pattern: the dbusmenu action group can be replaced at runtime
-function initTray(btn: Gtk.MenuButton, item: Tray.TrayItem) {
+function initTray(btn: Gtk.MenuButton, item: Tray.TrayItem, onMenu?: (open: boolean) => void) {
   const sync = () => {
     btn.menuModel = item.menuModel
     btn.insert_action_group("dbusmenu", item.actionGroup)
@@ -84,15 +85,17 @@ function initTray(btn: Gtk.MenuButton, item: Tray.TrayItem) {
   sync()
   item.connect("notify::action-group", sync)
   item.connect("notify::menu-model", sync)
+  // an autohiding bar must stay put while one of its menus is open
+  btn.connect("notify::active", () => onMenu?.(btn.active))
 }
 
-function TrayBox() {
+function TrayBox({ onMenu }: { onMenu?: (open: boolean) => void }) {
   const items = createBinding(Tray.get_default(), "items")
   return (
     <box class="tray-box" spacing={2} visible={config((c) => c.bar.showTray)}>
       <For each={items}>
         {(item) => (
-          <menubutton class="tray-btn" tooltipMarkup={createBinding(item, "tooltipMarkup")} $={(self) => initTray(self, item)}>
+          <menubutton class="tray-btn" tooltipMarkup={createBinding(item, "tooltipMarkup")} $={(self) => initTray(self, item, onMenu)}>
             <image gicon={createBinding(item, "gicon")} pixelSize={16} />
           </menubutton>
         )}
@@ -126,8 +129,7 @@ function Status() {
   )
 
   const btOn = createBinding(Bluetooth.get_default(), "isPowered")
-  const speaker = defaultSpeaker()
-  const volIcon = createComputed(() => speaker()?.volumeIcon || "audio-volume-muted-symbolic")
+  const volIcon = speakerProp("volumeIcon")((i) => i || "audio-volume-muted-symbolic")
 
   return (
     <button class="status-group" onClicked={() => toggle("ypsilon-control")} tooltipText="control center">
@@ -151,11 +153,11 @@ function Sysinfo() {
     >
       <box spacing={10}>
         <box spacing={4}>
-          <image iconName="computer-symbolic" pixelSize={13} />
+          <label class="sys-key" label="cpu" />
           <label class="status-sub" label={cpu((v) => pct(v))} />
         </box>
         <box spacing={4}>
-          <image iconName="drive-harddisk-symbolic" pixelSize={13} />
+          <label class="sys-key" label="ram" />
           <label class="status-sub" label={mem((v) => pct(v))} />
         </box>
       </box>
@@ -239,7 +241,10 @@ function PluginSlot({ position }: { position: "left" | "center" | "right" }) {
 }
 
 function RecordingDot() {
-  const recording = createPoll(false, 1000, () => GLib.file_test(RECORD_PID, GLib.FileTest.EXISTS))
+  // event driven (no polling): record.sh creates/deletes the pid file
+  const isRecording = () => GLib.file_test(RECORD_PID, GLib.FileTest.EXISTS)
+  const [recording, setRecording] = createState(isRecording())
+  onCleanup(watchFile(RECORD_PID, () => setRecording(isRecording())))
   return (
     <button class="rec-btn" visible={recording} onClicked={toggleRecording} tooltipText="recording — click to stop">
       <box spacing={6}>
@@ -252,100 +257,136 @@ function RecordingDot() {
 
 export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   let win: Astal.Window
-  // root windows are not destroyed automatically: when the monitor is unplugged, the parent
-  // <For> in app.tsx disposes this scope and we destroy the window (official AGS pattern)
   const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
-  const bottom = config().bar.position === "bottom" // position change needs a shell restart
-  const autoHide = config().bar.autohide // same: restart to apply
-  const [revealed, setRevealed] = createState(!autoHide)
+  // position and autohide apply live from Settings → Bar (no restart)
+  const bottom = configValue((c) => c.bar.position === "bottom")
+  const autohide = configValue((c) => c.bar.autohide)
+  const [revealed, setRevealed] = createState(true)
+
+  // Autohide: while hidden the window shrinks to a 3px strip at the screen edge; the pointer
+  // entering it reveals the bar, leaving the bar hides it again. The strip needs a (practically
+  // invisible) background: a fully transparent GTK4 layer surface never gets a buffer, receives
+  // no pointer events and keeps the shell + compositor busy re-rendering.
+  let inside = false
+  let menusOpen = 0
   let hideTimer = 0
   const cancelHide = () => {
-    if (hideTimer) {
-      GLib.source_remove(hideTimer)
-      hideTimer = 0
-    }
+    if (hideTimer) GLib.source_remove(hideTimer)
+    hideTimer = 0
   }
-  const showBar = () => {
+  const show = () => {
     cancelHide()
     setRevealed(true)
   }
-  const armHide = () => {
-    if (!autoHide) return
+  const armHide = (ms = 450) => {
     cancelHide()
-    hideTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 450, () => {
+    if (!autohide.peek()) return
+    hideTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
       hideTimer = 0
-      setRevealed(false)
+      if (!inside && menusOpen === 0) setRevealed(false)
       return GLib.SOURCE_REMOVE
     })
   }
-  // hover tracking without JSX signal props: plain GTK controllers (Gtk-4 API, no guessing)
-  const hover = (enter: () => void, leave?: () => void) => (box: Gtk.Box | Gtk.CenterBox) => {
+  const track = (w: Astal.Window) => {
     const c = new Gtk.EventControllerMotion()
-    c.connect("enter", enter)
-    if (leave) c.connect("leave", leave)
-    box.add_controller(c)
+    c.connect("enter", () => {
+      inside = true
+      show()
+    })
+    c.connect("leave", () => {
+      inside = false
+      armHide()
+    })
+    w.add_controller(c)
   }
+  const onMenu = (open: boolean) => {
+    menusOpen = Math.max(0, menusOpen + (open ? 1 : -1))
+    if (!open) armHide()
+  }
+  // GTK windows grow but never shrink by themselves: give the space back once the bar is gone,
+  // otherwise an invisible strip would keep eating clicks at the top of your windows
+  // (1×1, not -1×-1: "unset" would also drop the full-width stretch and leave a narrow bar)
+  const shrink = (r: Gtk.Revealer) => {
+    if (!r.childRevealed) win.set_default_size(1, 1)
+  }
+  // turning autohide on hides the bar after a moment (also a hint at login that it is there);
+  // turning it off brings it back for good
+  createEffect(() => (autohide() ? armHide(1500) : show()))
+  // peek on workspace switches so you always see where you landed
+  const focusedWs = hyprFocusedWorkspace()
+  onCleanup(
+    focusedWs.subscribe(() => {
+      if (!autohide.peek() || inside) return
+      show()
+      armHide(1200)
+    }),
+  )
+  // root windows are not destroyed automatically: when the monitor is unplugged, the parent
+  // <For> in app.tsx disposes this scope and we destroy the window (official AGS pattern)
   onCleanup(() => {
     cancelHide()
     win.destroy()
   })
+
   const clock = createPoll("", 1000, () => {
     const c = config().bar
     const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%I:%M:%S %p" : "%I:%M %p"
     return GLib.DateTime.new_now_local().format(`%a %d %b · ${time}`) ?? ""
   })
 
-  const revealAnim = bottom ? Gtk.RevealerTransitionType.SLIDE_UP : Gtk.RevealerTransitionType.SLIDE_DOWN
-
   return (
     <window
-      $={(self) => (win = self)}
+      $={(self) => {
+        win = self
+        track(self)
+      }}
       visible
       name={`ypsilon-bar-${gdkmonitor.connector}`}
       namespace="ypsilon-bar"
-      class={`ypsilon-bar${bottom ? " bottom" : ""}`}
+      class={bottom((b) => `ypsilon-bar${b ? " bottom" : ""}`)}
       gdkmonitor={gdkmonitor}
-      exclusivity={autoHide ? Astal.Exclusivity.IGNORE : Astal.Exclusivity.EXCLUSIVE}
-      anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
+      exclusivity={autohide((a) => (a ? Astal.Exclusivity.IGNORE : Astal.Exclusivity.EXCLUSIVE))}
+      anchor={bottom((b) => (b ? BOTTOM : TOP) | LEFT | RIGHT)}
     >
       <box orientation={Gtk.Orientation.VERTICAL}>
-        {autoHide && !bottom && <box class="sliver" $={hover(showBar)} />}
+        <box class="sliver" visible={createComputed(() => autohide() && !bottom())} />
         <revealer
           revealChild={revealed}
-          transitionType={revealAnim}
-          transitionDuration={250}
+          transitionType={bottom((b) => (b ? Gtk.RevealerTransitionType.SLIDE_UP : Gtk.RevealerTransitionType.SLIDE_DOWN))}
+          transitionDuration={configValue((c) => (c.reduceMotion ? 0 : 220))}
+          onNotifyChildRevealed={shrink}
         >
-          <centerbox class={`bar-inner${bottom ? " bottom" : ""}`} $={hover(showBar, armHide)}>
-        <box $type="start" class="bar-left" spacing={8}>
-          <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
-            <label class="launch-logo" label="✦" />
-          </button>
-          <Workspaces />
-          <ActiveWindow />
-          <PluginSlot position="left" />
-        </box>
-        <box $type="center" class="bar-center" spacing={10}>
-          <button onClicked={() => toggle("ypsilon-dashboard")}>
-            <label class="clock" label={clock} />
-          </button>
-          <MediaMini />
-          <PluginSlot position="center" />
-        </box>
-        <box $type="end" class="bar-right" spacing={6}>
-          <PluginSlot position="right" />
-          <RecordingDot />
-          <Sysinfo />
-          <UpdatesBadge />
-          <TrayBox />
-          <Bell />
-          <Status />
-          <button class="icon-btn power-btn" onClicked={() => toggle("ypsilon-power")} tooltipText="power">
-            <image iconName="system-shutdown-symbolic" pixelSize={15} />
-          </button>
-        </box>
-      </centerbox>
+          <centerbox class={bottom((b) => `bar-inner${b ? " bottom" : ""}`)}>
+            <box $type="start" class="bar-left" spacing={8}>
+              <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
+                <label class="launch-logo" label="✦" />
+              </button>
+              <Workspaces />
+              <ActiveWindow />
+              <PluginSlot position="left" />
+            </box>
+            <box $type="center" class="bar-center" spacing={10}>
+              <button onClicked={() => toggle("ypsilon-dashboard")} tooltipText="dashboard">
+                <label class="clock" label={clock} />
+              </button>
+              <MediaMini />
+              <PluginSlot position="center" />
+            </box>
+            <box $type="end" class="bar-right" spacing={6}>
+              <PluginSlot position="right" />
+              <RecordingDot />
+              <Sysinfo />
+              <UpdatesBadge />
+              <TrayBox onMenu={onMenu} />
+              <Bell />
+              <Status />
+              <button class="icon-btn power-btn" onClicked={() => toggle("ypsilon-power")} tooltipText="power">
+                <image iconName="system-shutdown-symbolic" pixelSize={15} />
+              </button>
+            </box>
+          </centerbox>
         </revealer>
-        {autoHide && bottom && <box class="sliver" $={hover(showBar)} />}
+        <box class="sliver" visible={createComputed(() => autohide() && bottom())} />
       </box>
     </window>
   )

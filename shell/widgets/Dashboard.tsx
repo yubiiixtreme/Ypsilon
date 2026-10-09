@@ -1,7 +1,7 @@
 import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
-import { Accessor } from "ags"
-import { createPoll } from "ags/time"
+import { Accessor, createState } from "ags"
+import { pollWhileMapped } from "../services/watch"
 import { cpu, mem, temp, cpuHistory, memHistory } from "../services/sysinfo"
 import Graph from "./Graph"
 import WeatherCard from "./WeatherCard"
@@ -31,11 +31,16 @@ function Stat(props: { label: string; value: Accessor<number>; text: Accessor<st
 // Toggle: click the bar clock, or SUPER+Shift+C.
 export default function Dashboard() {
   let cal: Gtk.Calendar | null = null
-  const time = createPoll("", 1000, () => {
-    const f = config().bar.clock24h ? "%H:%M" : "%I:%M %p"
-    return GLib.DateTime.new_now_local().format(f) ?? ""
-  })
-  const date = createPoll("", 30000, () => GLib.DateTime.new_now_local().format("%A, %d %B") ?? "")
+  // clock + date tick only while the dashboard is open
+  const [time, setTime] = createState("")
+  const [date, setDate] = createState("")
+  const [hello, setHello] = createState("")
+  const tick = () => {
+    const now = GLib.DateTime.new_now_local()
+    setHello(`${greeting()}, ${GLib.get_user_name()}`)
+    setTime(now.format(config.peek().bar.clock24h ? "%H:%M" : "%I:%M %p") ?? "")
+    setDate(now.format("%A, %d %B") ?? "")
+  }
 
   return (
     <Popup
@@ -45,8 +50,8 @@ export default function Dashboard() {
       spacing={14}
       onShow={() => cal?.select_day(GLib.DateTime.new_now_local())}
     >
-      <box orientation={Gtk.Orientation.VERTICAL}>
-        <label class="sub" label={`${greeting()}, ${GLib.get_user_name()}`} halign={Gtk.Align.START} />
+      <box orientation={Gtk.Orientation.VERTICAL} $={(self) => pollWhileMapped(self, 1000, tick)}>
+        <label class="sub" label={hello} halign={Gtk.Align.START} />
         <label class="big-clock" label={time} halign={Gtk.Align.START} />
         <label class="sub" label={date} halign={Gtk.Align.START} />
       </box>

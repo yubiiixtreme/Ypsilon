@@ -65,6 +65,23 @@ bindm = $mod, mouse:272, movewindow
   assert.ok(groupBinds(b).length >= 3)
 })
 
+test("keys: trailing comment is the description; mute is not mistaken for volume", () => {
+  const b = parseBinds(`$mod = SUPER
+bind = $mod, E, exec, thunar || dolphin   # Files
+bind = $mod, Q, killactive,#Close window
+bindl = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && ags request -i ypsilon osd volume
+bindel = , XF86AudioLowerVolume, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && ags request -i ypsilon osd volume
+bind = $mod, H, exec, echo ##not-a-comment
+`)
+  assert.deepEqual(b.map((x) => x.action), ["Files", "Close window", "mute", "volume down", "echo ##not-a-comment"])
+})
+
+test("keys: every bind in the REAL keybinds.conf has a human description", () => {
+  const conf = readFileSync(new URL("../hypr/core/keybinds.conf", import.meta.url), "utf8")
+  const missing = conf.split("\n").filter((l) => /^\s*bind[a-z]*\s*=/.test(l) && !/[^#]#(?!#)\s*\S/.test(l))
+  assert.deepEqual(missing, [], "add a trailing `# description` to these binds")
+})
+
 test("net: nmcli terse parsing + AP dedupe", () => {
   assert.deepEqual(splitTerse("yes:My\\:Net:80:WPA2"), ["yes", "My:Net", "80", "WPA2"])
   const saved = parseSavedWifi("Home:802-11-wireless\nWired connection 1:802-3-ethernet\nCafe\\:5G:802-11-wireless\n")
@@ -229,4 +246,14 @@ test("plugins: manifest validation + settings resolution", () => {
   const s = resolveSettings(r.manifest!.settings, { work: 500, sound: "yes", mode: "b", junk: 1 })
   assert.deepEqual(s, { work: 120, sound: true, mode: "b" })
   assert.deepEqual(resolveSettings(r.manifest!.settings, undefined), { work: 25, sound: true, mode: "a" })
+})
+
+import { shortDeviceName } from "../shell/lib/audio.ts"
+test("audio: device names a person recognises", () => {
+  assert.equal(shortDeviceName("Alder Lake PCH-P High Definition Audio Controller Speaker"), "Speaker")
+  assert.equal(shortDeviceName("Alder Lake PCH-P High Definition Audio Controller HDMI / DisplayPort 1 Output (Stereo)"), "HDMI / DisplayPort 1")
+  assert.equal(shortDeviceName("WH-1000XM4"), "WH-1000XM4")
+  assert.equal(shortDeviceName(""), "output")
+  assert.equal(shortDeviceName(null), "output")
+  assert.equal(shortDeviceName("A very long USB audio interface name here"), "A very long USB audio…")
 })

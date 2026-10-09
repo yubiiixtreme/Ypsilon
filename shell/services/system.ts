@@ -1,12 +1,24 @@
 // Ypsilon system actions — plain exec helpers, no daemons.
 import { execAsync } from "ags/process"
+import GLib from "gi://GLib"
 import { ROOT } from "./theme"
 
 const run = (argv: string[]) => execAsync(argv).catch((e) => print(`ypsilon: ${argv.join(" ")} failed: ${e}`))
 const sh = (cmd: string) => run(["bash", "-c", cmd])
 const cli = (...args: string[]) => run([`${ROOT}/scripts/ypsilon`, ...args])
 
-export const lock = () => sh(`pidof hyprlock || hyprlock -c ${ROOT}/hypr/hyprlock.conf`)
+/**
+ * Start something that must outlive the shell (apps, the lock screen, browsers): Hyprland becomes
+ * the parent, so `ypsilon restart` / a shell crash never takes your windows with it, and their
+ * output stays out of the shell log. Falls back to a plain child outside Hyprland.
+ */
+export const detach = (cmd: string) =>
+  execAsync(["hyprctl", "dispatch", "exec", cmd]).catch(() => sh(`setsid -f ${cmd} >/dev/null 2>&1`))
+
+export const openUri = (uri: string) => detach(`xdg-open ${GLib.shell_quote(uri)}`)
+
+// `ypsilon lock` uses the generated hyprlock config (theme colors + real paths)
+export const lock = () => detach(`${GLib.shell_quote(`${ROOT}/scripts/ypsilon`)} lock`)
 export const logout = () => run(["hyprctl", "dispatch", "exit"])
 export const suspend = () => run(["systemctl", "suspend"])
 export const reboot = () => run(["systemctl", "reboot"])

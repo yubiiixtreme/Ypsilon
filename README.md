@@ -37,7 +37,7 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 
 | | |
 |---|---|
-| **Bar** | Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
+| **Bar** | Always shown or auto-hide (touch the screen edge to reveal) — top or bottom, switched live in Settings → Bar. Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
 | **Launcher** `SUPER+Space` | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`. Prefixes: `=` calc · `:` run command · `;` clipboard · `@` switch window · `?` web search |
 | **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme chips, media with art + progress |
 | **Wallpaper → theme** | `ypsilon theme auto` builds a WCAG-checked palette from your wallpaper and re-themes shell, Hyprland borders, lockscreen and terminals. Opt into `theme.followWallpaper` for every change |
@@ -46,19 +46,22 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
 | **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`). See [docs/PLUGINS.md](docs/PLUGINS.md) |
-| **Extras** | Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · cheatsheet `SUPER+/` · overview `SUPER+Tab` · OSD · hyprlock + hypridle (dim → lock → off → suspend) |
+| **Extras** | Fish greeting centred over fastfetch, in your theme colours (`cp extras/fish_greeting.fish ~/.config/fish/functions/`) · Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · cheatsheet `SUPER+/` · overview `SUPER+Tab` · OSD · hyprlock + hypridle (dim → lock → off → suspend) |
 
 ## Keybinds
 
-`SUPER` is the modifier (preview uses `ALT`). Full list anytime: `SUPER+/`.
+`SUPER` is the modifier (preview uses `ALT`). Full list anytime: `SUPER+/` — it reads
+`hypr/core/keybinds.conf`, and the `# text` after each bind is the description it shows.
 
 | Keys | Action |
 |---|---|
+| `SUPER+Enter` (or `Ctrl+Alt+T`) / `W` / `E` | Terminal (Settings → Apps) · default browser · files |
 | `SUPER+Space` / `C` / `Shift+C` / `N` / `Tab` | Launcher · control center · dashboard · notifications · overview |
 | `SUPER+Shift+Q` / `I` / `/` / `Shift+W` | Power menu · settings · cheatsheet · wallpapers |
-| `SUPER+L` / `W` / `X` / `E` / `Shift+V` / `P` | Lock · browser · next wallpaper · files · clipboard · color picker |
+| `SUPER+L` / `X` / `Shift+V` / `P` | Lock · next wallpaper · clipboard · color picker |
 | `SUPER+Shift+G` / `Shift+N` / `M` | Game mode · night light · layout toggle |
-| `SUPER+Q` / `Shift+E` / `F` / `V` / `J` / `T` | Kill · exit · fullscreen · float · split · group |
+| `SUPER+Q` / `Shift+E` / `F` / `V` / `J` / `T` | Close · log out · fullscreen · float · split · group |
+| `Alt+Tab` | Cycle windows |
 | `SUPER+1…0` / `Shift+1…0` / `S` / scroll | Workspaces · move there · scratchpad · scroll workspaces |
 | `Print` / `SUPER+Print` / `SUPER+Shift+R` | Select shot · full shot · record toggle |
 | Media keys | Volume/brightness + OSD · play/next/prev via playerctl |
@@ -71,6 +74,7 @@ ypsilon try               # safe nested preview
 ypsilon theme list|set|auto
 ypsilon wallpaper list|status|set|next
 ypsilon shot select|full  ypsilon record select|full|stop
+ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness
 ypsilon gamemode|nightlight|caffeine|layout toggle

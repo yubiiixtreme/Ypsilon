@@ -10,6 +10,7 @@ import { validateManifest, resolveSettings, type Manifest } from "../lib/plugins
 import type { PluginApi, PluginMain, BarItem, LauncherProvider, Tile, Disposer } from "../lib/plugin-types"
 import { config, CONFIG_DIR, writeConfig } from "./config"
 import { ROOT } from "./theme"
+import { openUri } from "./system"
 
 export type PluginStatus = "disabled" | "loading" | "active" | "error" | "invalid"
 export type PluginInfo = { id: string; dir: string; source: "bundled" | "user"; manifest?: Manifest; status: PluginStatus; error: string }
@@ -131,7 +132,7 @@ function makeApi(info: PluginInfo): PluginApi {
     exec: (cmd) => execAsync(cmd),
     notify: (summary, body = "", urgency = "normal") =>
       void execAsync(["notify-send", "-a", m.name, "-u", urgency, summary, body]).catch(() => {}),
-    open: (uri) => void execAsync(["xdg-open", uri]).catch((e) => printerr(`plugin ${id}: open: ${e}`)),
+    open: (uri) => void openUri(uri),
     log: (...args) => print(`[plugin ${id}]`, ...args.map(String)),
     settings,
     setSetting: (key, value) => writeConfig(`plugins.settings.${id}.${key}`, value),

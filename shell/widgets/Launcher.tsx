@@ -4,8 +4,8 @@ import Gdk from "gi://Gdk"
 import { Astal } from "ags/gtk4"
 import { createComputed, createState, For } from "ags"
 import { execAsync } from "ags/process"
-import { queryApps, appId } from "../services/apps"
-import { recordLaunch } from "../services/usage"
+import { queryApps, appId, launchApp } from "../services/apps"
+import { detach, openUri } from "../services/system"
 import { clips, loadClips, clipPreview, pasteClip } from "../services/clip"
 import { getHypr, focusAddress } from "../services/hypr"
 import { config } from "../services/config"
@@ -84,11 +84,11 @@ export default function Launcher() {
       case "cmd":
         return body === ""
           ? []
-          : [{ id: "cmd", icon: "utilities-terminal-symbolic", title: body, sub: "run in shell", run: done(() => execAsync(["bash", "-c", body]).catch((e) => print(`ypsilon run: ${e}`))) }]
+          : [{ id: "cmd", icon: "utilities-terminal-symbolic", title: body, sub: "run in shell", run: done(() => void detach(body)) }]
       case "web":
         return body === ""
           ? []
-          : [{ id: "web", icon: "web-browser-symbolic", title: `search "${body}"`, sub: "open in browser", run: done(() => void execAsync(["xdg-open", config().launcher.webSearch.replace("%s", encodeURIComponent(body))]).catch(() => {})) }]
+          : [{ id: "web", icon: "web-browser-symbolic", title: `search "${body}"`, sub: "open in browser", run: done(() => void openUri(config().launcher.webSearch.replace("%s", encodeURIComponent(body)))) }]
       case "clip": {
         const needle = body.toLowerCase()
         return clips()
@@ -117,10 +117,7 @@ export default function Launcher() {
           icon: a.iconName || "application-x-executable",
           title: a.name,
           sub: (a.description || "").slice(0, 70),
-          run: done(() => {
-            recordLaunch(appId(a))
-            a.launch()
-          }),
+          run: done(() => launchApp(a)),
         }))]
       }
     }

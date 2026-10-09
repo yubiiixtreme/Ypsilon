@@ -4,7 +4,6 @@
 // CLI:  ags toggle -i ypsilon <window> · ags request -i ypsilon reload-css|osd <volume|brightness>
 import app from "ags/gtk4/app"
 import { createBinding, For, This } from "ags"
-import { monitorFile } from "ags/file"
 import GLib from "gi://GLib"
 import Bar, { FallbackBar } from "./widgets/Bar"
 import Launcher from "./widgets/Launcher"
@@ -26,6 +25,7 @@ import { guarded, healthReport } from "./services/health"
 import { startPlugins, runPluginCommand, rescanPlugins } from "./services/plugins"
 import { startUpdateChecks } from "./services/updates"
 import { startWeather } from "./services/weather"
+import { watchFile } from "./services/watch"
 import { baseCssPath, generatedCssPath, readCss, readTokens, setCurrentTheme } from "./services/theme"
 
 // CSS is read from disk (not bundled) so theme switches and style edits apply live.
@@ -69,8 +69,8 @@ app.start({
   main() {
     guarded("css", () => {
       reloadCss()
-      monitorFile(generatedCssPath(), onStyleChange)
-      monitorFile(baseCssPath(), onStyleChange)
+      watchFile(generatedCssPath(), onStyleChange)
+      watchFile(baseCssPath(), onStyleChange)
     })
     guarded("config", initConfig)
     guarded("sysinfo", startSysinfo)

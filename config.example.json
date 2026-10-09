@@ -1,6 +1,7 @@
 {
   "bar": {
     "position": "top",
+    "autohide": false,
     "clock24h": true,
     "showSeconds": false,
     "showWindowTitle": true,

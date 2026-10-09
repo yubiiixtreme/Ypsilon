@@ -1,11 +1,12 @@
 // Runtime user config (~/.config/ypsilon/config.json). Reactive: edit the file
-// and widgets that read `config` update live (bar position / workspaces-binds need a restart).
-import { createState } from "ags"
-import { readFile, writeFile, monitorFile } from "ags/file"
+// and widgets that read `config` update live (incl. bar position + autohide).
+import { Accessor, createState } from "ags"
+import { readFile, writeFile } from "ags/file"
 import GLib from "gi://GLib"
 import { parseConfig, diagnoseConfig, setIn, coerce, DEFAULTS, type Config } from "../lib/config"
 import { ROOT } from "./theme"
 import { execAsync } from "ags/process"
+import { watchFile } from "./watch"
 
 export const CONFIG_DIR = `${GLib.get_user_config_dir()}/ypsilon`
 export const CONFIG_PATH = `${CONFIG_DIR}/config.json`
@@ -20,6 +21,24 @@ function load(): Config {
 
 const [config, setConfig] = createState<Config>(load())
 export { config }
+
+/** one config value as an accessor that only notifies when *that* value changes
+ *  (`config(fn)` re-fires on every write, e.g. each step of a Settings slider) */
+export function configValue<T>(select: (c: Config) => T): Accessor<T> {
+  return new Accessor(
+    () => select(config.peek()),
+    (callback) => {
+      let last = select(config.peek())
+      return config.subscribe(() => {
+        const next = select(config.peek())
+        if (next !== last) {
+          last = next
+          callback()
+        }
+      })
+    },
+  )
+}
 
 let problems: string[] = []
 export const configProblems = () => problems
@@ -39,14 +58,16 @@ function reload() {
       next.slice(0, 4).join("\n") + (next.length > 4 ? `\n…and ${next.length - 4} more (ypsilon config check)` : "")]).catch(() => {})
   }
   problems = next
-  setConfig(parseConfig(text))
+  const parsed = parseConfig(text)
+  // a write event can fire more than once per save: only wake the widgets when something changed
+  if (JSON.stringify(parsed) !== JSON.stringify(config.peek())) setConfig(parsed)
 }
 
-/** Call once from app main(): creates the dir and watches the file. */
+/** Call once from app main(): creates the dir and watches the file (survives delete + recreate). */
 export function initConfig() {
   GLib.mkdir_with_parents(CONFIG_DIR, 0o755)
   reload()
-  monitorFile(CONFIG_PATH, reload)
+  watchFile(CONFIG_PATH, reload)
 }
 
 // keys that live in Hyprland/hypridle, not in the shell: writing them triggers `ypsilon apply`

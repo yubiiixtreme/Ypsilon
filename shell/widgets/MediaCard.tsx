@@ -1,8 +1,8 @@
 import Gtk from "gi://Gtk"
 import Pango from "gi://Pango"
 import Mpris from "gi://AstalMpris"
-import { createBinding, createComputed, With } from "ags"
-import { createPoll } from "ags/time"
+import { createBinding, createComputed, createState, With } from "ags"
+import { pollWhileMapped } from "../services/watch"
 import { togglePlay, nextTrack, prevTrack } from "../services/media"
 import Visualizer from "./Visualizer"
 
@@ -12,12 +12,12 @@ function Player({ p }: { p: Mpris.Player }) {
   const status = createBinding(p, "playbackStatus")
   const art = createBinding(p, "coverArt")
   const length = createBinding(p, "length")
-  // MPRIS does not signal position changes; sample it once a second
-  const position = createPoll(0, 1000, () => p.position)
+  // MPRIS does not signal position changes: sample it once a second, only while the card is visible
+  const [position, setPosition] = createState(0)
   const progress = createComputed(() => (length() > 0 ? Math.min(1, position() / length()) : 0))
 
   return (
-    <box class="media-card" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+    <box class="media-card" orientation={Gtk.Orientation.VERTICAL} spacing={8} $={(self) => pollWhileMapped(self, 1000, () => setPosition(p.position))}>
       <box spacing={12}>
         <box class="media-art" overflow={Gtk.Overflow.HIDDEN} valign={Gtk.Align.CENTER}>
           <image file={art} pixelSize={56} visible={art((a) => a !== "")} />

@@ -105,8 +105,8 @@ export function EntryRow({ label, sub, path, placeholder }: { label: string; sub
   )
 }
 
-export function ChoiceRow({ label, sub, path, options }: { label: string; sub?: string; path: string; options: [string, string][] }) {
-  const v = valueAt<string>(path)
+export function ChoiceRow({ label, sub, path, options }: { label: string; sub?: string; path: string; options: [string | boolean, string][] }) {
+  const v = valueAt<string | boolean>(path)
   return (
     <Row label={label} sub={sub}>
       <box class="segmented" valign={Gtk.Align.CENTER}>

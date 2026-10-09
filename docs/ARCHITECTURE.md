@@ -5,7 +5,7 @@
 - **Compositor:** Hyprland 0.56+ (Wayland)
 - **Shell:** AGS v3 `aylurs-gtk-shell` + the Astal `-git` libraries Ypsilon imports (io, astal3/4, hyprland, tray, network, bluetooth, battery, mpris, notifd, wireplumber, apps, power-profiles; cava optional) — installed in dependency order by `install-deps.sh`. Brightness has no Astal lib → `brightnessctl`.
 - **Lang:** TypeScript + JSX (Gnim) on GJS, GTK4 (`ags/gtk4`)
-- **Style:** `shell/style.css` (layout, only `@y_*` named colors) + `shell/style/_generated.css` (`@define-color`s from gen-theme.py). Both are read **from disk at runtime** and hot-reloaded via `monitorFile`, so `ypsilon theme set X` re-themes the live shell with no rebuild.
+- **Style:** `shell/style.css` (layout, only `@y_*` named colors) + `shell/style/_generated.css` (`@define-color`s from gen-theme.py). Both are read **from disk at runtime** and hot-reloaded via `watchFile` (services/watch.ts), so `ypsilon theme set X` re-themes the live shell with no rebuild.
 - **Theme:** `themes/tokens.json` → `hypr/themes/*.conf` + `_generated.css` + `extras/` (foot/kitty/ghostty/fuzzel/gtk) — see `scripts/gen-theme.py`
 - **CLI:** `scripts/ypsilon` (bash). `theme set` regenerates repo files; live-apply needs `--apply`.
 
@@ -21,7 +21,7 @@ It is **not** sourced into your own config. If you run a Lua config (`hyprland.l
 
 ```
 shell/app.tsx  (reads css from disk, watches it; requestHandler: reload-css, osd)
-  ├─ Bar(i) per monitor — floating glass island
+  ├─ Bar(i) per monitor — floating glass island; always shown or auto-hide (3px edge strip reveals it), position + autohide live
   │    left: launcher btn · workspaces (scroll to switch) · focused window title
   │    center: clock (opens calendar) · media mini
   │    right: tray (dbusmenu popovers) · bell+count · status (wifi/bt/vol/battery → control) · power
@@ -42,7 +42,7 @@ Patterns taken from the official AGS 3.1.2 examples (source in `.cache/typecheck
 
 Theme pipeline: `tokens.json` + `themes/user/*.json` (e.g. `ypsilon-auto` from `scripts/palette.py`) → `gen-theme.py` → hypr colors, lock colors, `_generated.css` (hot-reloaded by the shell), `extras/` and `extras/current/`.
 
-Settings data flow: control → `writeConfig(path, value)` (validated by `lib/config.ts`, other keys preserved, broken JSON backed up) → config.json → `monitorFile` → reactive `config` → widgets. Compositor keys (`hypr.*`, `input.*`, `idle.*`, `reduceMotion`) additionally run `ypsilon apply` → `scripts/userconf.py` renders `hypr/generated/{user,hypridle}.conf` → `hyprctl reload` + hypridle restart. Python and TS defaults are kept identical by a cross-language test.
+Settings data flow: control → `writeConfig(path, value)` (validated by `lib/config.ts`, other keys preserved, broken JSON backed up) → config.json → `watchFile` → reactive `config` → widgets. Compositor keys (`hypr.*`, `input.*`, `idle.*`, `reduceMotion`) additionally run `ypsilon apply` → `scripts/userconf.py` renders `hypr/generated/{user,hypridle}.conf` → `hyprctl reload` + hypridle restart. Python and TS defaults are kept identical by a cross-language test.
 
 Plugins: `services/plugins.ts` discovers `plugins/` + `~/.config/ypsilon/plugins/`, validates manifests (`lib/plugins.ts`), `import()`s enabled ones from `file://`, and gives each an API object (`lib/plugin-types.ts`). Contributions (bar items, launcher providers, tiles, commands) are owned per plugin and removed on disable. See docs/PLUGINS.md.
 

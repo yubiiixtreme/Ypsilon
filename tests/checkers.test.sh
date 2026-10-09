@@ -27,7 +27,7 @@ must_fail "css colors" bash -c 'scripts/check.sh 2>&1 | grep -q "^FAIL css"; [ $
 fresh; sed -i 's/from "..\/services\/shell"/from "..\/services\/shel"/' "$T/r/shell/widgets/Bar.tsx"
 must_fail "imports" node scripts/check-imports.mjs
 
-fresh; sed -i 's/"view-app-grid-symbolic"/"no-such-icon-symbolic"/' "$T/r/shell/widgets/Bar.tsx"
+fresh; sed -i 's/"system-shutdown-symbolic"/"no-such-icon-symbolic"/' "$T/r/shell/widgets/Bar.tsx"
 [ -d /usr/share/icons/Adwaita ] && must_fail "icons" scripts/check-icons.sh
 
 fresh; sed -i 's/createBinding(bat, "percentage")/createBinding(bat, "percentge")/' "$T/r/shell/widgets/Bar.tsx"

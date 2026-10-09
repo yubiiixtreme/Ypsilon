@@ -9,3 +9,4 @@ import "@girs/graphene-1.0/graphene-1.0-ambient"
 import "@girs/gjs/ambient"
 declare module "*.css" { const s: string; export default s }
 import "@girs/pango-1.0/pango-1.0-ambient"
+import "@girs/gdkpixbuf-2.0/gdkpixbuf-2.0-ambient"

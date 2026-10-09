@@ -5,6 +5,7 @@ import { execAsync } from "ags/process"
 import { updates, checking, lastChecked, error, checkUpdates, runUpdates, selfStatus, checkSelf } from "../../services/updates"
 import { needsReboot, summarize, type Source } from "../../lib/updates"
 import { ROOT } from "../../services/theme"
+import { openUri } from "../../services/system"
 import { Section, SwitchRow, SliderRow, ButtonRow } from "./controls"
 
 const SOURCES: [Source, string, string][] = [
@@ -88,7 +89,7 @@ export default function UpdatesPage() {
         <ButtonRow label="Ypsilon itself" sub={selfStatus} button="Update Ypsilon" icon="view-refresh-symbolic"
           onClicked={() => execAsync([`${ROOT}/scripts/ypsilon`, "term", `${ROOT}/scripts/ypsilon self-update`]).catch(() => {})} />
         <ButtonRow label="Arch news" sub="Read before big upgrades" button="Open" icon="web-browser-symbolic"
-          onClicked={() => execAsync(["xdg-open", "https://archlinux.org/news/"]).catch(() => {})} />
+          onClicked={() => openUri("https://archlinux.org/news/")} />
       </Section>
       <label class="hint" halign={Gtk.Align.START} label={`Last check: ${GLib.DateTime.new_now_local().format("%H:%M") ?? ""} session · data refreshes automatically`} visible={false} />
     </box>
