@@ -6,6 +6,11 @@ import * as T from "../plugins/pomodoro/timer.js"
 import { parseLinks, matchLinks } from "../plugins/quicklinks/links.js"
 import { parseSs } from "../plugins/dev-ports/ports.js"
 import { validateManifest } from "../shell/lib/plugins.ts"
+import { parseNetDev, rates, formatRate } from "../plugins/netspeed/netdev.js"
+import * as Todo from "../plugins/todo/list.js"
+import { search as emojiSearch, EMOJI } from "../plugins/emoji/data.js"
+import { convert, format as fmtUnit } from "../plugins/units/convert.js"
+import { parseEntries, isWord } from "../plugins/dictionary/parse.js"
 
 const cfg = { work: 25, shortBreak: 5, longBreak: 15, cycles: 2, autoContinue: true }
 
@@ -59,4 +64,71 @@ test("every bundled plugin has a valid manifest and an index.js", () => {
     assert.deepEqual(validateManifest(m, id).errors, [], id)
     readFileSync(new URL(`../plugins/${id}/${m.entry ?? "index.js"}`, import.meta.url))
   }
+})
+
+test("netspeed: /proc/net/dev parsing, busiest interface, counter resets, formatting", () => {
+  const head = "Inter-|   Receive |  Transmit\n face |bytes packets errs drop fifo frame compressed multicast|bytes packets\n"
+  const a = parseNetDev(head + "    lo: 900 9 0 0 0 0 0 0 900 9 0 0 0 0 0 0\n wlan0: 1000 10 0 0 0 0 0 0 500 5 0 0 0 0 0 0\n  eth0: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0")
+  assert.deepEqual(Object.keys(a), ["wlan0", "eth0"])
+  const b = { wlan0: { rx: 1000 + 2048 * 2, tx: 500 + 1024 }, eth0: { rx: 0, tx: 0 } }
+  assert.deepEqual(rates(a, b, 2000), { down: 2048, up: 512 })
+  assert.deepEqual(rates(a, b, 2000, "eth0"), { down: 0, up: 0 })
+  assert.deepEqual(rates(b, a, 2000), { down: 0, up: 0 }) // counters went backwards: no negative speed
+  assert.equal(formatRate(0), "0 B/s")
+  assert.equal(formatRate(1536), "1.5 KB/s")
+  assert.equal(formatRate(12.5 * 1024 * 1024), "13 MB/s")
+})
+
+test("todo: add (trimmed, no duplicates), toggle, view order, clear, sanitize", () => {
+  let l = Todo.add([], "  buy   milk ")
+  l = Todo.add(l, "Buy milk") // duplicate of an open item
+  l = Todo.add(l, "call mum")
+  l = Todo.add(l, "   ")
+  assert.deepEqual(l.map((i) => i.text), ["buy milk", "call mum"])
+  l = Todo.toggle(l, 1)
+  assert.deepEqual(Todo.view(l).map((i) => i.text), ["call mum", "buy milk"]) // open first
+  assert.deepEqual(Todo.view(l, "MUM").map((i) => i.id), [2])
+  assert.equal(Todo.open(l).length, 1)
+  assert.deepEqual(Todo.clearDone(l).map((i) => i.id), [2])
+  assert.deepEqual(Todo.sanitize([{ id: 1, text: "ok" }, { id: "x" }, null, 5]), [{ id: 1, text: "ok", done: false }])
+  assert.deepEqual(Todo.sanitize("nope"), [])
+})
+
+test("emoji: exact name first, then prefixes; data is well-formed", () => {
+  assert.equal(emojiSearch("fire")[0].char, "🔥")
+  assert.equal(emojiSearch("heart")[0].char, "❤️")
+  assert.ok(emojiSearch("thumb").some((e) => e.char === "👍"))
+  assert.deepEqual(emojiSearch("   "), [])
+  assert.equal(new Set(EMOJI.map((e) => e.char)).size, EMOJI.length, "no duplicate emoji")
+  for (const e of EMOJI) assert.ok(e.char && e.words, JSON.stringify(e))
+})
+
+test("units: lengths, temperature, data, separators, nonsense rejected", () => {
+  assert.equal(convert("10 km to mi").text, "6.2137 mi")
+  assert.equal(convert("72 f in c").text, "22.2222 °C")
+  assert.equal(convert("0 c to f").text, "32 °F")
+  assert.equal(convert("1.5 gb to mb").text, "1,536 MB")
+  assert.equal(convert("90 min to h").text, "1.5 h")
+  assert.equal(convert("5,5 kg -> lb").text, "12.1254 lb")
+  assert.equal(convert("10 km to kg"), null) // different kinds
+  assert.equal(convert("hello world"), null)
+  assert.equal(convert("10 parsecs to m"), null)
+  assert.equal(fmtUnit(0.00000012), "1.2e-7")
+})
+
+test("dictionary: Wiktionary HTML stripped, senses spread over parts of speech, language picked", () => {
+  const json = JSON.stringify({
+    en: [
+      { partOfSpeech: "Verb", definitions: [{ definition: "To <a href='/wiki/move'>move</a> fast." }, { definition: "To operate &amp; manage." }] },
+      { partOfSpeech: "Noun", definitions: [{ definition: "An act of running.", examples: ["a <b>morning</b> run"] }, { definition: "" }] },
+    ],
+    de: [{ partOfSpeech: "Noun", definitions: [{ definition: "<a>house</a>, building" }] }],
+  })
+  const s = parseEntries(json, "en", "run", 3)
+  assert.deepEqual(s.map((x) => `${x.pos}:${x.text}`), ["verb:To move fast.", "noun:An act of running.", "verb:To operate & manage."])
+  assert.equal(s[1].example, "a morning run")
+  assert.deepEqual(parseEntries(json, "de", "Haus").map((x) => x.text), ["house, building"])
+  assert.deepEqual(parseEntries(json, "fr"), [])
+  assert.deepEqual(parseEntries("not json"), [])
+  assert.ok(isWord("serendipity") && isWord("well-being") && isWord("Straße") && !isWord("rm -rf") && !isWord("a"))
 })

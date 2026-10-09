@@ -19,7 +19,8 @@ ypsilon plugin run my-plugin count   # call a command your plugin registered
 
 ```
 ~/.config/ypsilon/plugins/<id>/     yours (same id overrides a bundled plugin)
-<repo>/plugins/<id>/                bundled: pomodoro, quicklinks, dev-ports
+<repo>/plugins/<id>/                bundled: pomodoro, quicklinks, dev-ports, netspeed, todo,
+                                    emoji, units, dictionary
   plugin.json                       manifest (validated; errors shown in Settings)
   index.js                          entry: `export default function main(api) { … }`
 ```
@@ -69,6 +70,7 @@ export default function main(api) {
   api.launcher.addProvider({
     name: "my plugin",
     prefix: "my ",
+    // icon: a GTK icon name · glyph: an emoji or single character shown instead of the icon
     search: (q) => [{ title: `echo ${q}`, sub: "notify", icon: "dialog-information-symbolic", run: () => api.notify("my plugin", q) }],
   })
 

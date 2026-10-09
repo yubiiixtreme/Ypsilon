@@ -17,7 +17,7 @@ export default function Cheatsheet() {
   }
   return (
     <Popup name="ypsilon-cheatsheet" spacing={10} onShow={load}>
-      <label class="title" label="keybinds" halign={Gtk.Align.START} />
+      <label class="title" label="Keyboard shortcuts" halign={Gtk.Align.START} />
       <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} propagateNaturalHeight maxContentHeight={520}>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={12} class="cheat">
           <For each={groups}>

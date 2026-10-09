@@ -1,0 +1,10 @@
+{
+  "id": "units",
+  "name": "Unit converter",
+  "version": "1.0.0",
+  "description": "Type a conversion straight into the launcher: '10 km to mi', '72 f in c', '1.5 gb to mb', '90 min to h'.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["clipboard"],
+  "settings": []
+}

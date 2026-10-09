@@ -7,8 +7,8 @@ import type { Manifest } from "./plugins"
 export type Widget = JSX.Element
 export type MaybeAccessor<T> = T | Accessor<T>
 
-/** a launcher result row */
-export type Row = { title: string; sub?: string; icon?: string; run: () => void }
+/** a launcher result row; `glyph` (an emoji or one character) is shown instead of the icon */
+export type Row = { title: string; sub?: string; icon?: string; glyph?: string; run: () => void }
 
 export type LauncherProvider = {
   /** shown in the launcher hint */

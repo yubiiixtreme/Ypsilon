@@ -35,7 +35,7 @@ expect "help"            "ypsilon — our DE CLI"          "$Y" help
 expect "unknown command" "unknown: frobnicate"           "$Y" frobnicate
 expect "theme list"      "ypsilon-dark"                  "$Y" theme list
 expect "bad theme"       "unknown theme: nope"           "$Y" theme set nope
-expect "wallpaper list"  "ypsilon-neon"                  "$Y" wallpaper list
+expect "wallpaper list"  "ypsilon-aurora"                "$Y" wallpaper list
 expect "config path"     "$T/home/.config/ypsilon/config.json" "$Y" config path
 expect "config check (none)" "all defaults"              "$Y" config check
 expect "config init"     "created:"                      "$Y" config init

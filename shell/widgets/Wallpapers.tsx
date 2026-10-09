@@ -68,9 +68,9 @@ export function WallpaperGrid({ onPicked, maxHeight = 420 }: { onPicked?: () => 
 export default function Wallpapers() {
   return (
     <Popup name="ypsilon-wallpapers" spacing={12} onShow={loadWallpapers}>
-      <label class="title" label="wallpapers" halign={Gtk.Align.START} />
+      <label class="title" label="Wallpapers" halign={Gtk.Align.START} marginStart={4} />
       <WallpaperGrid onPicked={() => hideWindow("ypsilon-wallpapers")} />
-      <label class="hint" label="drop images in ~/Pictures/Wallpapers" halign={Gtk.Align.START} />
+      <label class="hint" label="Add your own to ~/Pictures/Wallpapers" halign={Gtk.Align.START} marginStart={4} />
     </Popup>
   )
 }

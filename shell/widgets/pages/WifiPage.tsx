@@ -59,9 +59,9 @@ function List({ wifi }: { wifi: Network.Wifi }) {
           onActivate={submit}
           $={(self) => (pw = self)}
         />
-        <button class="pill-btn" label="join" onClicked={submit} />
+        <button class="pill-btn" label="Join" onClicked={submit} />
       </box>
-      <button class="pill-btn" label="disconnect" onClicked={disconnectWifi} halign={Gtk.Align.END} visible={active((a) => a !== null)} />
+      <button class="pill-btn" label="Disconnect" onClicked={disconnectWifi} halign={Gtk.Align.END} visible={active((a) => a !== null)} />
     </box>
   )
 }
@@ -79,8 +79,8 @@ export default function WifiPage({ onBack }: { onBack: () => void }) {
           {(w) =>
             w ? (
               <box spacing={6}>
-                <label class="sub" label="scanning…" visible={createBinding(w, "scanning")} />
-                <button class="icon-btn" onClicked={() => w.scan()} tooltipText="rescan">
+                <label class="sub" label="Scanning…" visible={createBinding(w, "scanning")} />
+                <button class="icon-btn" onClicked={() => w.scan()} tooltipText="Scan again">
                   <image iconName="view-refresh-symbolic" pixelSize={14} />
                 </button>
               </box>
@@ -90,7 +90,7 @@ export default function WifiPage({ onBack }: { onBack: () => void }) {
           }
         </With>
       </box>
-      <With value={wifi}>{(w) => (w ? <List wifi={w} /> : <label class="sub" label="no Wi-Fi adapter" />)}</With>
+      <With value={wifi}>{(w) => (w ? <List wifi={w} /> : <label class="sub" label="No Wi-Fi adapter" />)}</With>
     </box>
   )
 }

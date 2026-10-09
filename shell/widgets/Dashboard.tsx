@@ -12,7 +12,7 @@ import MediaCard from "./MediaCard"
 
 const greeting = () => {
   const h = new Date().getHours()
-  return h < 5 ? "burning the midnight oil" : h < 12 ? "good morning" : h < 18 ? "good afternoon" : "good evening"
+  return h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"
 }
 
 function Stat(props: { label: string; value: Accessor<number>; text: Accessor<string> }) {
@@ -37,9 +37,10 @@ export default function Dashboard() {
   const [hello, setHello] = createState("")
   const tick = () => {
     const now = GLib.DateTime.new_now_local()
-    setHello(`${greeting()}, ${GLib.get_user_name()}`)
-    setTime(now.format(config.peek().bar.clock24h ? "%H:%M" : "%I:%M %p") ?? "")
-    setDate(now.format("%A, %d %B") ?? "")
+    const real = GLib.get_real_name()
+    setHello(`${greeting()}, ${(real && real !== "Unknown" ? real : GLib.get_user_name()).split(" ")[0]}`)
+    setTime(now.format(config.peek().bar.clock24h ? "%H:%M" : "%-I:%M %p") ?? "")
+    setDate(now.format("%A, %-d %B") ?? "")
   }
 
   return (
@@ -58,17 +59,17 @@ export default function Dashboard() {
       <WeatherCard />
       <Gtk.Calendar $={(self: Gtk.Calendar) => (cal = self)} />
       <box spacing={14}>
-        <Stat label="cpu" value={cpu} text={cpu((v) => pct(v))} />
-        <Stat label="memory" value={mem} text={mem((v) => pct(v))} />
-        <Stat label="temp" value={temp((t) => Math.min(1, (t ?? 0) / 100))} text={temp((t) => (t === null ? "—" : `${t}°`))} />
+        <Stat label="CPU" value={cpu} text={cpu((v) => pct(v))} />
+        <Stat label="Memory" value={mem} text={mem((v) => pct(v))} />
+        <Stat label="Temperature" value={temp((t) => Math.min(1, (t ?? 0) / 100))} text={temp((t) => (t === null ? "—" : `${t}°`))} />
       </box>
       <box spacing={10}>
         <box orientation={Gtk.Orientation.VERTICAL} hexpand spacing={4}>
-          <label class="hint" label="cpu · 2 min" halign={Gtk.Align.START} />
+          <label class="hint" label="CPU · last 2 minutes" halign={Gtk.Align.START} />
           <box class="graph-cpu"><Graph data={cpuHistory} /></box>
         </box>
         <box orientation={Gtk.Orientation.VERTICAL} hexpand spacing={4}>
-          <label class="hint" label="memory · 2 min" halign={Gtk.Align.START} />
+          <label class="hint" label="Memory · last 2 minutes" halign={Gtk.Align.START} />
           <box class="graph-mem"><Graph data={memHistory} /></box>
         </box>
       </box>

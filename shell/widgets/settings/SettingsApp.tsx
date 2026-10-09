@@ -82,7 +82,7 @@ export default function SettingsApp() {
     <Popup name="ypsilon-settings" variant="panel" valign={Gtk.Align.CENTER} keymode={Astal.Keymode.ON_DEMAND} spacing={0}>
       <box class="settings-root">
         <box class="settings-nav" orientation={Gtk.Orientation.VERTICAL} spacing={2}>
-          <label class="settings-brand" label="✦ Settings" halign={Gtk.Align.START} />
+          <label class="settings-brand" label="Settings" halign={Gtk.Align.START} />
           {PAGES.map(([id, t, icon]) => (
             <NavButton id={id} title={t} icon={icon} />
           ))}

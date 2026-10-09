@@ -1,0 +1,12 @@
+{
+  "id": "dictionary",
+  "name": "Dictionary",
+  "version": "1.0.0",
+  "description": "Type 'define' and a word in the launcher for its meanings, from Wiktionary (no account). Pick a language to look up words in it — definitions stay in English. Enter copies one.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["network", "exec", "clipboard"],
+  "settings": [
+    { "key": "lang", "label": "Language of the words", "type": "enum", "default": "en", "options": ["en", "de", "fr", "es", "it", "pt", "nl", "ja", "hi", "ne"] }
+  ]
+}

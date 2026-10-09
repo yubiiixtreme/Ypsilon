@@ -24,6 +24,7 @@ import { openSettings } from "./settings/SettingsApp"
 import Visualizer from "./Visualizer"
 import { guarded } from "../services/health"
 import { watchFile } from "../services/watch"
+import { distroGlyph } from "../services/icons"
 
 const RECORD_PID = `${GLib.get_user_cache_dir()}/ypsilon/record.pid`
 
@@ -132,7 +133,7 @@ function Status() {
   const volIcon = speakerProp("volumeIcon")((i) => i || "audio-volume-muted-symbolic")
 
   return (
-    <button class="status-group" onClicked={() => toggle("ypsilon-control")} tooltipText="control center">
+    <button class="status-group" onClicked={() => toggle("ypsilon-control")} tooltipText="Quick settings">
       <box spacing={8}>
         <image iconName={netIcon} pixelSize={15} />
         <image iconName="bluetooth-active-symbolic" pixelSize={15} visible={btOn} />
@@ -149,15 +150,15 @@ function Sysinfo() {
       class="sys-pill"
       visible={config((c) => c.bar.showSysinfo)}
       onClicked={() => toggle("ypsilon-dashboard")}
-      tooltipText={createComputed(() => `cpu ${pct(cpu())} · mem ${pct(mem())}${temp() === null ? "" : ` · ${temp()}°C`}`)}
+      tooltipText={createComputed(() => `CPU ${pct(cpu())} · Memory ${pct(mem())}${temp() === null ? "" : ` · ${temp()} °C`}`)}
     >
-      <box spacing={10}>
-        <box spacing={4}>
-          <label class="sys-key" label="cpu" />
+      <box spacing={12}>
+        <box spacing={5}>
+          <label class="glyph" label={"\uf4bc"} />
           <label class="status-sub" label={cpu((v) => pct(v))} />
         </box>
-        <box spacing={4}>
-          <label class="sys-key" label="ram" />
+        <box spacing={5}>
+          <label class="glyph" label={"\u{f035b}"} />
           <label class="status-sub" label={mem((v) => pct(v))} />
         </box>
       </box>
@@ -188,7 +189,7 @@ function Bell() {
   const dnd = createBinding(notifd, "dontDisturb")
   const icon = dnd((d) => (d ? "notifications-disabled-symbolic" : "preferences-system-notifications-symbolic"))
   return (
-    <button class="icon-btn" onClicked={() => toggle("ypsilon-notif-center")} tooltipText="notifications">
+    <button class="icon-btn" onClicked={() => toggle("ypsilon-notif-center")} tooltipText="Notifications">
       <box spacing={5}>
         <image iconName={icon} pixelSize={15} />
         <label class="badge" visible={list((l) => l.length > 0)} label={list((l) => String(l.length))} />
@@ -203,7 +204,7 @@ function MediaMini() {
   const playing = createComputed(() => one()?.playbackStatus === Mpris.PlaybackStatus.PLAYING)
   return (
     <box class="media-mini" spacing={6} visible={createComputed(() => config().bar.showMedia && one() !== null)}>
-      <label class="accent" label="♪" visible={createComputed(() => !(config().bar.showVisualizer && playing()))} />
+      <image class="dim" iconName="audio-x-generic-symbolic" pixelSize={14} visible={createComputed(() => !(config().bar.showVisualizer && playing()))} />
       <box visible={config((c) => c.bar.showVisualizer)}>
         <Visualizer width={44} height={14} when={playing} />
       </box>
@@ -246,7 +247,7 @@ function RecordingDot() {
   const [recording, setRecording] = createState(isRecording())
   onCleanup(watchFile(RECORD_PID, () => setRecording(isRecording())))
   return (
-    <button class="rec-btn" visible={recording} onClicked={toggleRecording} tooltipText="recording — click to stop">
+    <button class="rec-btn" visible={recording} onClicked={toggleRecording} tooltipText="Recording — click to stop">
       <box spacing={6}>
         <image iconName="media-record-symbolic" pixelSize={13} />
         <label class="status-sub" label="REC" />
@@ -330,8 +331,8 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
 
   const clock = createPoll("", 1000, () => {
     const c = config().bar
-    const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%I:%M:%S %p" : "%I:%M %p"
-    return GLib.DateTime.new_now_local().format(`%a %d %b · ${time}`) ?? ""
+    const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%-I:%M:%S %p" : "%-I:%M %p"
+    return GLib.DateTime.new_now_local().format(`%a %-d %b  ${time}`) ?? ""
   })
 
   return (
@@ -358,15 +359,15 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
         >
           <centerbox class={bottom((b) => `bar-inner${b ? " bottom" : ""}`)}>
             <box $type="start" class="bar-left" spacing={8}>
-              <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
-                <label class="launch-logo" label="✦" />
+              <button class="launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="Apps">
+                <label class="launch-logo" label={distroGlyph()} />
               </button>
               <Workspaces />
               <ActiveWindow />
               <PluginSlot position="left" />
             </box>
             <box $type="center" class="bar-center" spacing={10}>
-              <button onClicked={() => toggle("ypsilon-dashboard")} tooltipText="dashboard">
+              <button onClicked={() => toggle("ypsilon-dashboard")} tooltipText="Calendar and system">
                 <label class="clock" label={clock} />
               </button>
               <MediaMini />
@@ -380,7 +381,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
               <TrayBox onMenu={onMenu} />
               <Bell />
               <Status />
-              <button class="icon-btn power-btn" onClicked={() => toggle("ypsilon-power")} tooltipText="power">
+              <button class="icon-btn power-btn" onClicked={() => toggle("ypsilon-power")} tooltipText="Power">
                 <image iconName="system-shutdown-symbolic" pixelSize={15} />
               </button>
             </box>
@@ -401,11 +402,11 @@ export function FallbackBar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   return (
     <window $={(self) => (win = self)} visible namespace="ypsilon-bar" class="ypsilon-bar" gdkmonitor={gdkmonitor} exclusivity={Astal.Exclusivity.EXCLUSIVE} anchor={TOP | LEFT | RIGHT}>
       <centerbox class="bar-inner">
-        <button $type="start" class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")}>
-          <label class="launch-logo" label="✦" />
+        <button $type="start" class="launch-btn" onClicked={() => toggle("ypsilon-launcher")}>
+          <label class="launch-logo" label={distroGlyph()} />
         </button>
         <label $type="center" class="clock" label={clock} />
-        <label $type="end" class="status-sub" label="bar failed to load · ypsilon logs" />
+        <label $type="end" class="status-sub" label="Bar failed to load — run: ypsilon logs" />
       </centerbox>
     </window>
   )

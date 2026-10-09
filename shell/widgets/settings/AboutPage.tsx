@@ -22,7 +22,7 @@ export default function AboutPage() {
   return (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={18} $={() => void load()}>
       <box class="about-hero" orientation={Gtk.Orientation.VERTICAL} spacing={4}>
-        <label class="about-logo" label="✦ Ypsilon" halign={Gtk.Align.START} />
+        <label class="about-logo" label="Ypsilon" halign={Gtk.Align.START} />
         <label class="settings-sub" label={versions} halign={Gtk.Align.START} wrap xalign={0} />
         <label class="settings-sub" label={`${GLib.get_user_name()} @ ${GLib.get_host_name()} · ${ROOT}`} halign={Gtk.Align.START} />
       </box>

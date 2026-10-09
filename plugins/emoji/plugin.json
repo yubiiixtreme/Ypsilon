@@ -1,0 +1,12 @@
+{
+  "id": "emoji",
+  "name": "Emoji",
+  "version": "1.0.0",
+  "description": "Type '.' and a word in the launcher (.heart, .fire, .shrug) — Enter copies the emoji.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["clipboard", "exec"],
+  "settings": [
+    { "key": "type", "label": "Type it into the focused window too (needs wtype)", "type": "boolean", "default": false }
+  ]
+}

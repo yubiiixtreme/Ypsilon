@@ -62,7 +62,7 @@ function Card({ n, onClose, after }: { n: Notif; onClose: () => void; after?: ()
           <image iconName={n.appIcon || n.desktopEntry || "dialog-information-symbolic"} pixelSize={16} />
         )}
         <label class="notif-app" hexpand halign={Gtk.Align.START} label={`${n.appName || "app"} · ${timeLabel(n.time ?? 0)}`} />
-        <button class="icon-btn" onClicked={onClose} tooltipText="dismiss">
+        <button class="icon-btn" onClicked={onClose} tooltipText="Dismiss">
           <image iconName="window-close-symbolic" pixelSize={11} />
         </button>
       </box>
@@ -96,10 +96,10 @@ export function NotificationCenter() {
   return (
     <Popup name="ypsilon-notif-center" variant="corner" halign={Gtk.Align.END} spacing={10}>
       <box spacing={8}>
-        <label class="title" hexpand halign={Gtk.Align.START} label="notifications" />
-        <label class="sub" label="dnd" />
+        <label class="title" hexpand halign={Gtk.Align.START} label="Notifications" marginStart={4} />
+        <label class="sub" label="Do not disturb" />
         <switch active={dnd} valign={Gtk.Align.CENTER} onNotifyActive={({ active }) => setDnd(active)} />
-        <button class="pill-btn" label="clear" onClicked={clearAll} />
+        <button class="pill-btn" label="Clear all" visible={list((l) => l.length > 0)} onClicked={clearAll} />
       </box>
       <scrolledwindow
         hscrollbarPolicy={Gtk.PolicyType.NEVER}
@@ -113,7 +113,10 @@ export function NotificationCenter() {
           </For>
         </box>
       </scrolledwindow>
-      <label class="sub" visible={list((l) => l.length === 0)} label="all caught up ✦" />
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={8} visible={list((l) => l.length === 0)} marginTop={24} marginBottom={24}>
+        <image iconName="notifications-disabled-symbolic" pixelSize={32} class="dim" />
+        <label class="sub" label="No notifications" />
+      </box>
     </Popup>
   )
 }

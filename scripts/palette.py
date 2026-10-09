@@ -113,7 +113,16 @@ def pick_seeds(clusters):
     if accent is None:  # monochrome wallpaper: rotate the primary hue
         h, l, s = hls(primary)
         accent = from_hls(h + 0.17, l, max(s, 0.45))
-    return primary, accent
+    return primary, harmonize(accent, primary)
+
+
+def harmonize(color, toward, max_turn=15 / 360):
+    """Material-style harmonization: turn color's hue toward `toward` by half the gap, at most 15°.
+    Keeps a wallpaper's second color recognisable while making it sit with the first."""
+    h, l, s = hls(color)
+    th = hls(toward)[0]
+    d = (th - h + 0.5) % 1.0 - 0.5  # signed shortest hue step, -0.5..0.5
+    return from_hls(h + max(-max_turn, min(max_turn, d * 0.5)), l, s)
 
 
 def build_theme(clusters, light=False):

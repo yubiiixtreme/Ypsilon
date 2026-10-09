@@ -16,7 +16,7 @@ import { providers } from "../services/plugins"
 import type { Row as PluginRow } from "../lib/plugin-types"
 import Popup from "./Popup"
 
-type Row = { id: string; icon: string; title: string; sub: string; run: () => void }
+type Row = { id: string; icon: string; glyph?: string; title: string; sub: string; run: () => void }
 
 // Spotlight-style launcher. Modes by prefix:
 //   (none) apps, ranked by fuzzy match + your habits   =  calculator
@@ -56,6 +56,7 @@ export default function Launcher() {
       return p.search(q).slice(0, max).map((r, i) => ({
         id: `plugin:${p.pluginId}:${i}:${r.title}`,
         icon: r.icon || "application-x-addon-symbolic",
+        glyph: r.glyph,
         title: r.title,
         sub: r.sub ?? p.name,
         run: done(() => r.run()),
@@ -79,22 +80,22 @@ export default function Launcher() {
         const v = calc(body)
         if (v === null) return []
         const text = formatNumber(v)
-        return [{ id: "calc", icon: "accessories-calculator-symbolic", title: `= ${text}`, sub: "enter copies the result", run: done(() => void execAsync(["wl-copy", text]).catch(() => {})) }]
+        return [{ id: "calc", icon: "accessories-calculator-symbolic", title: `= ${text}`, sub: "Enter copies the result", run: done(() => void execAsync(["wl-copy", text]).catch(() => {})) }]
       }
       case "cmd":
         return body === ""
           ? []
-          : [{ id: "cmd", icon: "utilities-terminal-symbolic", title: body, sub: "run in shell", run: done(() => void detach(body)) }]
+          : [{ id: "cmd", icon: "utilities-terminal-symbolic", title: body, sub: "Run in a shell", run: done(() => void detach(body)) }]
       case "web":
         return body === ""
           ? []
-          : [{ id: "web", icon: "web-browser-symbolic", title: `search "${body}"`, sub: "open in browser", run: done(() => void openUri(config().launcher.webSearch.replace("%s", encodeURIComponent(body)))) }]
+          : [{ id: "web", icon: "web-browser-symbolic", title: `Search for “${body}”`, sub: "Opens in your browser", run: done(() => void openUri(config().launcher.webSearch.replace("%s", encodeURIComponent(body)))) }]
       case "clip": {
         const needle = body.toLowerCase()
         return clips()
           .filter((l) => needle === "" || clipPreview(l).toLowerCase().includes(needle))
           .slice(0, max)
-          .map((l) => ({ id: l, icon: "edit-paste-symbolic", title: clipPreview(l).slice(0, 80), sub: "copy back to clipboard", run: done(() => pasteClip(l)) }))
+          .map((l) => ({ id: l, icon: "edit-paste-symbolic", title: clipPreview(l).slice(0, 80), sub: "Copy back to the clipboard", run: done(() => pasteClip(l)) }))
       }
       case "win": {
         const needle = body.toLowerCase()
@@ -108,7 +109,7 @@ export default function Launcher() {
           id: `action:${a.id}`,
           icon: a.icon,
           title: a.title,
-          sub: "action",
+          sub: "Action",
           run: done(() => void a.run()),
         }))
         const extra = q.trim().length >= 2 ? providers().filter((p) => !p.prefix).flatMap((p) => fromProvider(p, q.trim(), 3)) : []
@@ -125,12 +126,12 @@ export default function Launcher() {
 
   const hint = createComputed(() =>
     mode() === "plugin" ? `${pluginProvider()?.name ?? "plugin"}` : ({
-      apps: "apps & actions · = calc · : cmd · ; clipboard · @ windows · ? web",
-      calc: "calculator · enter copies the result",
-      cmd: "run a shell command",
-      clip: "clipboard history · enter copies back",
-      win: "windows · enter focuses",
-      web: "web search",
+      apps: "=  calculator    :  command    ;  clipboard    @  windows    ?  web",
+      calc: "Calculator · Enter copies the result",
+      cmd: "Run a shell command",
+      clip: "Clipboard history · Enter copies it back",
+      win: "Open windows · Enter focuses",
+      web: "Web search",
     } as Record<string, string>)[mode()],
   )
 
@@ -153,10 +154,10 @@ export default function Launcher() {
         entry?.grab_focus()
       }}
     >
-      <label class="title" label="✦ ypsilon" halign={Gtk.Align.START} />
       <entry
         class="search"
-        placeholderText="search apps…"
+        primaryIconName="system-search-symbolic"
+        placeholderText="Search apps and actions"
         text={query}
         onNotifyText={({ text }) => {
           setQuery(text)
@@ -174,17 +175,17 @@ export default function Launcher() {
               onClicked={() => row.run()}
             >
               <box spacing={12}>
-                <image iconName={row.icon} pixelSize={30} />
+                {row.glyph ? <label class="row-glyph" label={row.glyph} widthRequest={30} /> : <image iconName={row.icon} pixelSize={30} />}
                 <box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER}>
-                  <label class={mode((m) => (m === "calc" ? "calc-result" : "app-name"))} label={row.title} halign={Gtk.Align.START} />
-                  <label class="sub" label={row.sub} halign={Gtk.Align.START} visible={row.sub !== ""} />
+                  <label class={mode((m) => (m === "calc" ? "calc-result" : "app-name"))} label={row.title} halign={Gtk.Align.START} ellipsize={3} maxWidthChars={58} />
+                  <label class="sub" label={row.sub} halign={Gtk.Align.START} visible={row.sub !== ""} ellipsize={3} maxWidthChars={64} />
                 </box>
               </box>
             </button>
           )}
         </For>
       </box>
-      <label class="hint" label={hint} halign={Gtk.Align.START} />
+      <label class="hint" label={hint} halign={Gtk.Align.START} marginStart={10} />
     </Popup>
   )
 }

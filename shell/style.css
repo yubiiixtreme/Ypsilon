@@ -1,12 +1,19 @@
-/* Ypsilon base style — glass, rounded, animated (GTK4 CSS).
- * Layout only. Every color is a named color (@y_*) defined in
- * style/_generated.css by scripts/gen-theme.py, so a theme switch needs no
- * rebuild — the shell re-reads both files from disk (see app.tsx).
- * No web-only props (backdrop-filter etc.): blur is done by Hyprland. */
+/* Ypsilon base style (GTK4 CSS).
+ * Layout only. Every color is a named color (@y_*) defined in style/_generated.css by
+ * scripts/gen-theme.py, so a theme switch needs no rebuild — the shell re-reads both files
+ * from disk (see app.tsx). No web-only props (backdrop-filter etc.): blur is done by Hyprland.
+ *
+ * The rules of the look, so additions stay consistent:
+ *  - surfaces are neutral layers (@y_faint < @y_soft < @y_hover < @y_strong); no colored outlines
+ *  - @y_primary marks what is ON or SELECTED, nothing else; text on it is @y_on_primary
+ *  - one hairline (@y_border) around floating surfaces only; cards inside them have none
+ *  - radii: 22 popups · 16 cards · 12 rows · full for pills; spacing in steps of 4
+ *  - weights: 400 body · 500 labels · 600 titles · 700 only for big numbers */
 
 window {
-  font-family: "Inter", "Figtree", sans-serif;
+  font-family: "Google Sans Flex", "Inter", "Figtree", sans-serif;
   font-size: 13px;
+  font-weight: 400;
 }
 
 window.ypsilon-bar,
@@ -26,207 +33,232 @@ window.ypsilon-osd {
 label { color: @y_fg; }
 .dim, .sub { color: @y_muted; }
 .sub { font-size: 12px; }
-.accent { color: @y_accent; font-weight: 800; }
+.accent { color: @y_primary; font-weight: 600; }
 .good { color: @y_good; }
 .warn { color: @y_warn; }
 .bad { color: @y_bad; }
-.title { font-size: 15px; font-weight: 800; }
+.title { font-size: 15px; font-weight: 600; }
+.section-label { font-size: 12px; font-weight: 500; color: @y_muted; padding: 0 4px; }
 
 /* ---------- shared controls ---------- */
 
 button {
   background: none;
-  border: 1px solid transparent;
+  border: none;
   box-shadow: none;
   text-shadow: none;
   color: @y_fg;
   min-height: 0;
   min-width: 0;
+  outline: none;
+  font-weight: 400; /* GTK's default theme makes every button label bold */
 }
 
 .pill-btn, .icon-btn {
-  background: @y_soft;
-  border: 1px solid @y_border;
+  background: @y_faint;
   border-radius: 9999px;
-  padding: 3px 12px;
-  transition: background 180ms ease, border-color 180ms ease;
+  padding: 4px 12px;
+  transition: background 160ms ease;
 }
-.icon-btn { padding: 5px 7px; }
-.pill-btn:hover, .icon-btn:hover { background: @y_hover; }
-.pill-btn:active, .icon-btn:active { background: @y_strong; }
-.pill-btn.on, .icon-btn.on { background: @y_strong; border-color: @y_primary; }
-
-.launch-logo {
-  font-size: 17px;
-  font-weight: 800;
-  color: @y_primary;
-  /* no infinite animations anywhere: each one re-renders the bar every frame (and Hyprland re-blurs
-   * behind it) for as long as the shell runs — that is what spins laptop fans up */
-  transition: color 200ms ease;
-}
-.launch-btn:hover .launch-logo { color: @y_accent; }
+.icon-btn { padding: 6px; }
+.pill-btn:hover, .icon-btn:hover { background: @y_soft; }
+.pill-btn:active, .icon-btn:active { background: @y_hover; }
+.pill-btn.on, .icon-btn.on { background: @y_primary; }
+.pill-btn.on, .pill-btn.on label, .icon-btn.on image { color: @y_on_primary; }
+.pill-btn.primary { background: @y_primary; font-weight: 500; }
+.pill-btn.primary, .pill-btn.primary label, .pill-btn.primary image { color: @y_on_primary; }
 
 entry.search {
-  background: @y_bg_alt;
-  border: 1px solid @y_border;
-  border-radius: 14px;
-  padding: 9px 14px;
+  background: @y_faint;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  padding: 8px 16px;
   min-height: 0;
+  font-size: 15px;
   color: @y_fg;
   caret-color: @y_primary;
-  transition: border-color 180ms ease;
+  transition: border-color 160ms ease, background 160ms ease;
 }
-entry.search:focus-within { border-color: @y_primary; }
+entry.search:focus-within { background: @y_soft; border-color: @y_primary_soft; }
+entry.search image { color: @y_muted; margin-right: 6px; }
 
 scale trough {
   background: @y_soft;
   border-radius: 9999px;
-  min-height: 8px;
+  min-height: 6px;
 }
 scale highlight {
   background: @y_primary;
   border-radius: 9999px;
 }
 scale slider {
-  background: @y_fg;
+  background: @y_primary;
   border-radius: 9999px;
-  min-width: 14px;
-  min-height: 14px;
-  margin: -4px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  min-width: 16px;
+  min-height: 16px;
+  margin: -6px;
+  box-shadow: 0 0 0 3px @y_popup;
 }
 
-levelbar trough { background: @y_soft; border-radius: 9999px; min-height: 8px; }
+levelbar trough { background: @y_soft; border-radius: 9999px; min-height: 6px; }
 levelbar block.filled { background: @y_primary; border-radius: 9999px; }
 levelbar block.empty { background: transparent; }
 
 switch {
-  background: @y_soft;
-  border: 1px solid @y_border;
+  background: @y_hover;
+  border: none;
   border-radius: 9999px;
 }
 switch:checked { background: @y_primary; }
-switch slider { background: @y_fg; border-radius: 9999px; }
+switch slider { background: @y_fg; border-radius: 9999px; margin: 3px; }
+switch:checked slider { background: @y_on_primary; }
+
+tooltip {
+  background: @y_popup;
+  border: 1px solid @y_border;
+  border-radius: 10px;
+}
+tooltip label { font-size: 12px; }
 
 /* ---------- bar ---------- */
 
 .bar-inner {
-  background: linear-gradient(135deg, @y_bg_alt, @y_surface 55%, @y_bg_alt);
+  background: @y_surface;
   border: 1px solid @y_border;
-  border-radius: 20px;
-  margin: 10px 12px 0 12px;
-  padding: 6px 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
+  margin: 8px 8px 0 8px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+window.ypsilon-bar.bottom .bar-inner, .bar-inner.bottom { margin: 0 8px 8px 8px; }
+
+.launch-btn { padding: 4px 9px; border-radius: 9999px; }
+.launch-btn:hover { background: @y_faint; }
+.launch-logo {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 17px;
+  color: @y_primary;
+  /* no infinite animations anywhere: each one re-renders the bar every frame (and Hyprland re-blurs
+   * behind it) for as long as the shell runs — that is what spins laptop fans up */
+  transition: color 200ms ease;
 }
 
-.ws-strip { padding: 1px; }
+/* workspaces: quiet numbers, the active one grows into a filled pill */
+.ws-strip { padding: 0 2px; }
 .ws-btn {
   border-radius: 9999px;
-  padding: 1px 10px;
-  color: @y_muted;
-  font-weight: 700;
-  transition: background 200ms ease, color 200ms ease, border-color 200ms ease, padding 200ms ease, box-shadow 200ms ease;
+  padding: 2px 0;
+  min-width: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  color: alpha(@y_muted, 0.55);
+  transition: background 220ms ease, color 220ms ease, min-width 220ms cubic-bezier(0.2, 0, 0, 1);
 }
-.ws-btn:hover { background: @y_soft; }
-.ws-btn.occupied { color: @y_fg; border-color: @y_border; }
-.ws-btn.active {
-  background: linear-gradient(135deg, @y_primary, @y_accent);
-  color: @y_bg;
-  border-color: transparent;
-  padding: 1px 16px;
-  box-shadow: 0 0 8px @y_primary;
-}
-.ws-btn.big { padding: 12px 22px; font-size: 18px; }
+.ws-btn:hover { background: @y_faint; color: @y_fg; }
+.ws-btn.occupied { color: @y_fg; }
+.ws-btn.active { background: @y_primary; color: @y_on_primary; min-width: 40px; }
+.ws-btn.big { padding: 8px 0; min-width: 0; font-size: 20px; font-weight: 600; background: none; color: @y_fg; }
 
-.window-title { color: @y_muted; font-size: 12px; }
+.window-title { color: @y_muted; font-size: 12px; padding-left: 4px; }
 
-.launch-btn, .power-btn { padding: 4px 9px; }
+.power-btn { padding: 6px 8px; background: none; }
+.power-btn:hover { background: @y_faint; }
 .clock {
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 2px 10px;
+  font-weight: 500;
+  padding: 3px 12px;
   border-radius: 9999px;
-  transition: background 180ms ease;
+  transition: background 160ms ease;
 }
-button:hover .clock { background: @y_soft; }
+button:hover .clock { background: @y_faint; }
 
-.status-group {
-  background: @y_soft;
-  border: 1px solid @y_border;
+.status-group, .sys-pill {
+  background: none;
   border-radius: 9999px;
-  padding: 3px 10px;
-  transition: background 180ms ease;
+  padding: 4px 10px;
+  transition: background 160ms ease;
 }
-.status-group:hover { background: @y_hover; }
+.status-group:hover, .sys-pill:hover { background: @y_faint; }
 .status-group image { margin: 0 1px; }
-.status-sub { font-size: 12px; color: @y_muted; }
+.status-sub { font-size: 12px; color: @y_muted; font-feature-settings: "tnum"; }
+.glyph { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 14px; color: @y_muted; }
 .badge {
   background: @y_primary;
-  color: @y_bg;
+  color: @y_on_primary;
   border-radius: 9999px;
-  padding: 0 6px;
+  padding: 0 5px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
-.tray-btn {
-  border-radius: 9px;
-  padding: 3px 4px;
-  transition: background 180ms ease;
-}
-.tray-btn:hover { background: @y_soft; }
+.tray-btn { border-radius: 9999px; padding: 4px 5px; transition: background 160ms ease; }
+.tray-btn:hover { background: @y_faint; }
 
 .media-mini { padding: 0 4px; }
-.media-title { font-size: 12px; }
+.media-title { font-size: 12px; color: @y_muted; }
+.bar-inner .icon-btn { background: none; }
+.bar-inner .icon-btn:hover { background: @y_faint; }
+
+.rec-btn { background: @y_bad; border-radius: 9999px; padding: 3px 10px; }
+.rec-btn label, .rec-btn image { color: @y_on_primary; font-weight: 600; }
 
 /* ---------- popups (full-screen click-away scrim + card) ---------- */
 
 .popup-card {
   background: @y_popup;
   border: 1px solid @y_border;
-  border-radius: 24px;
-  padding: 18px 20px;
+  padding: 16px;
   color: @y_fg;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.40);
 }
-.popup-card.top-sheet { margin-top: 90px; min-width: 460px; }
-.popup-card.corner { margin: 12px; min-width: 360px; }
-.popup-card.corner.under-bar { margin-top: 74px; }
+.popup-card.top-sheet { margin-top: 84px; min-width: 520px; }
+.popup-card.corner { margin: 10px; min-width: 380px; }
+.popup-card.corner.under-bar { margin-top: 62px; }
 
 /* launcher */
 .app-row {
   border-radius: 14px;
   padding: 6px 10px;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: background 120ms ease;
 }
 .app-row:hover { background: @y_faint; }
-.app-row.selected { background: @y_soft; border-color: @y_border; }
-.app-name { font-weight: 700; }
-.calc-result { font-size: 22px; font-weight: 800; color: @y_accent; padding: 4px 6px; }
-.hint { font-size: 11px; color: @y_muted; }
+.app-row.selected { background: @y_soft; }
+.app-row.selected .app-name { color: @y_fg; }
+.app-name { font-weight: 500; }
+.row-glyph { font-size: 24px; }
+.calc-result { font-size: 22px; font-weight: 600; color: @y_primary; padding: 4px 6px; }
+.hint { font-size: 11px; color: alpha(@y_muted, 0.8); }
 
 /* control center */
+.cc-header { padding: 2px 2px 4px 2px; }
+.avatar { border-radius: 9999px; min-width: 40px; min-height: 40px; background: @y_soft; }
+.avatar-letter { font-size: 17px; font-weight: 600; color: @y_primary; }
+.cc-user { font-size: 15px; font-weight: 600; }
+
 .tile {
   background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 16px;
-  transition: background 180ms ease, border-color 180ms ease;
+  border-radius: 9999px;
+  transition: background 200ms ease;
 }
 .tile:hover { background: @y_soft; }
-.tile.on { background: @y_strong; border-color: @y_primary; }
-.tile .tile-main { padding: 10px 12px; border-radius: 16px; }
-.tile .tile-more { padding: 10px 8px; border-radius: 0 16px 16px 0; border-left: 1px solid @y_border; }
-.tile .tile-more:hover { background: @y_soft; }
-.tile .tile-title { font-weight: 700; }
+.tile.on { background: @y_primary_container; }
+.tile.on:hover { background: shade(@y_primary_container, 1.12); }
+.tile.on label { color: @y_on_primary_container; }
+.tile.on image { color: @y_primary; }
+.tile.on .tile-sub { color: alpha(@y_on_primary_container, 0.7); }
+.tile .tile-main { padding: 9px 14px; border-radius: 9999px; }
+.tile .tile-more { padding: 9px 12px 9px 8px; border-radius: 0 9999px 9999px 0; }
+.tile .tile-more:hover { background: alpha(@y_fg, 0.08); }
+.tile .tile-title { font-weight: 500; }
 .tile .tile-sub { font-size: 11px; color: @y_muted; }
+.slider-row { padding: 0 2px; }
 .slider-row scale { min-width: 190px; }
 .slider-row image { color: @y_muted; }
+.slider-row .icon-btn { background: none; padding: 4px; }
 .theme-chip { padding: 3px 10px; font-size: 12px; }
+
 .media-card {
   background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 16px;
-  padding: 10px 12px;
+  border-radius: 18px;
+  padding: 10px;
 }
 .media-art {
   border-radius: 12px;
@@ -235,207 +267,202 @@ button:hover .clock { background: @y_soft; }
   background: @y_soft;
 }
 .media-progress trough { min-height: 4px; }
-.media-progress block.filled { background: @y_accent; }
-.icon-btn.play { background: @y_primary; border-color: @y_primary; padding: 7px 9px; }
-.icon-btn.play image { color: @y_bg; }
+.icon-btn.play { background: @y_primary; padding: 8px 10px; }
+.icon-btn.play image { color: @y_on_primary; }
 .notif-image { border-radius: 12px; min-width: 48px; min-height: 48px; }
-.rec-btn {
-  background: @y_bad;
-  border-radius: 9999px;
-  padding: 3px 10px;
-}
-.rec-btn label, .rec-btn image { color: @y_bg; font-weight: 800; }
 
 /* notifications */
 .notif-row {
   background: @y_faint;
-  border: 1px solid @y_border;
   border-radius: 16px;
   padding: 10px 12px;
   transition: background 150ms ease;
 }
 .notif-row:hover { background: @y_soft; }
-.notif-row.critical { border-color: @y_bad; }
-.notif-summary { font-weight: 800; }
+.notif-row.critical { background: alpha(@y_bad, 0.14); }
+.notif-summary { font-weight: 600; }
 .notif-body { font-size: 12px; color: @y_muted; }
 .notif-app { font-size: 11px; color: @y_muted; }
-.notif-center-list { min-width: 340px; }
+.notif-center-list { min-width: 360px; }
 
 window.ypsilon-toast .toast-inner {
   background: @y_popup;
   border: 1px solid @y_border;
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 10px 14px;
-  margin: 56px 0 0 0;
-  min-width: 320px;
+  margin: 56px 10px 0 0;
+  min-width: 340px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
-window.ypsilon-toast .toast-inner.critical { border-color: @y_bad; }
+window.ypsilon-toast .toast-inner.critical { border-color: alpha(@y_bad, 0.6); }
 
 /* osd */
 window.ypsilon-osd .osd-inner {
   background: @y_popup;
   border: 1px solid @y_border;
   border-radius: 9999px;
-  padding: 8px 20px;
+  padding: 10px 18px;
   margin-bottom: 40px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
-.osd-inner levelbar { min-width: 180px; }
-.osd-label { font-weight: 800; min-width: 38px; }
+.osd-inner image { color: @y_primary; }
+.osd-inner levelbar { min-width: 200px; }
+.osd-label { font-weight: 600; min-width: 38px; font-feature-settings: "tnum"; }
 
-/* power menu */
+/* power menu: big round buttons, labels under them */
 .power-tile {
   background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 18px;
-  padding: 16px 20px;
-  min-width: 70px;
-  transition: background 160ms ease, border-color 160ms ease;
+  border-radius: 9999px;
+  min-width: 64px;
+  min-height: 64px;
+  transition: background 160ms ease, border-radius 220ms cubic-bezier(0.2, 0, 0, 1);
 }
-.power-tile:hover { background: @y_soft; border-color: @y_primary; }
-.power-tile.danger:hover { border-color: @y_bad; background: @y_faint; }
-.power-tile label { font-size: 12px; }
+.power-tile:hover { background: @y_primary; border-radius: 22px; }
+.power-tile:hover image { color: @y_on_primary; }
+.power-tile.danger:hover { background: @y_bad; }
+.power-label { font-size: 12px; color: @y_muted; }
 
 /* overview */
 .ws-card {
   background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 16px;
-  padding: 10px;
-  min-width: 120px;
-  transition: background 160ms ease, border-color 160ms ease;
+  border-radius: 18px;
+  padding: 10px 12px 12px 12px;
+  min-width: 132px;
+  min-height: 96px;
+  transition: background 160ms ease;
 }
-.ws-card.active { border-color: @y_primary; background: @y_soft; }
-.client-row {
-  border-radius: 10px;
-  padding: 3px 6px;
-}
+.ws-card:hover { background: @y_soft; }
+.ws-card.active { background: @y_primary_soft; }
+.ws-card.active .ws-btn.big { color: @y_primary; }
+.client-row { border-radius: 10px; padding: 4px 6px; }
 .client-row:hover { background: @y_soft; }
 .client-row label { font-size: 12px; }
 
 /* dashboard */
-.big-clock { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; }
-.stat-val { font-weight: 800; font-size: 12px; }
+.big-clock { font-size: 46px; font-weight: 600; letter-spacing: -0.02em; font-feature-settings: "tnum"; }
+.stat-val { font-weight: 600; font-size: 12px; font-feature-settings: "tnum"; }
 .stat-bar trough { min-height: 6px; }
-.sys-pill {
-  background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 9999px;
-  padding: 3px 10px;
-  transition: background 180ms ease;
-}
-.sys-pill:hover { background: @y_soft; }
-.sys-key { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: @y_primary; }
+.sys-key { font-size: 11px; color: @y_muted; }
 
 /* wallpapers */
-.thumb-btn { border-radius: 14px; padding: 3px; border: 2px solid transparent; transition: border-color 160ms ease; }
+.thumb-btn { border-radius: 16px; padding: 3px; border: 2px solid transparent; transition: border-color 160ms ease; }
 .thumb-btn:hover { border-color: @y_primary; }
-.thumb { border-radius: 11px; }
+.thumb { border-radius: 13px; }
 
 /* cheatsheet */
 .cheat { padding-right: 10px; }
 .kbd {
   font-family: "JetBrainsMono Nerd Font", monospace;
-  font-size: 12px;
-  color: @y_accent;
+  font-size: 11px;
+  color: @y_primary;
 }
 
-/* bottom bar: flip the margin */
-.bar-inner.bottom { margin: 0 12px 10px 12px; }
-window.ypsilon-bar.bottom .bar-inner { margin: 0 12px 10px 12px; }
-
-/* calendar */
+/* calendar (GTK4 nodes: calendar > header / grid > label.day-name|day-number|today) */
 calendar {
   background: transparent;
   color: @y_fg;
   border: none;
+  padding: 4px 0;
 }
-calendar:selected { background: @y_primary; color: @y_bg; border-radius: 9999px; }
-calendar.header { color: @y_fg; }
-calendar.button { color: @y_fg; }
-calendar:indeterminate { color: @y_muted; }
+calendar > header { border: none; padding-bottom: 4px; }
+calendar > header > button { background: none; border-radius: 9999px; padding: 2px 6px; color: @y_muted; }
+calendar > header > button:hover { background: @y_faint; color: @y_fg; }
+calendar > header > label { font-weight: 600; }
+calendar > grid { border: none; }
+calendar > grid > label.day-name { color: @y_muted; font-size: 11px; font-weight: 500; }
+calendar > grid > label.day-number { border-radius: 9999px; padding: 4px; margin: 1px; }
+calendar > grid > label.day-number:hover { background: @y_faint; }
+calendar > grid > label.other-month { color: alpha(@y_muted, 0.4); }
+calendar > grid > label.today { color: @y_primary; font-weight: 600; box-shadow: none; }
+calendar > grid > label:selected, calendar > grid > label.day-number:selected {
+  background: @y_primary;
+  color: @y_on_primary;
+  font-weight: 600;
+}
 
 /* ---------- settings (control panel) ---------- */
-.popup-card.panel { padding: 0; min-width: 980px; min-height: 640px; }
-.settings-root { min-height: 640px; }
+.popup-card.panel { padding: 0; min-width: 960px; min-height: 620px; }
+.settings-root { min-height: 620px; }
 .settings-nav {
   background: @y_faint;
-  border-right: 1px solid @y_border;
-  border-radius: 24px 0 0 24px;
-  padding: 18px 10px;
-  min-width: 220px;
+  border-radius: 21px 0 0 21px;
+  padding: 16px 10px;
+  min-width: 210px;
 }
-.settings-brand { font-size: 17px; font-weight: 800; padding: 2px 10px 14px 10px; }
-.nav-btn { border-radius: 12px; padding: 8px 12px; transition: background 140ms ease; }
-.nav-btn:hover { background: @y_soft; }
-.nav-btn.on { background: @y_strong; }
-.nav-btn.on label, .nav-btn.on image { color: @y_fg; font-weight: 700; }
+.settings-brand { font-size: 16px; font-weight: 600; padding: 4px 12px 14px 12px; }
+.nav-btn { border-radius: 9999px; padding: 8px 14px; transition: background 140ms ease; }
+.nav-btn:hover { background: @y_faint; }
+.nav-btn image { color: @y_muted; }
+.nav-btn.on { background: @y_primary_container; }
+.nav-btn.on label, .nav-btn.on image { color: @y_on_primary_container; font-weight: 500; }
 .settings-main { padding: 18px 22px 8px 22px; }
-.settings-page-title { font-size: 22px; font-weight: 800; padding-bottom: 10px; }
+.settings-page-title { font-size: 22px; font-weight: 600; padding: 0 4px 12px 4px; }
 .settings-page { padding: 0 6px 18px 0; }
 .settings-page > box { min-width: 640px; }
-.settings-section-title { font-size: 12px; font-weight: 800; color: @y_muted; letter-spacing: 0.06em; padding: 0 4px 6px 4px; }
+.settings-section-title { font-size: 12px; font-weight: 500; color: @y_primary; padding: 8px 6px 6px 6px; }
 .settings-group {
   background: @y_faint;
-  border: 1px solid @y_border;
-  border-radius: 16px;
+  border-radius: 18px;
 }
-.settings-row { padding: 11px 14px; border-bottom: 1px solid @y_faint; min-height: 26px; }
+.settings-row { padding: 12px 16px; border-bottom: 1px solid alpha(@y_bg, 0.5); min-height: 26px; }
 .settings-group > .settings-row:last-child { border-bottom: none; }
-.settings-label { font-weight: 600; }
+.settings-label { font-weight: 500; }
 .settings-sub { font-size: 12px; color: @y_muted; }
 .settings-sub.mono, .mono { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 11px; }
-.settings-value { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; color: @y_accent; }
+.settings-value { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; color: @y_primary; }
 .settings-entry {
-  background: @y_bg_alt;
-  border: 1px solid @y_border;
-  border-radius: 10px;
+  background: @y_faint;
+  border: 2px solid transparent;
+  border-radius: 12px;
   padding: 5px 10px;
   min-height: 0;
   color: @y_fg;
 }
-.settings-entry:focus-within { border-color: @y_primary; }
-.segmented { background: @y_bg_alt; border: 1px solid @y_border; border-radius: 9999px; padding: 2px; }
-.seg-btn { border-radius: 9999px; padding: 3px 12px; font-size: 12px; transition: background 140ms ease; }
-.seg-btn:hover { background: @y_soft; }
+.settings-entry:focus-within { border-color: @y_primary_soft; }
+.segmented { background: @y_faint; border-radius: 9999px; padding: 3px; }
+.seg-btn { border-radius: 9999px; padding: 4px 12px; font-size: 12px; transition: background 140ms ease; }
+.seg-btn:hover { background: @y_faint; }
 .seg-btn.on { background: @y_primary; }
-.seg-btn.on label, .seg-btn.on { color: @y_bg; font-weight: 700; }
-.pill-btn.primary { background: @y_primary; border-color: @y_primary; color: @y_bg; font-weight: 700; }
-.pill-btn.primary label, .pill-btn.primary image { color: @y_bg; }
+.seg-btn.on label, .seg-btn.on { color: @y_on_primary; font-weight: 500; }
 .embedded-page > box { min-width: 560px; }
 
-.theme-card { border-radius: 14px; padding: 6px; border: 2px solid transparent; transition: border-color 140ms ease; }
-.theme-card:hover { border-color: @y_border; }
+.theme-card { border-radius: 16px; padding: 6px; border: 2px solid transparent; transition: border-color 140ms ease; }
+.theme-card:hover { border-color: @y_soft; }
 .theme-card.on { border-color: @y_primary; }
-.swatches { border-radius: 10px; padding: 10px 12px; min-width: 96px; }
+.swatches { border-radius: 12px; padding: 10px 12px; min-width: 96px; }
 .swatch { min-width: 18px; min-height: 18px; border-radius: 9999px; }
 
-.plugin-card { background: @y_faint; border: 1px solid @y_border; border-radius: 14px; padding: 12px 14px; }
-.plugin-card.broken { border-color: @y_bad; }
-.status-chip { font-size: 10px; font-weight: 800; border-radius: 9999px; padding: 1px 8px; background: @y_soft; color: @y_muted; }
-.status-chip.active { background: @y_good; color: @y_bg; }
-.status-chip.error, .status-chip.invalid { background: @y_bad; color: @y_bg; }
-.status-chip.loading { background: @y_warn; color: @y_bg; }
+.plugin-card { background: @y_faint; border-radius: 16px; padding: 12px 14px; }
+.plugin-card.broken { background: alpha(@y_bad, 0.10); }
+.status-chip { font-size: 10px; font-weight: 600; border-radius: 9999px; padding: 1px 8px; background: @y_soft; color: @y_muted; }
+.status-chip.active { background: alpha(@y_good, 0.18); color: @y_good; }
+.status-chip.error, .status-chip.invalid { background: alpha(@y_bad, 0.18); color: @y_bad; }
+.status-chip.loading { background: alpha(@y_warn, 0.18); color: @y_warn; }
 
 .warn-banner, .reboot-banner {
-  background: @y_faint;
-  border: 1px solid @y_warn;
-  border-radius: 14px;
+  background: alpha(@y_warn, 0.10);
+  border-radius: 16px;
   padding: 10px 14px;
 }
 .warn-banner image, .reboot-banner image { color: @y_warn; }
-.updates-hero, .about-hero { background: @y_faint; border: 1px solid @y_border; border-radius: 18px; padding: 16px 18px; }
-.settings-hero-title { font-size: 18px; font-weight: 800; }
+.updates-hero, .about-hero { background: @y_faint; border-radius: 20px; padding: 16px 18px; }
+.settings-hero-title { font-size: 18px; font-weight: 600; }
 .update-row { padding: 6px 14px; }
-.about-logo { font-size: 26px; font-weight: 800; color: @y_primary; }
+.about-logo { font-size: 26px; font-weight: 600; color: @y_primary; }
 
 /* ---------- bar additions ---------- */
-.updates-btn image { color: @y_accent; }
+.updates-btn image { color: @y_primary; }
 .plugin-pomodoro { padding: 3px 10px; }
+.plugin-chip { padding: 3px 10px; border-radius: 9999px; transition: background 160ms ease; }
+.plugin-chip:hover { background: @y_faint; }
+.plugin-chip image { color: @y_muted; }
 
 /* ---------- visualizer, weather, graphs ---------- */
 .visualizer { min-height: 14px; }
 .media-card .visualizer { min-height: 36px; }
-.weather-card { background: @y_faint; border: 1px solid @y_border; border-radius: 16px; padding: 12px 14px; }
-.weather-temp { font-size: 30px; font-weight: 800; }
+.weather-card { background: @y_faint; border-radius: 18px; padding: 12px 14px; }
+.weather-temp { font-size: 30px; font-weight: 600; }
 .weather-day { min-width: 52px; }
-.graph { min-height: 46px; background: @y_bg_alt; border-radius: 10px; }
+.graph { min-height: 46px; background: @y_faint; border-radius: 12px; color: @y_muted; }
+.graph-cpu .graph { color: @y_primary; }
+.graph-mem .graph { color: @y_accent; }

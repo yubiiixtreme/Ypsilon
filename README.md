@@ -40,12 +40,13 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Bar** | Always shown or auto-hide (touch the screen edge to reveal) — top or bottom, switched live in Settings → Bar. Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
 | **Launcher** `SUPER+Space` | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`. Prefixes: `=` calc · `:` run command · `;` clipboard · `@` switch window · `?` web search |
 | **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme chips, media with art + progress |
+| **Wallpapers** | Five built-in scenes (ridges, aurora, dunes, bloom, contour) rendered by `scripts/make-wallpaper.py`; drop your own in `~/Pictures/Wallpapers` |
 | **Wallpaper → theme** | `ypsilon theme auto` builds a WCAG-checked palette from your wallpaper and re-themes shell, Hyprland borders, lockscreen and terminals. Opt into `theme.followWallpaper` for every change |
 | **Dashboard** *(clock click)* | Big clock, calendar, live CPU/memory/temperature graphs, now playing |
 | **Notifications** | Stacked image toasts, silent under DND and fullscreen apps (critical still shows), history center |
 | **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
-| **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`). See [docs/PLUGINS.md](docs/PLUGINS.md) |
+| **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
 | **Extras** | Fish greeting centred over fastfetch, in your theme colours (`cp extras/fish_greeting.fish ~/.config/fish/functions/`) · Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · cheatsheet `SUPER+/` · overview `SUPER+Tab` · OSD · hyprlock + hypridle (dim → lock → off → suspend) |
 
 ## Keybinds

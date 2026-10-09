@@ -1,4 +1,7 @@
 import Gtk from "gi://Gtk"
+import Gdk from "gi://Gdk"
+import GdkPixbuf from "gi://GdkPixbuf"
+import GLib from "gi://GLib"
 import { Accessor, createBinding, createComputed, createState, For } from "ags"
 import { execAsync } from "ags/process"
 import Network from "gi://AstalNetwork"
@@ -11,7 +14,7 @@ import { getNotifd, setDnd } from "../services/notif"
 import { currentTheme, setCurrentTheme, themeNames, setAutoTheme } from "../services/theme"
 import {
   toggleWifi, toggleBt, setTheme, toggleGameMode, toggleNightlight, toggleCaffeine,
-  screenshot, colorPicker, lock, logout, poweroff, cliPath,
+  screenshot, colorPicker, cliPath,
 } from "../services/system"
 import { toggleWindow, hideWindow } from "../services/shell"
 import { openSettings } from "./settings/SettingsApp"
@@ -44,6 +47,38 @@ function Tile(props: { icon: Str; title: string; sub: Str; on: Accessor<boolean>
           <image iconName="go-next-symbolic" pixelSize={14} />
         </button>
       )}
+    </box>
+  )
+}
+
+const FACE = `${GLib.get_home_dir()}/.face`
+const displayName = () => {
+  const real = GLib.get_real_name()
+  return real && real !== "Unknown" ? real : GLib.get_user_name()
+}
+/** "3 h 12 min" since boot */
+function uptime(): string {
+  const [ok, data] = GLib.file_get_contents("/proc/uptime")
+  if (!ok) return ""
+  const s = Math.floor(Number(new TextDecoder().decode(data).split(" ")[0]))
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60)
+  return d > 0 ? `up ${d} d ${h} h` : h > 0 ? `up ${h} h ${m} min` : `up ${m} min`
+}
+
+/** your picture (~/.face) or your initial on a tinted circle */
+function Avatar() {
+  try {
+    if (GLib.file_test(FACE, GLib.FileTest.EXISTS)) {
+      // decoded small (a Gtk.Picture would ask for the photo's full size); Gtk.Image scales it to pixelSize
+      const tex = Gdk.Texture.new_for_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(FACE, 96, 96, true))
+      return <image class="avatar" paintable={tex} pixelSize={40} overflow={Gtk.Overflow.HIDDEN} valign={Gtk.Align.CENTER} />
+    }
+  } catch (e) {
+    print(`ypsilon: ~/.face: ${e}`)
+  }
+  return (
+    <box class="avatar" widthRequest={40} heightRequest={40}>
+      <label class="avatar-letter" hexpand label={displayName().slice(0, 1).toUpperCase()} />
     </box>
   )
 }
@@ -99,7 +134,7 @@ export default function ControlCenter() {
   const outName = speakerProp("description")((d) => shortDeviceName(d))
 
   const wifi = createBinding(Network.get_default(), "wifi")
-  const ssid = createComputed(() => (wifi()?.enabled ? wifi()?.ssid || "on" : "off"))
+  const ssid = createComputed(() => (wifi()?.enabled ? wifi()?.ssid || "Not connected" : "Off"))
   const wifiOn = createComputed(() => !!wifi()?.enabled)
   const bt = createBinding(Bluetooth.get_default(), "isPowered")
   const dnd = createBinding(getNotifd(), "dontDisturb")
@@ -109,7 +144,8 @@ export default function ControlCenter() {
   const pp = PowerProfiles.get_default()
   const profile = createBinding(pp, "activeProfile")
   const profiles = createBinding(pp, "profiles")
-  const always = createComputed(() => true)
+  const unmuted = speakerProp("mute")((m) => !m)
+  const [up, setUp] = createState("")
 
   return (
     <Popup
@@ -119,90 +155,105 @@ export default function ControlCenter() {
       spacing={12}
       onShow={() => {
         setPage("main")
+        setUp(uptime())
         refreshBrightness()
         for (const t of [game, night, caffeine]) t.refresh()
       }}
     >
       <box orientation={Gtk.Orientation.VERTICAL} spacing={12} visible={page((p) => p === "main")}>
-        <label class="title" label="control" halign={Gtk.Align.START} />
+        <box class="cc-header" spacing={12}>
+          <Avatar />
+          <box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER} hexpand>
+            <label class="cc-user" label={displayName()} halign={Gtk.Align.START} />
+            <label class="sub" label={up} halign={Gtk.Align.START} />
+          </box>
+          <button class="icon-btn" tooltipText="Settings" valign={Gtk.Align.CENTER} onClicked={() => { hideWindow("ypsilon-control"); openSettings() }}>
+            <image iconName="preferences-system-symbolic" pixelSize={16} />
+          </button>
+          <button class="icon-btn" tooltipText="Power" valign={Gtk.Align.CENTER} onClicked={() => { hideWindow("ypsilon-control"); toggleWindow("ypsilon-power") }}>
+            <image iconName="system-shutdown-symbolic" pixelSize={16} />
+          </button>
+        </box>
 
         <box spacing={8} homogeneous>
           <Tile icon="network-wireless-symbolic" title="Wi-Fi" sub={ssid} on={wifiOn} onClicked={toggleWifi} onMore={go("wifi")} />
-          <Tile icon="bluetooth-symbolic" title="Bluetooth" sub={bt((o) => (o ? "on" : "off"))} on={bt} onClicked={() => toggleBt(bt())} onMore={go("bt")} />
+          <Tile icon="bluetooth-symbolic" title="Bluetooth" sub={bt((o) => (o ? "On" : "Off"))} on={bt} onClicked={() => toggleBt(bt())} onMore={go("bt")} />
         </box>
         <box spacing={8} homogeneous>
-          <Tile icon={volIcon} title="Sound" sub={outName} on={always} onClicked={toggleMute} onMore={go("audio")} />
-          <Tile icon="notifications-disabled-symbolic" title="Do not disturb" sub={dnd((d) => (d ? "on" : "off"))} on={dnd} onClicked={() => setDnd(!dnd())} />
+          <Tile icon={volIcon} title="Sound" sub={outName} on={unmuted} onClicked={toggleMute} onMore={go("audio")} />
+          <Tile icon="notifications-disabled-symbolic" title="Do not disturb" sub={dnd((d) => (d ? "On" : "Off"))} on={dnd} onClicked={() => setDnd(!dnd())} />
         </box>
         <box spacing={8} homogeneous>
-          <Tile icon="night-light-symbolic" title="Night light" sub={night.state} on={night.state((s) => s === "on")} onClicked={night.flip} />
-          <Tile icon="applications-games-symbolic" title="Game mode" sub={game.state} on={game.state((s) => s === "on")} onClicked={game.flip} />
+          <Tile icon="night-light-symbolic" title="Night light" sub={night.state((s) => (s === "on" ? "Warm screen" : "Off"))} on={night.state((s) => s === "on")} onClicked={night.flip} />
+          <Tile icon="applications-games-symbolic" title="Game mode" sub={game.state((s) => (s === "on" ? "Effects off" : "Off"))} on={game.state((s) => s === "on")} onClicked={game.flip} />
         </box>
         <box spacing={8} homogeneous>
-          <Tile icon="emoji-food-symbolic" title="Caffeine" sub={caffeine.state((c) => (c === "on" ? "staying awake" : "off"))} on={caffeine.state((c) => c === "on")} onClicked={caffeine.flip} />
-          <Tile icon="applications-graphics-symbolic" title="Wallpaper colors" sub={currentTheme((t) => (t === "ypsilon-auto" ? "on" : "generate"))} on={currentTheme((t) => t === "ypsilon-auto")} onClicked={() => setAutoTheme().then(() => setCurrentTheme("ypsilon-auto"))} />
+          <Tile icon="emoji-food-symbolic" title="Caffeine" sub={caffeine.state((c) => (c === "on" ? "Staying awake" : "Off"))} on={caffeine.state((c) => c === "on")} onClicked={caffeine.flip} />
+          <Tile icon="applications-graphics-symbolic" title="Wallpaper colors" sub={currentTheme((t) => (t === "ypsilon-auto" ? "On" : "Off"))} on={currentTheme((t) => t === "ypsilon-auto")} onClicked={() => setAutoTheme().then(() => setCurrentTheme("ypsilon-auto"))} />
         </box>
 
         <PluginTiles />
 
-        <box class="slider-row" spacing={10}>
-          <button class="icon-btn" onClicked={toggleMute}>
+        <box class="slider-row" spacing={8}>
+          <button class="icon-btn" tooltipText="Mute" onClicked={toggleMute}>
             <image iconName={volIcon} pixelSize={16} />
           </button>
           <slider hexpand min={0} max={1} value={vol} onChangeValue={(_s, _scroll, value) => setVolume(value)} />
         </box>
-        <box class="slider-row" spacing={10} visible={brightness((b) => b >= 0)}>
-          <image iconName="display-brightness-symbolic" pixelSize={16} />
+        <box class="slider-row" spacing={8} visible={brightness((b) => b >= 0)}>
+          <box class="icon-btn">
+            <image iconName="display-brightness-symbolic" pixelSize={16} />
+          </box>
           <slider hexpand min={0.05} max={1} value={brightness((b) => Math.max(b, 0.05))} onChangeValue={(_s, _scroll, value) => setBrightness(value)} />
-        </box>
-
-        <box spacing={6} visible={profiles((l) => l.length > 0)}>
-          <label class="sub" label="profile" hexpand halign={Gtk.Align.START} />
-          {(["power-saver", "balanced", "performance"] as const).map((p) => (
-            <button
-              class={profile((cur) => `pill-btn${cur === p ? " on" : ""}`)}
-              visible={profiles((l) => l.some((x) => x.profile === p))}
-              label={p === "power-saver" ? "saver" : p}
-              onClicked={() => pp.set_active_profile(p)}
-            />
-          ))}
         </box>
 
         <MediaCard />
 
-        <box spacing={6}>
-          <label class="sub" label="theme" hexpand halign={Gtk.Align.START} />
-          {themeNames().map((n) => (
-            <button
-              class={currentTheme((cur) => `pill-btn theme-chip${n === cur ? " on" : ""}`)}
-              label={n.replace("ypsilon-", "")}
-              onClicked={() => setTheme(n).then(() => setCurrentTheme(n))}
-            />
-          ))}
+        <box spacing={8} visible={profiles((l) => l.length > 0)}>
+          <label class="section-label" label="Power" hexpand halign={Gtk.Align.START} />
+          <box class="segmented">
+            {(["power-saver", "balanced", "performance"] as const).map((p) => (
+              <button
+                class={profile((cur) => `seg-btn${cur === p ? " on" : ""}`)}
+                visible={profiles((l) => l.some((x) => x.profile === p))}
+                label={p === "power-saver" ? "Saver" : p === "balanced" ? "Balanced" : "Performance"}
+                onClicked={() => pp.set_active_profile(p)}
+              />
+            ))}
+          </box>
         </box>
 
-        <box spacing={6}>
-          <button class="icon-btn" tooltipText="screenshot region" onClicked={() => { hideWindow("ypsilon-control"); screenshot("select") }}>
-            <image iconName="applets-screenshooter-symbolic" pixelSize={15} />
+        <box spacing={8}>
+          <label class="section-label" label="Theme" hexpand halign={Gtk.Align.START} />
+          <box class="segmented">
+            {themeNames().map((n) => (
+              <button
+                class={currentTheme((cur) => `seg-btn${n === cur ? " on" : ""}`)}
+                label={n.replace("ypsilon-", "").replace(/^./, (c) => c.toUpperCase())}
+                onClicked={() => setTheme(n).then(() => setCurrentTheme(n))}
+              />
+            ))}
+          </box>
+        </box>
+
+        <box spacing={8} homogeneous>
+          <button class="pill-btn" onClicked={() => { hideWindow("ypsilon-control"); screenshot("select") }}>
+            <box spacing={6} halign={Gtk.Align.CENTER}>
+              <image iconName="applets-screenshooter-symbolic" pixelSize={14} />
+              <label label="Screenshot" />
+            </box>
           </button>
-          <button class="icon-btn" tooltipText="color picker" onClicked={() => { hideWindow("ypsilon-control"); colorPicker() }}>
-            <image iconName="color-select-symbolic" pixelSize={15} />
+          <button class="pill-btn" onClicked={() => { hideWindow("ypsilon-control"); colorPicker() }}>
+            <box spacing={6} halign={Gtk.Align.CENTER}>
+              <image iconName="color-select-symbolic" pixelSize={14} />
+              <label label="Pick color" />
+            </box>
           </button>
-          <button class="icon-btn" tooltipText="wallpapers" onClicked={() => { hideWindow("ypsilon-control"); toggleWindow("ypsilon-wallpapers") }}>
-            <image iconName="preferences-desktop-wallpaper-symbolic" pixelSize={15} />
-          </button>
-          <box hexpand />
-          <button class="icon-btn" tooltipText="settings" onClicked={() => { hideWindow("ypsilon-control"); openSettings() }}>
-            <image iconName="preferences-system-symbolic" pixelSize={15} />
-          </button>
-          <button class="icon-btn" tooltipText="lock" onClicked={lock}>
-            <image iconName="system-lock-screen-symbolic" pixelSize={15} />
-          </button>
-          <button class="icon-btn" tooltipText="log out" onClicked={logout}>
-            <image iconName="system-log-out-symbolic" pixelSize={15} />
-          </button>
-          <button class="icon-btn" tooltipText="power off" onClicked={poweroff}>
-            <image iconName="system-shutdown-symbolic" pixelSize={15} />
+          <button class="pill-btn" onClicked={() => { hideWindow("ypsilon-control"); toggleWindow("ypsilon-wallpapers") }}>
+            <box spacing={6} halign={Gtk.Align.CENTER}>
+              <image iconName="preferences-desktop-wallpaper-symbolic" pixelSize={14} />
+              <label label="Wallpaper" />
+            </box>
           </button>
         </box>
       </box>

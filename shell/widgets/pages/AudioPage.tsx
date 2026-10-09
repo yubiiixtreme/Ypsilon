@@ -43,15 +43,15 @@ export default function AudioPage({ onBack }: { onBack: () => void }) {
         </button>
         <label class="title" label="Sound" hexpand halign={Gtk.Align.START} />
       </box>
-      <label class="sub" label="output" halign={Gtk.Align.START} />
+      <label class="sub" label="Output" halign={Gtk.Align.START} />
       <box orientation={Gtk.Orientation.VERTICAL} spacing={2}>
         <For each={speakers}>{(ep) => <DeviceRow ep={ep} fallbackIcon="audio-speakers-symbolic" />}</For>
       </box>
-      <label class="sub" label="input" halign={Gtk.Align.START} />
+      <label class="sub" label="Input" halign={Gtk.Align.START} />
       <box orientation={Gtk.Orientation.VERTICAL} spacing={2}>
         <For each={mics}>{(ep) => <DeviceRow ep={ep} fallbackIcon="audio-input-microphone-symbolic" />}</For>
       </box>
-      <label class="sub" label="apps" halign={Gtk.Align.START} visible={streams((l) => l.length > 0)} />
+      <label class="sub" label="Apps" halign={Gtk.Align.START} visible={streams((l) => l.length > 0)} />
       <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} propagateNaturalHeight maxContentHeight={240}>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
           <For each={streams}>{(s) => <StreamRow s={s} />}</For>

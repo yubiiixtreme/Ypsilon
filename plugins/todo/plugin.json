@@ -1,0 +1,12 @@
+{
+  "id": "todo",
+  "name": "To-do",
+  "version": "1.0.0",
+  "description": "A tiny to-do list: type 'todo' in the launcher to add and tick off items. Open items show in the bar.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": [],
+  "settings": [
+    { "key": "showInBar", "label": "Show the open count in the bar", "type": "boolean", "default": true }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "netspeed",
+  "name": "Net speed",
+  "version": "1.0.0",
+  "description": "Live download and upload speed in the bar.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["files"],
+  "settings": [
+    { "key": "iface", "label": "Interface (empty: the busiest one)", "type": "string", "default": "", "placeholder": "wlan0" },
+    { "key": "hideIdle", "label": "Hide while the network is idle", "type": "boolean", "default": true },
+    { "key": "position", "label": "Bar position", "type": "enum", "default": "right", "options": ["left", "center", "right"] }
+  ]
+}

@@ -40,6 +40,15 @@ class PaletteTest(unittest.TestCase):
         self.assertGreater(P.luminance(P.rgb_of(t["bg"])), 0.7)
         self.assertGreaterEqual(P.contrast(P.rgb_of(t["fg"]), P.rgb_of(t["bg"])), 12.0)
 
+    def test_harmonize_turns_toward_the_primary_but_at_most_15_degrees(self):
+        red = (220, 60, 60)
+        far = P.from_hls(70 / 360, 0.5, 0.7)    # yellow-green, ~70° away from red
+        near = P.from_hls(10 / 360, 0.5, 0.7)   # 10° away: moves half the gap
+        self.assertAlmostEqual(P.hls(P.harmonize(far, red))[0] * 360, 55, delta=1)
+        self.assertAlmostEqual(P.hls(P.harmonize(near, red))[0] * 360, 5, delta=1)
+        wrap = P.from_hls(350 / 360, 0.5, 0.7)  # across 0°: turns forward, not the long way round
+        self.assertAlmostEqual(P.hls(P.harmonize(wrap, red))[0] * 360, 355, delta=1)
+
 
 if __name__ == "__main__":
     unittest.main()

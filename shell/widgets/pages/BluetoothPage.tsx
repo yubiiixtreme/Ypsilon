@@ -40,7 +40,7 @@ export default function BluetoothPage({ onBack }: { onBack: () => void }) {
           </For>
         </box>
       </scrolledwindow>
-      <label class="sub" label="pair new devices with bluetoothctl or blueman" />
+      <label class="sub" label="Pair new devices with Blueman or bluetoothctl" />
     </box>
   )
 }
