@@ -56,7 +56,7 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 |---|---|
 | `SUPER+Space` / `C` / `Shift+C` / `N` / `Tab` | Launcher · control center · dashboard · notifications · overview |
 | `SUPER+Shift+Q` / `I` / `/` / `Shift+W` | Power menu · settings · cheatsheet · wallpapers |
-| `SUPER+L` / `W` / `Shift+V` / `P` | Lock · next wallpaper · clipboard · color picker |
+| `SUPER+L` / `W` / `X` / `E` / `Shift+V` / `P` | Lock · browser · next wallpaper · files · clipboard · color picker |
 | `SUPER+Shift+G` / `Shift+N` / `M` | Game mode · night light · layout toggle |
 | `SUPER+Q` / `Shift+E` / `F` / `V` / `J` / `T` | Kill · exit · fullscreen · float · split · group |
 | `SUPER+1…0` / `Shift+1…0` / `S` / scroll | Workspaces · move there · scratchpad · scroll workspaces |

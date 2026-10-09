@@ -12,8 +12,13 @@ window {
 window.ypsilon-bar,
 window.ypsilon-popup,
 window.ypsilon-toast,
-window.ypsilon-osd {
+window.ypsilon-osd,
+window.ypsilon-edge {
   background: transparent;
+}
+
+.ypsilon-edge .edge-strip {
+  min-height: 3px;
 }
 
 label { color: @y_fg; }
@@ -53,6 +58,22 @@ button {
   font-size: 17px;
   font-weight: 800;
   color: @y_primary;
+  animation: logo-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes logo-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.62; }
+}
+
+@keyframes logo-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes logo-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 entry.search {
@@ -100,11 +121,12 @@ switch slider { background: @y_fg; border-radius: 9999px; }
 /* ---------- bar ---------- */
 
 .bar-inner {
-  background: @y_surface;
+  background: linear-gradient(135deg, @y_bg_alt, @y_surface 55%, @y_bg_alt);
   border: 1px solid @y_border;
-  border-radius: 18px;
+  border-radius: 20px;
   margin: 10px 12px 0 12px;
-  padding: 5px 10px;
+  padding: 6px 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
 }
 
 .ws-strip { padding: 1px; }
@@ -113,15 +135,16 @@ switch slider { background: @y_fg; border-radius: 9999px; }
   padding: 1px 10px;
   color: @y_muted;
   font-weight: 700;
-  transition: background 200ms ease, color 200ms ease, border-color 200ms ease, padding 200ms ease;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease, padding 200ms ease, box-shadow 200ms ease;
 }
 .ws-btn:hover { background: @y_soft; }
 .ws-btn.occupied { color: @y_fg; border-color: @y_border; }
 .ws-btn.active {
-  background: @y_primary;
+  background: linear-gradient(135deg, @y_primary, @y_accent);
   color: @y_bg;
-  border-color: @y_primary;
+  border-color: transparent;
   padding: 1px 16px;
+  box-shadow: 0 0 14px @y_primary;
 }
 .ws-btn.big { padding: 12px 22px; font-size: 18px; }
 

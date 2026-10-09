@@ -1,7 +1,7 @@
 import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
 import { Astal } from "ags/gtk4"
-import { createBinding, createComputed, For, onCleanup } from "ags"
+import { createBinding, createComputed, createState, For, onCleanup } from "ags"
 import Gdk from "gi://Gdk"
 import { createPoll } from "ags/time"
 import Tray from "gi://AstalTray"
@@ -252,11 +252,45 @@ function RecordingDot() {
 
 export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   let win: Astal.Window
+  let edge: Astal.Window | null = null
   // root windows are not destroyed automatically: when the monitor is unplugged, the parent
   // <For> in app.tsx disposes this scope and we destroy the window (official AGS pattern)
-  onCleanup(() => win.destroy())
   const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
   const bottom = config().bar.position === "bottom" // position change needs a shell restart
+  const autoHide = config().bar.autohide // same: restart to apply
+  const [revealed, setRevealed] = createState(!autoHide)
+  let hideTimer = 0
+  const cancelHide = () => {
+    if (hideTimer) {
+      GLib.source_remove(hideTimer)
+      hideTimer = 0
+    }
+  }
+  const showBar = () => {
+    cancelHide()
+    setRevealed(true)
+  }
+  const armHide = () => {
+    if (!autoHide) return
+    cancelHide()
+    hideTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 450, () => {
+      hideTimer = 0
+      setRevealed(false)
+      return GLib.SOURCE_REMOVE
+    })
+  }
+  // hover tracking without JSX signal props: plain GTK controllers (Gtk-4 API, no guessing)
+  const hover = (enter: () => void, leave?: () => void) => (box: Gtk.Box | Gtk.CenterBox) => {
+    const c = new Gtk.EventControllerMotion()
+    c.connect("enter", enter)
+    if (leave) c.connect("leave", leave)
+    box.add_controller(c)
+  }
+  onCleanup(() => {
+    cancelHide()
+    win.destroy()
+    edge?.destroy()
+  })
   const clock = createPoll("", 1000, () => {
     const c = config().bar
     const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%I:%M:%S %p" : "%I:%M %p"
@@ -264,17 +298,32 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   })
 
   return (
-    <window
-      $={(self) => (win = self)}
-      visible
-      name={`ypsilon-bar-${gdkmonitor.connector}`}
-      namespace="ypsilon-bar"
-      class={`ypsilon-bar${bottom ? " bottom" : ""}`}
-      gdkmonitor={gdkmonitor}
-      exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
-    >
-      <centerbox class={`bar-inner${bottom ? " bottom" : ""}`}>
+    <>
+      {autoHide && (
+        <window
+          $={(self) => (edge = self)}
+          visible
+          name={`ypsilon-edge-${gdkmonitor.connector}`}
+          namespace="ypsilon-edge"
+          class="ypsilon-edge"
+          gdkmonitor={gdkmonitor}
+          exclusivity={Astal.Exclusivity.IGNORE}
+          anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
+        >
+          <box class="edge-strip" $={hover(showBar)} />
+        </window>
+      )}
+      <window
+        $={(self) => (win = self)}
+        visible={revealed}
+        name={`ypsilon-bar-${gdkmonitor.connector}`}
+        namespace="ypsilon-bar"
+        class={`ypsilon-bar${bottom ? " bottom" : ""}`}
+        gdkmonitor={gdkmonitor}
+        exclusivity={autoHide ? Astal.Exclusivity.IGNORE : Astal.Exclusivity.EXCLUSIVE}
+        anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
+      >
+        <centerbox class={`bar-inner${bottom ? " bottom" : ""}`} $={hover(showBar, armHide)}>
         <box $type="start" class="bar-left" spacing={8}>
           <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
             <label class="launch-logo" label="✦" />
@@ -303,7 +352,8 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           </button>
         </box>
       </centerbox>
-    </window>
+      </window>
+    </>
   )
 }
 

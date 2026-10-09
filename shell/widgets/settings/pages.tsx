@@ -83,6 +83,8 @@ export function BarPage() {
     <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
       <Section title="Position">
         <ChoiceRow label="Bar position" sub="Takes effect after a shell restart" path="bar.position" options={[["top", "Top"], ["bottom", "Bottom"]]} />
+        <SwitchRow label="Autohide bar" sub="Bar slides away; hover the screen edge to reveal it" path="bar.autohide" />
+        <SwitchRow label="Autohide bar" sub="Bar slides away; hover the screen edge to reveal it. Takes effect after a shell restart" path="bar.autohide" />
         <ButtonRow label="Restart shell" button="Restart" icon="view-refresh-symbolic" onClicked={() => cli("restart")} />
         <SliderRow label="Workspaces shown" path="workspaces" min={1} max={10} />
       </Section>
