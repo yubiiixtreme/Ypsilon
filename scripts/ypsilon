@@ -12,9 +12,10 @@ ypsilon — our DE CLI (v0.4)
   ypsilon theme auto [--light] [--apply]  theme generated from the current wallpaper
   ypsilon gen                       regenerate themes + wallpapers (repo files only)
   ypsilon wallpaper {list|files|status|set NAME|PATH|next|restore}
-  ypsilon shot {select|full}        screenshot -> ~/Pictures/Screenshots + clipboard
+  ypsilon shot {select|full|window|delay}  screenshot -> ~/Pictures/Screenshots + clipboard
   ypsilon record {select|full|stop|toggle}
   ypsilon pick                      color picker -> clipboard (hyprpicker)
+  ypsilon pip                       picture-in-picture: float + pin the window bottom-right (again: tile)
   ypsilon gamemode [on|off|toggle|status]   kill animations/blur/gaps for max perf
   ypsilon nightlight [on|off|toggle|status] warm screen (hyprsunset)
   ypsilon caffeine [on|off|toggle|status]   keep the screen awake (pauses hypridle)
@@ -203,15 +204,36 @@ term() {
   esac
 }
 
+# "X,Y WxH" of the focused window (grim -g format), empty if none
+active_geom() {
+  hyprctl activewindow | awk -F'[ ,]' '/^\tat:/{x=$2; y=$3} /^\tsize:/{w=$2; h=$3} END{if (w) printf "%s,%s %sx%s", x, y, w, h}'
+}
+
+# picture-in-picture: float + pin the focused window small in the bottom-right; again = back to tiled
+pip() {
+  local info addr
+  info=$(hyprctl activewindow); addr=$(echo "$info" | awk 'NR==1{print "0x"$2}')
+  [ "$addr" != "0x" ] && [ -n "$addr" ] || { echo "no active window"; return 1; }
+  if echo "$info" | grep -q $'^\tpinned: 1'; then
+    hyprctl --batch "dispatch pin address:$addr; dispatch settiled address:$addr" >/dev/null; echo off
+  else
+    hyprctl --batch "dispatch setfloating address:$addr; dispatch resizewindowpixel exact 30% 30%,address:$addr; dispatch movewindowpixel exact 69% 68%,address:$addr; dispatch pin address:$addr" >/dev/null; echo on
+  fi
+}
+
 shot() {
   local dir=~/Pictures/Screenshots f geom
   mkdir -p "$dir"; f="$dir/ypsilon-$(date +%Y%m%d_%H%M%S).png"
-  if [ "${1:-select}" = "full" ]; then
-    grim "$f" || return 1
-  else
-    geom=$(slurp) || return 0   # Esc in slurp = cancel, not an error
-    grim -g "$geom" "$f" || return 1
-  fi
+  case "${1:-select}" in
+    full) grim "$f" || return 1;;
+    delay) sleep 3; grim "$f" || return 1;;   # time to open a menu first
+    window)
+      geom=$(active_geom); [ -n "$geom" ] || { echo "no active window"; return 1; }
+      grim -g "$geom" "$f" || return 1;;
+    *)
+      geom=$(slurp) || return 0   # Esc in slurp = cancel, not an error
+      grim -g "$geom" "$f" || return 1;;
+  esac
   wl-copy < "$f"
   have notify-send && notify-send -i "$f" "Screenshot saved" "$f"
   echo "shot -> $f (+ clipboard)"
@@ -245,6 +267,7 @@ case "$cmd" in
   gen) python3 "$ROOT/scripts/gen-theme.py" && python3 "$ROOT/scripts/make-wallpaper.py" && echo "gen OK";;
   wallpaper) shift; "$ROOT/scripts/wallpaper.sh" "$@";;
   shot) shot "${2:-select}";;
+  pip) pip;;
   record) shift; "$ROOT/scripts/record.sh" "$@";;
   pick)
     have hyprpicker || { echo "install hyprpicker"; exit 1; }
