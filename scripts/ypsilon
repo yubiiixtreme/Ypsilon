@@ -6,7 +6,7 @@ cmd=${1:-help}
 
 usage() {
   cat <<'USAGE'  # quoted: help text must never execute anything
-ypsilon — our DE CLI (v0.4)
+ypsilon — our DE CLI (v0.5)
   ypsilon theme list                list themes
   ypsilon theme set NAME [--apply]  regenerate files (+ live-apply with --apply)
   ypsilon theme auto [--light] [--apply]  theme generated from the current wallpaper
@@ -15,6 +15,8 @@ ypsilon — our DE CLI (v0.4)
   ypsilon shot {select|full|window|delay}  screenshot -> ~/Pictures/Screenshots + clipboard
   ypsilon record {select|full|stop|toggle}
   ypsilon pick                      color picker -> clipboard (hyprpicker)
+  ypsilon calc EXPR                 safe calculator: functions, constants, factorial (try: sqrt(16), sin(30), 5!)
+  ypsilon pw [LEN] [--no-symbols]   strong password -> stdout (+ clipboard with wl-copy)
   ypsilon pip                       picture-in-picture: float + pin the window bottom-right (again: tile)
   ypsilon gamemode [on|off|toggle|status]   kill animations/blur/gaps for max perf
   ypsilon nightlight [on|off|toggle|status] warm screen (hyprsunset)
@@ -272,6 +274,111 @@ case "$cmd" in
   pick)
     have hyprpicker || { echo "install hyprpicker"; exit 1; }
     c=$(hyprpicker -a -n) && { have notify-send && notify-send "Color copied" "$c"; echo "$c"; };;
+  calc)
+    shift
+    [ $# -gt 0 ] || { echo "usage: ypsilon calc EXPR  (e.g. ypsilon calc 'sqrt(16)+2*3')"; exit 1; }
+    expr="$*"
+    python3 - "$expr" <<'PY' || exit 1
+import math, re, sys
+s = sys.argv[1].strip().lstrip("=").strip().replace(" ", "").lower().replace(",", ".")
+if not s or not re.fullmatch(r"[0-9+\-*/%^().!a-z]+", s):
+    print("not a valid expression", file=sys.stderr); sys.exit(1)
+FUNCS = {"sqrt": math.sqrt, "cbrt": lambda x: x ** (1/3) if x >= 0 else -((-x) ** (1/3)),
+         "sin": lambda x: math.sin(math.radians(x)), "cos": lambda x: math.cos(math.radians(x)),
+         "tan": lambda x: math.tan(math.radians(x)),
+         "asin": lambda x: math.degrees(math.asin(x)), "acos": lambda x: math.degrees(math.acos(x)),
+         "atan": lambda x: math.degrees(math.atan(x)),
+         "log": math.log10, "ln": math.log, "log2": math.log2,
+         "abs": abs, "floor": math.floor, "ceil": math.ceil, "round": round, "trunc": math.trunc, "exp": math.exp}
+CONSTS = {"pi": math.pi, "e": math.e, "tau": math.tau, "phi": (1 + math.sqrt(5)) / 2}
+i = 0
+def peek(): return s[i] if i < len(s) else ""
+def num():
+    global i
+    m = re.match(r"\d*\.?\d+|\d+", s[i:])
+    if not m: raise ValueError("number")
+    i += len(m.group(0)); return float(m.group(0))
+def atom():
+    global i
+    if peek() == "(":
+        i += 1; v = expr()
+        if peek() != ")": raise ValueError("paren")
+        i += 1; return v
+    if peek().isalpha():
+        m = re.match(r"[a-z]+", s[i:]); i += len(m.group(0)); name = m.group(0)
+        if name in CONSTS: return CONSTS[name]
+        if name not in FUNCS: raise ValueError("unknown")
+        return FUNCS[name](postfix())
+    return num()
+def postfix():
+    global i
+    v = atom()
+    while peek() == "!":
+        i += 1
+        if not float(v).is_integer() or v < 0 or v > 170: raise ValueError("factorial")
+        v = math.factorial(int(v))
+    return v
+def unary():
+    global i
+    if peek() == "-": i += 1; return -unary()
+    if peek() == "+": i += 1; return unary()
+    return postfix()
+def power():
+    global i
+    b = unary()
+    if peek() == "^": i += 1; return b ** power()
+    return b
+def term():
+    global i
+    v = power()
+    while peek() in ("*", "/", "%"):
+        op = s[i]; i += 1
+        if op == "*" and peek() == "*": raise ValueError("op")
+        r = power()
+        v = v * r if op == "*" else (v / r if op == "/" else v % r)
+    return v
+def expr():
+    global i
+    v = term()
+    while peek() in ("+", "-"):
+        op = s[i]; i += 1; r = term()
+        v = v + r if op == "+" else v - r
+    return v
+try:
+    v = expr()
+    if i != len(s) or not math.isfinite(v): raise ValueError("bad")
+    v = round(v * 1e8) / 1e8
+    if float(v).is_integer(): print(int(v))
+    else: print(v)
+except Exception:
+    print("not a valid expression", file=sys.stderr); sys.exit(1)
+PY
+    ;;
+  pw)
+    shift
+    len=20; sym=1
+    for a in "$@"; do
+      case "$a" in
+        --no-symbols|--plain) sym=0;;
+        --symbols) sym=1;;
+        [0-9]*) len="$a";;
+        *) echo "usage: ypsilon pw [LEN] [--no-symbols]"; exit 1;;
+      esac
+    done
+    case "$len" in ''|*[!0-9]*) echo "length must be a number 4..128"; exit 1;; esac
+    [ "$len" -ge 4 ] && [ "$len" -le 128 ] || { echo "length must be 4..128"; exit 1; }
+    pw=$(python3 - "$len" "$sym" <<'PY' || exit 1
+import secrets, sys
+n = int(sys.argv[1]); symbols = sys.argv[2] == "1"
+pool = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789" + ("!@#$%^&*+-=?" if symbols else "")
+print("".join(secrets.choice(pool) for _ in range(n)))
+PY
+    )
+    printf '%s\n' "$pw"
+    if have wl-copy && [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+      if have timeout; then printf '%s' "$pw" | timeout 1 wl-copy 2>/dev/null && echo "(copied to clipboard)" || true
+      else printf '%s' "$pw" | wl-copy 2>/dev/null && echo "(copied to clipboard)" || true; fi
+    fi;;
   gamemode)
     on() { hyprctl --batch "keyword animations:enabled 0; keyword decoration:blur:enabled 0; keyword decoration:shadow:enabled 0; keyword general:gaps_in 0; keyword general:gaps_out 0; keyword decoration:rounding 0" >/dev/null; }
     st() { [ "$(hyprctl getoption animations:enabled 2>/dev/null | awk '/int:/{print $2}')" = "0" ] && echo on || echo off; }

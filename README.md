@@ -38,15 +38,17 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | | |
 |---|---|
 | **Bar** | Always shown or auto-hide (touch the screen edge to reveal) — top or bottom, switched live in Settings → Bar. Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
-| **Launcher** `SUPER+Space` | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`. Prefixes: `=` calc · `:` run command · `;` clipboard · `@` switch window · `?` web search |
+| **Launcher** `SUPER+Space` | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`. Prefixes: `=` calc (functions, constants, `5!`) · `:` run command · `;` clipboard · `@` switch window · `?` web search · `pw 20` passwords · `time tokyo` world clock · `.fire` emoji · `!wiki` quick links · `todo` to-do |
 | **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme chips, media with art + progress |
 | **Wallpapers** | Five built-in scenes (ridges, aurora, dunes, bloom, contour) rendered by `scripts/make-wallpaper.py`; drop your own in `~/Pictures/Wallpapers` |
 | **Wallpaper → theme** | `ypsilon theme auto` builds a WCAG-checked palette from your wallpaper and re-themes shell, Hyprland borders, lockscreen and terminals. Opt into `theme.followWallpaper` for every change |
+| **Themes** | Five hand-tuned themes: dark, neon, light, ocean, sunset — plus auto from any wallpaper (`ypsilon theme list`) |
 | **Dashboard** *(clock click)* | Big clock, calendar, live CPU/memory/temperature graphs, now playing |
 | **Notifications** | Stacked image toasts, silent under DND and fullscreen apps (critical still shows), history center |
 | **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
-| **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
+| **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Password** (`pw 20`), **Color** (`#ff0000`), **World clock** (`time tokyo`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
+| **CLI** | `ypsilon calc 'sqrt(16)+2*3'` safe calculator · `ypsilon pw 20` passwords · `ypsilon theme/ocean/sunset` · full list below |
 | **Extras** | Fish greeting centred over fastfetch, in your theme colours (`cp extras/fish_greeting.fish ~/.config/fish/functions/`) · Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · cheatsheet `SUPER+/` · overview `SUPER+Tab` · OSD · hyprlock + hypridle (dim → lock → off → suspend) |
 
 ## Keybinds
@@ -75,6 +77,7 @@ ypsilon try               # safe nested preview
 ypsilon theme list|set|auto
 ypsilon wallpaper list|status|set|next
 ypsilon shot select|full  ypsilon record select|full|stop
+ypsilon calc 'sqrt(16)+2*3'  ypsilon pw 20  # calculator + password generator
 ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness

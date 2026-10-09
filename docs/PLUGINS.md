@@ -20,7 +20,7 @@ ypsilon plugin run my-plugin count   # call a command your plugin registered
 ```
 ~/.config/ypsilon/plugins/<id>/     yours (same id overrides a bundled plugin)
 <repo>/plugins/<id>/                bundled: pomodoro, quicklinks, dev-ports, netspeed, todo,
-                                    emoji, units, dictionary
+                                    emoji, units, dictionary, pass, color, clock
   plugin.json                       manifest (validated; errors shown in Settings)
   index.js                          entry: `export default function main(api) { … }`
 ```

@@ -132,3 +132,51 @@ test("dictionary: Wiktionary HTML stripped, senses spread over parts of speech, 
   assert.deepEqual(parseEntries("not json"), [])
   assert.ok(isWord("serendipity") && isWord("well-being") && isWord("Straße") && !isWord("rm -rf") && !isWord("a"))
 })
+
+import { parseQuery as parsePw, generate as genPw, strength as pwStrength } from "../plugins/pass/gen.js"
+test("pass: lengths, symbol modes, deterministic output", () => {
+  assert.deepEqual(parsePw(""), { length: 20, symbols: true, digits: true })
+  assert.deepEqual(parsePw("16"), { length: 16, symbols: true, digits: true })
+  assert.deepEqual(parsePw("16 no symbols"), { length: 16, symbols: false, digits: true })
+  assert.equal(parsePw("2"), null)
+  assert.equal(parsePw("once upon a time"), null)
+  const a = genPw(12, { symbols: true }, () => 0.5)
+  const b = genPw(12, { symbols: true }, () => 0.5)
+  assert.equal(a, b)
+  assert.equal(a.length, 12)
+  assert.ok(/^[a-zA-Z0-9!@#$%^&*+\-=?]+$/.test(a))
+  const plain = genPw(16, { symbols: false }, () => 0.1)
+  assert.ok(!/[!@#$%^&*+\-=?]/.test(plain))
+  assert.equal(pwStrength(8, 70), "weak")
+  assert.equal(pwStrength(20, 74), "very strong")
+})
+
+import { parseColor, convert as convertColor, toHex } from "../plugins/color/color.js"
+test("color: hex, rgb, hsl, named", () => {
+  assert.deepEqual(parseColor("#ff0000"), { r: 255, g: 0, b: 0 })
+  assert.deepEqual(parseColor("#f00"), { r: 255, g: 0, b: 0 })
+  assert.deepEqual(parseColor("rgb(255, 0, 0)"), { r: 255, g: 0, b: 0 })
+  assert.deepEqual(parseColor("hsl(0, 100%, 50%)"), { r: 255, g: 0, b: 0 })
+  assert.deepEqual(parseColor("teal"), { r: 0, g: 128, b: 128 })
+  assert.equal(parseColor("not a color"), null)
+  assert.equal(parseColor(""), null)
+  const c = convertColor("#ff0000")
+  assert.equal(c.hex, "#ff0000")
+  assert.ok(c.text.includes("rgb(255, 0, 0)"))
+  assert.equal(toHex({ r: 0, g: 128, b: 128 }), "#008080")
+  assert.equal(convertColor("hello world"), null)
+})
+
+import { parseQuery as parseZone, formatAt, offsetToString } from "../plugins/clock/zones.js"
+test("clock: zones, offsets, formatting", () => {
+  assert.deepEqual(parseZone("tokyo")?.offset, 540)
+  assert.deepEqual(parseZone("utc+5:30")?.offset, 330)
+  assert.deepEqual(parseZone("gmt-4")?.offset, -240)
+  assert.deepEqual(parseZone(""), { name: "local", offset: null })
+  assert.equal(parseZone("mordor"), null)
+  assert.equal(parseZone("utc+99"), null)
+  assert.equal(formatAt(Date.UTC(2026, 0, 1, 12, 0, 0), 330), "17:30")
+  assert.equal(formatAt(Date.UTC(2026, 0, 1, 12, 0, 0), -240), "08:00")
+  assert.equal(offsetToString(330), "+05:30")
+  assert.equal(offsetToString(-240), "-04:00")
+})

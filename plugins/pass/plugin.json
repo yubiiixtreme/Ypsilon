@@ -1,0 +1,13 @@
+{
+  "id": "pass",
+  "name": "Password generator",
+  "version": "1.0.0",
+  "description": "Type 'pw 20' in the launcher for a strong password (Enter copies it). 'pw 16 no symbols' for PIN-friendly ones.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["clipboard"],
+  "settings": [
+    { "key": "length", "label": "Default length", "type": "number", "default": 20, "min": 4, "max": 128 },
+    { "key": "symbols", "label": "Include symbols by default", "type": "boolean", "default": true }
+  ]
+}

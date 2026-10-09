@@ -19,8 +19,9 @@ import Popup from "./Popup"
 type Row = { id: string; icon: string; glyph?: string; title: string; sub: string; run: () => void }
 
 // Spotlight-style launcher. Modes by prefix:
-//   (none) apps, ranked by fuzzy match + your habits   =  calculator
+//   (none) apps, ranked by fuzzy match + your habits   =  calculator (functions, pi, 5!)
 //   :  run shell command   ;  clipboard history   @  switch window   ?  web search
+//   pw passwords · time world clock · . emoji · ! quick links · todo to-do · pomo timer · port ports
 // ↑/↓/Tab select · Enter run · Esc / click outside closes. Toggle: SUPER+Space.
 export default function Launcher() {
   const [query, setQuery] = createState("")
@@ -126,8 +127,8 @@ export default function Launcher() {
 
   const hint = createComputed(() =>
     mode() === "plugin" ? `${pluginProvider()?.name ?? "plugin"}` : ({
-      apps: "=  calculator    :  command    ;  clipboard    @  windows    ?  web",
-      calc: "Calculator · Enter copies the result",
+      apps: "= calc  : cmd  ; clip  @ win  ? web  pw pass  time clock  . emoji",
+      calc: "Calculator · functions sqrt sin log · constants pi e · 5! · Enter copies",
       cmd: "Run a shell command",
       clip: "Clipboard history · Enter copies it back",
       win: "Open windows · Enter focuses",

@@ -1,0 +1,12 @@
+{
+  "id": "clock",
+  "name": "World clock",
+  "version": "1.0.0",
+  "description": "Type 'time tokyo', 'time utc+5:30' or just 'time' in the launcher to see the time anywhere.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": [],
+  "settings": [
+    { "key": "favorites", "label": "Favorite zones (comma separated)", "type": "string", "default": "utc, tokyo, newyork", "placeholder": "utc, tokyo, berlin" }
+  ]
+}

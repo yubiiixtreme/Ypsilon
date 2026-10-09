@@ -1,0 +1,10 @@
+{
+  "id": "color",
+  "name": "Color tools",
+  "version": "1.0.0",
+  "description": "Type any color into the launcher — '#ff0000', 'rgb(255,0,0)', 'hsl(0,100%,50%)', 'teal' — and copy every format.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["clipboard"],
+  "settings": []
+}

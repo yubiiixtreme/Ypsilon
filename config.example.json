@@ -7,7 +7,9 @@
     "showWindowTitle": true,
     "showMedia": true,
     "showTray": true,
-    "showSysinfo": true
+    "showSysinfo": true,
+    "showUpdates": true,
+    "showVisualizer": true
   },
   "workspaces": 5,
   "battery": {
@@ -23,5 +25,44 @@
     "followWallpaper": false,
     "autoLight": false
   },
-  "reduceMotion": false
+  "reduceMotion": false,
+  "hypr": {
+    "gapsIn": 6,
+    "gapsOut": 12,
+    "borderSize": 2,
+    "rounding": 18,
+    "blur": true,
+    "shadows": true,
+    "dimInactive": true
+  },
+  "input": {
+    "kbLayout": "us",
+    "kbVariant": "",
+    "kbOptions": "",
+    "naturalScroll": true,
+    "sensitivity": 0,
+    "repeatRate": 35,
+    "repeatDelay": 300
+  },
+  "idle": {
+    "dimSec": 150,
+    "lockSec": 300,
+    "screenOffSec": 360,
+    "suspendSec": 1200
+  },
+  "terminal": "",
+  "updates": {
+    "enabled": true,
+    "intervalMin": 60,
+    "flatpak": true
+  },
+  "weather": {
+    "enabled": true,
+    "location": "",
+    "units": "metric"
+  },
+  "plugins": {
+    "enabled": [],
+    "settings": {}
+  }
 }
