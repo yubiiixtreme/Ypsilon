@@ -136,7 +136,7 @@ doctor() {
   sec "shell (AGS + Astal)"
   have ags && okm "ags $(ags --version 2>/dev/null | head -1)" || fix "ags" "AUR: aylurs-gtk-shell"
   if python3 -c 'import gi' 2>/dev/null; then
-    for g in Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk4LayerShell:1.0; do
+    for g in Astal:4.0 AstalIO:0.1 AstalHyprland:0.1 AstalTray:0.1 AstalNetwork:0.1 AstalBluetooth:0.1 AstalBattery:0.1 AstalBrightness:0.1 AstalCava:0.1 AstalMpris:0.1 AstalNotifd:0.1 AstalWp:0.1 AstalApps:0.1 AstalPowerProfiles:0.1 Gtk4LayerShell:1.0; do
       python3 -c "import gi,sys; gi.require_version('${g%%:*}','${g##*:}')" 2>/dev/null && okm "typelib ${g%%:*}" || fix "typelib ${g%%:*}" "./scripts/install-deps.sh"
     done
   else fix "python-gobject" "pacman -S python-gobject (needed for checks)"; fi
