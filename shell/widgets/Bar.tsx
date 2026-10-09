@@ -252,7 +252,6 @@ function RecordingDot() {
 
 export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   let win: Astal.Window
-  let edge: Astal.Window | null = null
   // root windows are not destroyed automatically: when the monitor is unplugged, the parent
   // <For> in app.tsx disposes this scope and we destroy the window (official AGS pattern)
   const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
@@ -289,7 +288,6 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   onCleanup(() => {
     cancelHide()
     win.destroy()
-    edge?.destroy()
   })
   const clock = createPoll("", 1000, () => {
     const c = config().bar
@@ -297,33 +295,27 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
     return GLib.DateTime.new_now_local().format(`%a %d %b · ${time}`) ?? ""
   })
 
+  const revealAnim = bottom ? Gtk.RevealerTransitionType.SLIDE_UP : Gtk.RevealerTransitionType.SLIDE_DOWN
+
   return (
-    <>
-      {autoHide && (
-        <window
-          $={(self) => (edge = self)}
-          visible
-          name={`ypsilon-edge-${gdkmonitor.connector}`}
-          namespace="ypsilon-edge"
-          class="ypsilon-edge"
-          gdkmonitor={gdkmonitor}
-          exclusivity={Astal.Exclusivity.IGNORE}
-          anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
+    <window
+      $={(self) => (win = self)}
+      visible
+      name={`ypsilon-bar-${gdkmonitor.connector}`}
+      namespace="ypsilon-bar"
+      class={`ypsilon-bar${bottom ? " bottom" : ""}`}
+      gdkmonitor={gdkmonitor}
+      exclusivity={autoHide ? Astal.Exclusivity.IGNORE : Astal.Exclusivity.EXCLUSIVE}
+      anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
+    >
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        {autoHide && !bottom && <box class="sliver" $={hover(showBar)} />}
+        <revealer
+          revealChild={revealed}
+          transitionType={revealAnim}
+          transitionDuration={250}
         >
-          <box class="edge-strip" $={hover(showBar)} />
-        </window>
-      )}
-      <window
-        $={(self) => (win = self)}
-        visible={revealed}
-        name={`ypsilon-bar-${gdkmonitor.connector}`}
-        namespace="ypsilon-bar"
-        class={`ypsilon-bar${bottom ? " bottom" : ""}`}
-        gdkmonitor={gdkmonitor}
-        exclusivity={autoHide ? Astal.Exclusivity.IGNORE : Astal.Exclusivity.EXCLUSIVE}
-        anchor={(bottom ? BOTTOM : TOP) | LEFT | RIGHT}
-      >
-        <centerbox class={`bar-inner${bottom ? " bottom" : ""}`} $={hover(showBar, armHide)}>
+          <centerbox class={`bar-inner${bottom ? " bottom" : ""}`} $={hover(showBar, armHide)}>
         <box $type="start" class="bar-left" spacing={8}>
           <button class="icon-btn launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="launcher">
             <label class="launch-logo" label="✦" />
@@ -352,8 +344,10 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           </button>
         </box>
       </centerbox>
-      </window>
-    </>
+        </revealer>
+        {autoHide && bottom && <box class="sliver" $={hover(showBar)} />}
+      </box>
+    </window>
   )
 }
 

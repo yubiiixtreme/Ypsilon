@@ -12,13 +12,14 @@ window {
 window.ypsilon-bar,
 window.ypsilon-popup,
 window.ypsilon-toast,
-window.ypsilon-osd,
-window.ypsilon-edge {
+window.ypsilon-osd {
   background: transparent;
 }
 
-.ypsilon-edge .edge-strip {
+/* autohide grab handle: a faint 3px sliver at the screen edge */
+.sliver {
   min-height: 3px;
+  background: transparent;
 }
 
 label { color: @y_fg; }
@@ -63,17 +64,17 @@ button {
 
 @keyframes logo-breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.62; }
+  50% { opacity: 0.75; }
 }
 
 @keyframes logo-breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.75; }
 }
 
 @keyframes logo-breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.75; }
 }
 
 entry.search {
@@ -126,7 +127,7 @@ switch slider { background: @y_fg; border-radius: 9999px; }
   border-radius: 20px;
   margin: 10px 12px 0 12px;
   padding: 6px 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
 }
 
 .ws-strip { padding: 1px; }
@@ -144,7 +145,7 @@ switch slider { background: @y_fg; border-radius: 9999px; }
   color: @y_bg;
   border-color: transparent;
   padding: 1px 16px;
-  box-shadow: 0 0 14px @y_primary;
+  box-shadow: 0 0 8px @y_primary;
 }
 .ws-btn.big { padding: 12px 22px; font-size: 18px; }
 

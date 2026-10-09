@@ -35,12 +35,18 @@ export function audioList(prop: "speakers" | "microphones" | "streams"): Accesso
   return a ? createBinding(a, prop) : constant([])
 }
 
-// writes fall back to wpctl when the library is unavailable
+// writes fall back to wpctl when the library is unavailable.
+// dragging / pressing volume always unmutes first: raising a muted sink
+// otherwise looks dead, then blasts when unmuted. hard cap 1.0, no boom.
 export function setVolume(v: number) {
   const s = getAudio()?.defaultSpeaker
-  const vol = Math.max(0, Math.min(1.5, v))
-  if (s) s.set_volume(vol)
-  else execAsync(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", vol.toFixed(2)]).catch(() => {})
+  const vol = Math.max(0, Math.min(1, v))
+  if (s) {
+    s.set_mute(false)
+    s.set_volume(vol)
+  } else {
+    execAsync(["bash", "-c", `wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume @DEFAULT_AUDIO_SINK@ ${vol.toFixed(2)}`]).catch(() => {})
+  }
 }
 
 export function toggleMute() {
