@@ -29,7 +29,8 @@
   },
   "desktop": {
     "screenCorners": true,
-    "cornerRadius": 16
+    "cornerRadius": 16,
+    "showIcons": true
   },
   "widgets": {
     "enabled": [],

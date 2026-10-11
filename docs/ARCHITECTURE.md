@@ -34,8 +34,13 @@ shell/app.tsx  (reads css from disk, watches it; requestHandler: reload-css, osd
   └─ OSD — bottom pill, `ags request -i ypsilon osd volume|brightness|gamma`
 Per monitor, next to the bar (click-through, idle at rest):
   ├─ ScreenCorners (widgets/Desktop.tsx) — 4 tiny TOP-layer surfaces drawing the rounded screen corners once (cairo)
-  └─ DesktopWidgets (widgets/Widgets.tsx) — wallpaper widgets from `widgets.enabled` (BOTTOM layer: windows cover them).
-       Built-ins: clock (big time + date), sysinfo (CPU/MEM/temp); plugins add their own via `api.desktop.add`.
+  ├─ DesktopWidgets (widgets/Widgets.tsx) — wallpaper widgets from `widgets.enabled` (BOTTOM layer: windows cover them).
+  │    Built-ins: clock (big time + date), sysinfo (CPU/MEM/temp), `cmd:<id>` command widgets (stdout on an
+  │    interval, run by services/widgets.ts); plugins add their own via `api.desktop.add`.
+  └─ Desktop (widgets/Desktop.tsx) — fullscreen BACKGROUND-layer window behind everything: wallpaper icons
+       from ~/Desktop (single click selects, double-click opens via `gio open`, new files appear live through
+       a Gio monitor) + the right-click menu (toggle widgets, new command widget, icons on/off, wallpaper,
+       settings). Empty-area clicks land here because windows above keep theirs first.
 ```
 
 Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers), `clock` (one shared minute-aligned wall clock), `gamma` (hyprsunset).

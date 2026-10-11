@@ -11,13 +11,14 @@ import GLib from "gi://GLib"
 import { Astal } from "ags/gtk4"
 import { createComputed, For, onCleanup, type Accessor } from "ags"
 import { config } from "../services/config"
+import { cmdOut } from "../services/widgets"
 import { wallClock } from "../services/clock"
 import { cpu, mem, temp } from "../services/sysinfo"
 import { pct } from "../lib/sysinfo"
 import { desktopItems } from "../services/plugins"
 import { guarded } from "../services/health"
 import { clickThrough } from "./Desktop"
-import { widgetPosition, isWidgetPosition, type WidgetPosition, type BuiltinWidgetId } from "../lib/widgets"
+import { widgetPosition, isWidgetPosition, cmdSettings, cmdTitle, isCmdId, type WidgetPosition, type BuiltinWidgetId } from "../lib/widgets"
 import type { MaybeAccessor } from "../lib/plugin-types"
 
 const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
@@ -110,11 +111,35 @@ function SysinfoWidget({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
 }
 
 const KNOWN: BuiltinWidgetId[] = ["clock", "sysinfo"]
+const isKnown = (id: string): boolean => (KNOWN as string[]).includes(id) || isCmdId(id)
 
 function Builtin({ id, gdkmonitor }: { id: string; gdkmonitor: Gdk.Monitor }) {
   if (id === "clock") return <ClockWidget gdkmonitor={gdkmonitor} />
   if (id === "sysinfo") return <SysinfoWidget gdkmonitor={gdkmonitor} />
+  if (isCmdId(id)) return <CmdWidget id={id} gdkmonitor={gdkmonitor} />
   return <box visible={false} />
+}
+
+/** user-defined command widget: a title + the trimmed output of its command.
+ *  Empty command → hint where to set one (right-click the desktop → Widgets). */
+function CmdWidget({ id, gdkmonitor }: { id: string; gdkmonitor: Gdk.Monitor }) {
+  const settings = config((c) => cmdSettings(c.widgets.settings, id))
+  const pos = settings((s) => s.position)
+  const title = settings((s) => cmdTitle(id, s.title))
+  const align = pos((p) => alignFor(p))
+  const body = createComputed(() => {
+    const s = settings()
+    if (!s.command.trim()) return "right-click the desktop → Widgets → edit me"
+    return cmdOut()[id] || "…"
+  })
+  return (
+    <WidgetWindow gdkmonitor={gdkmonitor} position={pos}>
+      <box class="desk-cmd" orientation={Gtk.Orientation.VERTICAL} halign={align}>
+        <label class="desk-cmd-title" label={title} halign={align} />
+        <label class="desk-cmd-out" label={body} halign={align} wrap maxWidthChars={32} />
+      </box>
+    </WidgetWindow>
+  )
 }
 
 /** widgets contributed by plugins (api.desktop.add); a failing widget only drops itself */
@@ -139,7 +164,7 @@ function PluginWidgets({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
 
 /** plain function (like ScreenCorners): one host per monitor, mounted by app.tsx */
 export function DesktopWidgets({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
-  const enabled = createComputed(() => config().widgets.enabled.filter((id) => (KNOWN as string[]).includes(id)))
+  const enabled = createComputed(() => config().widgets.enabled.filter(isKnown))
   return [
     <For each={enabled}>{(id) => <Builtin id={id} gdkmonitor={gdkmonitor} />}</For>,
     <PluginWidgets gdkmonitor={gdkmonitor} />,

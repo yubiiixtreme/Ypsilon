@@ -105,6 +105,27 @@ Other members: `api.bind(obj, "prop")` (GObject property → accessor), `api.eff
 Launcher `search` is synchronous: keep async data in your own state/cache and return from
 it (see `plugins/dev-ports`).
 
+## Custom widgets without code (command widgets)
+
+Right-click the desktop → **New command widget**, or Settings → Desktop → Command
+widgets. Each widget runs one shell command on an interval and shows its stdout
+(first lines, trimmed) under a title you pick. Anything with printable output is a
+widget: no plugin to write.
+
+```jsonc
+// config.json → widgets.enabled + widgets.settings
+"enabled": ["cmd:duolingo"],
+"settings": { "cmd:duolingo": {
+  "title": "Duolingo", "position": "top-right", "intervalSec": 1800,
+  "command": "curl -s -m 10 \"https://www.duolingo.com/2017-06-30/users?username=YOURNAME\" | python3 -c \"import json,sys; u=json.load(sys.stdin)['users'][0]; print(f\\\"🔥 {u.get('streak', 0)} · {u.get('totalXp', 0)} XP\\\")\""
+} }
+```
+
+More ideas, one line each: `cat ~/notes/today.md | head -5` (note), `todo`-count via
+`ls ~/.local/share/ypsilon 2>/dev/null | wc -l`, `playerctl metadata --format '{{artist}} – {{title}}'`
+(now playing), `curl -s wttr.in/Berlin?format=3` (weather). Intervals clamp to 5 s…1 h;
+a failing command shows its first error line instead of going blank.
+
 ## Isolation guarantees
 
 - a plugin that throws while loading is marked **error** (Settings shows the message); the shell keeps running

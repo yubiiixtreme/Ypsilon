@@ -43,3 +43,54 @@ export function normalizeEnabled(list: unknown): string[] {
   if (!Array.isArray(list)) return []
   return [...new Set(list.filter((x): x is string => typeof x === "string"))]
 }
+
+// --- command widgets (`cmd:<id>`): user-defined, genmon-style — run a command every
+// N seconds and show its output. No code needed: a Duolingo streak is one curl line.
+
+export const isCmdId = (id: string): boolean => id.startsWith("cmd:")
+
+export type CmdSettings = { position: WidgetPosition; title: string; command: string; intervalSec: number }
+
+const CMD_DEFAULTS: CmdSettings = { position: "bottom-left", title: "", command: "", intervalSec: 60 }
+
+/** validated settings for one command widget (free-form JSON in, safe values out). */
+export function cmdSettings(all: unknown, id: string): CmdSettings {
+  const raw =
+    all && typeof all === "object" && !Array.isArray(all)
+      ? (all as Record<string, unknown>)[id]
+      : undefined
+  const o = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {}
+  return {
+    position: isWidgetPosition(o.position) ? o.position : CMD_DEFAULTS.position,
+    title: typeof o.title === "string" && o.title.trim() ? o.title.trim().slice(0, 40) : "",
+    command: typeof o.command === "string" ? o.command.slice(0, 2000) : "",
+    intervalSec: clampInterval(o.intervalSec),
+  }
+}
+
+/** refresh interval in seconds: 5..3600, default 60 (a stuck command must never hot-loop). */
+export function clampInterval(v: unknown): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) return 60
+  return Math.min(3600, Math.max(5, Math.round(v)))
+}
+
+/** title shown above the output: the user's title, else a readable id ("cmd:custom-2" → "Custom 2"). */
+export function cmdTitle(id: string, title: string): string {
+  if (title) return title
+  const slug = id.startsWith("cmd:") ? id.slice(4) : id
+  const words = slug.replace(/[-_]+/g, " ").trim() || "command"
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+/** first free `cmd:custom-N` id given the ids already taken. */
+export function nextCmdId(taken: readonly string[]): string {
+  let n = 1
+  while (taken.includes(`cmd:custom-${n}`)) n++
+  return `cmd:custom-${n}`
+}
+
+/** default position for a new widget: first free corner, else center. */
+export function freePosition(used: readonly unknown[]): WidgetPosition {
+  for (const p of WIDGET_POSITIONS) if (!(used as unknown[]).includes(p)) return p
+  return "center"
+}

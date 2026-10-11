@@ -22,8 +22,8 @@ export type Config = {
   osdTimeoutMs: number
   /** screen color via hyprsunset (`ypsilon gamma` / `ypsilon nightlight`): K, % and % steps */
   display: { nightTemp: number; gammaDim: number; gammaStep: number }
-  /** rounded screen corners (shell layer, no compositor change) */
-  desktop: { screenCorners: boolean; cornerRadius: number }
+  /** rounded screen corners (shell layer, no compositor change) + wallpaper icons */
+  desktop: { screenCorners: boolean; cornerRadius: number; showIcons: boolean }
   /** desktop widgets on the wallpaper layer (Settings → Desktop): nothing shows unless enabled */
   widgets: { enabled: string[]; settings: Record<string, Record<string, unknown>> }
   theme: { followWallpaper: boolean; autoLight: boolean }
@@ -59,7 +59,7 @@ export const DEFAULTS: Config = {
   launcher: { webSearch: "https://duckduckgo.com/?q=%s", maxResults: 7 },
   osdTimeoutMs: 1600,
   display: { nightTemp: 4000, gammaDim: 70, gammaStep: 10 },
-  desktop: { screenCorners: true, cornerRadius: 16 },
+  desktop: { screenCorners: true, cornerRadius: 16, showIcons: true },
   widgets: { enabled: [], settings: {} },
   theme: { followWallpaper: false, autoLight: false },
   reduceMotion: false,

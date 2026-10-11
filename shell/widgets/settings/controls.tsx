@@ -34,7 +34,7 @@ export function Section({ title, children }: { title: string; children?: JSX.Ele
   )
 }
 
-function Row({ label, sub, children }: { label: string; sub?: string | Accessor<string>; children?: JSX.Element | JSX.Element[] }) {
+function Row({ label, sub, children }: { label: string | Accessor<string>; sub?: string | Accessor<string>; children?: JSX.Element | JSX.Element[] }) {
   return (
     <box class="settings-row" spacing={12}>
       <box orientation={Gtk.Orientation.VERTICAL} hexpand valign={Gtk.Align.CENTER}>

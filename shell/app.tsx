@@ -15,12 +15,14 @@ import { NotificationCenter, Toast } from "./widgets/Notifications"
 import OSD from "./widgets/OSD"
 import Powermenu from "./widgets/Powermenu"
 import Overview from "./widgets/Overview"
-import { ScreenCorners } from "./widgets/Desktop"
+import { ScreenCorners, Desktop } from "./widgets/Desktop"
 import { DesktopWidgets } from "./widgets/Widgets"
 import SettingsApp, { openSettings } from "./widgets/settings/SettingsApp"
 import { showOsd } from "./services/osd"
 import { refreshBrightness } from "./services/brightness"
 import { initConfig, configProblems } from "./services/config"
+import { startDesktop } from "./services/desktop"
+import { startCmdWidgets } from "./services/widgets"
 import { startSysinfo } from "./services/sysinfo"
 import { startBatteryWatch } from "./services/battery"
 import { guarded, healthReport } from "./services/health"
@@ -75,6 +77,8 @@ app.start({
       watchFile(baseCssPath(), onStyleChange)
     })
     guarded("config", initConfig)
+    guarded("desktop icons", startDesktop)
+    guarded("command widgets", startCmdWidgets)
     guarded("sysinfo", startSysinfo)
     guarded("battery alerts", startBatteryWatch)
     guarded("brightness", refreshBrightness)
@@ -97,6 +101,7 @@ app.start({
         {(monitor) => (
           <This this={app}>
             {guarded(`Bar(${monitor.connector})`, () => <Bar gdkmonitor={monitor} />, () => <FallbackBar gdkmonitor={monitor} />)}
+            {guarded(`Desktop(${monitor.connector})`, () => Desktop({ gdkmonitor: monitor }))}
             {guarded(`ScreenCorners(${monitor.connector})`, () => ScreenCorners({ gdkmonitor: monitor }))}
             {guarded(`Widgets(${monitor.connector})`, () => DesktopWidgets({ gdkmonitor: monitor }))}
           </This>

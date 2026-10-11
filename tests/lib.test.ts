@@ -323,6 +323,50 @@ test("widgets: config defaults to an empty desktop; the old permanent clock is g
   assert.deepEqual(parseConfig(JSON.stringify({ widgets: { enabled: ["clock", "clock", 7], settings: { clock: { position: "center" }, bad: 1 } } })).widgets,
     { enabled: ["clock"], settings: { clock: { position: "center" } } })
   const old = parseConfig(JSON.stringify({ desktop: { screenCorners: true, cornerRadius: 16, clock: true, clockPosition: "top-left" } }))
-  assert.deepEqual(old.desktop, { screenCorners: true, cornerRadius: 16 }) // unknown keys dropped: no permanent clock
+  assert.deepEqual(old.desktop, { screenCorners: true, cornerRadius: 16, showIcons: true }) // unknown keys dropped: no permanent clock
   assert.ok(diagnoseConfig(JSON.stringify({ desktop: { clock: true } })).some((x) => x.startsWith("desktop.clock: unknown key")))
+})
+
+import { isCmdId, cmdSettings, clampInterval, cmdTitle, nextCmdId, freePosition } from "../shell/lib/widgets.ts"
+test("widgets: command widgets validate settings, ids and corners", () => {
+  assert.ok(isCmdId("cmd:duolingo") && !isCmdId("clock"))
+  assert.deepEqual(cmdSettings({}, "cmd:x"), { position: "bottom-left", title: "", command: "", intervalSec: 60 })
+  assert.deepEqual(cmdSettings({ "cmd:x": { position: "top-right", title: "  Duo  ", command: "curl hi", intervalSec: 1 } }, "cmd:x"),
+    { position: "top-right", title: "Duo", command: "curl hi", intervalSec: 5 }) // trimmed + clamped
+  assert.equal(cmdSettings({ "cmd:x": { intervalSec: 99999 } }, "cmd:x").intervalSec, 3600)
+  assert.equal(clampInterval("fast"), 60)
+  assert.equal(cmdTitle("cmd:duolingo", ""), "Duolingo")
+  assert.equal(cmdTitle("cmd:custom-2", ""), "Custom 2")
+  assert.equal(cmdTitle("cmd:x", "Streak 🔥"), "Streak 🔥")
+  assert.equal(nextCmdId(["clock", "cmd:custom-1"]), "cmd:custom-2")
+  assert.equal(nextCmdId([]), "cmd:custom-1")
+  assert.equal(freePosition(["bottom-left", "top-right"]), "top-left")
+  assert.equal(freePosition(["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "center"]), "center")
+})
+
+import { parseDesktopEntry, iconForFile, displayName, sortEntries, desktopDirFromUserDirs } from "../shell/lib/desktop.ts"
+test("desktop: launchers parse, icons map, entries sort, dirs resolve", () => {
+  assert.deepEqual(parseDesktopEntry("[Desktop Entry]\nName=Files\nIcon=org.gnome.Nautilus\nExec=nautilus"),
+    { name: "Files", icon: "org.gnome.Nautilus" })
+  assert.deepEqual(parseDesktopEntry("[Desktop Entry]\nName[de]=Dateien\nName=Files"), { name: "Files" })
+  assert.deepEqual(parseDesktopEntry("Name=NoSection"), {})
+  assert.equal(iconForFile("dir", "Docs"), "folder-symbolic")
+  assert.equal(iconForFile("desktop", "app.desktop", "my-app"), "my-app")
+  assert.equal(iconForFile("desktop", "app.desktop", "/a/b.png"), "application-x-executable-symbolic")
+  assert.equal(iconForFile("file", "shot.png"), "image-x-generic-symbolic")
+  assert.equal(iconForFile("file", "film.MKV"), "video-x-generic-symbolic")
+  assert.equal(iconForFile("file", "paper.pdf"), "text-x-generic-symbolic")
+  assert.equal(iconForFile("file", "notes"), "text-x-generic-symbolic")
+  assert.equal(displayName("app.desktop", "desktop", "Files"), "Files")
+  assert.equal(displayName("notes.txt", "file"), "notes")
+  assert.equal(displayName("Docs", "dir"), "Docs")
+  const sorted = sortEntries(
+    [{ name: "b", isDir: false }, { name: "a.txt", isDir: false }, { name: "Zed", isDir: true }],
+    (e) => e.name,
+  )
+  assert.deepEqual(sorted.map((e) => e.name), ["Zed", "a.txt", "b"])
+  assert.equal(desktopDirFromUserDirs('XDG_DESKTOP_DIR="$HOME/Desktop"', "/home/u"), "/home/u/Desktop")
+  assert.equal(desktopDirFromUserDirs("XDG_DESKTOP_DIR=$HOME", "/home/u"), null) // disabled per spec
+  assert.equal(desktopDirFromUserDirs("# comment\nXDG_DESKTOP_DIR=~/Work", "/home/u"), "/home/u/Work")
+  assert.equal(desktopDirFromUserDirs("XDG_DESKTOP_DIR=$HOME/$FOO", "/home/u"), null)
 })
