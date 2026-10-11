@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT=${YPSILON_ROOT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}
 AETHER_DIR="$HOME/.local/share/aether/wallpapers"
 AETHER_SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/aether/aether.sock"
-DIRS=("$ROOT/assets/wallpapers" "$HOME/Pictures/Wallpapers" "$AETHER_DIR")
+DIRS=("$ROOT/assets/wallpapers" "$HOME/Pictures/Wallpapers" "$HOME/Pictures/4KWALL" "$AETHER_DIR")
 STATE=~/.cache/ypsilon/wallpaper
 
 files() {
