@@ -30,11 +30,8 @@
   "desktop": {
     "screenCorners": true,
     "cornerRadius": 16,
-    "showIcons": true
-  },
-  "widgets": {
-    "enabled": [],
-    "settings": {}
+    "clock": false,
+    "clockPosition": "bottom-left"
   },
   "theme": {
     "followWallpaper": false,

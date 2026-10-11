@@ -32,20 +32,14 @@ shell/app.tsx  (reads css from disk, watches it; requestHandler: reload-css, osd
   │    Powermenu (l/e/s/r/p) · Overview (each workspace as a scaled miniature with its windows in place)
   ├─ Toast — stacked (max 3), respects DND (critical still shows)
   └─ OSD — bottom pill, `ags request -i ypsilon osd volume|brightness|gamma`
-Per monitor, next to the bar (click-through, idle at rest):
-  ├─ ScreenCorners (widgets/Desktop.tsx) — 4 tiny TOP-layer surfaces drawing the rounded screen corners once (cairo)
-  ├─ DesktopWidgets (widgets/Widgets.tsx) — wallpaper widgets from `widgets.enabled` (BOTTOM layer: windows cover them).
-  │    Built-ins: clock (big time + date), sysinfo (CPU/MEM/temp), `cmd:<id>` command widgets (stdout on an
-  │    interval, run by services/widgets.ts); plugins add their own via `api.desktop.add`.
-  └─ Desktop (widgets/Desktop.tsx) — fullscreen BACKGROUND-layer window behind everything: wallpaper icons
-       from ~/Desktop (single click selects, double-click opens via `gio open`, new files appear live through
-       a Gio monitor) + the right-click menu (toggle widgets, new command widget, icons on/off, wallpaper,
-       settings). Empty-area clicks land here because windows above keep theirs first.
+Per monitor, next to the bar (widgets/Desktop.tsx, click-through, idle at rest):
+  ├─ ScreenCorners — 4 tiny TOP-layer surfaces drawing the rounded screen corners once (cairo)
+  └─ DesktopClock — BOTTOM-layer clock on the wallpaper (windows cover it)
 ```
 
 Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers), `clock` (one shared minute-aligned wall clock), `gamma` (hyprsunset).
 
-Pure logic lives in `shell/lib/` with **no gi/ags imports** so it is unit-tested under plain Node: `calc` `config` `sysinfo` `rank` `keys` `net` `battery` `widgets` (built-in registry + wallpaper positions). Keep new logic there when it can be.
+Pure logic lives in `shell/lib/` with **no gi/ags imports** so it is unit-tested under plain Node: `calc` `config` `sysinfo` `rank` `keys` `net` `battery`. Keep new logic there when it can be.
 
 Patterns taken from the official AGS 3.1.2 examples (source in `.cache/typecheck/vendor/ags-src`): popups close on Esc / click outside the card's `compute_bounds`; tray items re-insert their `dbusmenu` action group on `notify::action-group`; bars are created with `<For each={createBinding(app, "monitors")}>` + `onCleanup(win.destroy)`; controllers are JSX children (`<Gtk.GestureClick onPressed>`). The shell runs as AGS instance `ypsilon` (`ags toggle -i ypsilon …`).
 

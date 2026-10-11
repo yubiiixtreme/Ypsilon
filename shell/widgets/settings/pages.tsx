@@ -2,12 +2,9 @@
 // (writeConfig -> `ypsilon apply` -> hypr/generated/user.conf + hyprctl reload).
 import Gtk from "gi://Gtk"
 import PowerProfiles from "gi://AstalPowerProfiles"
-import { createBinding, For, type Accessor } from "ags"
+import { createBinding } from "ags"
 import { execAsync } from "ags/process"
 import { Section, SwitchRow, SliderRow, EntryRow, ChoiceRow, ButtonRow, SettingsRow } from "./controls"
-import { config } from "../../services/config"
-import { setWidgetEnabled, setWidgetPosition, cmdWidgetIds, addCmdWidget, removeCmdWidget } from "../../services/widgets"
-import { widgetPosition, cmdSettings, cmdTitle, type WidgetPosition } from "../../lib/widgets"
 import { currentTheme, setCurrentTheme, themeNames, themePalette, setAutoTheme, ROOT } from "../../services/theme"
 import { setTheme } from "../../services/system"
 import { WallpaperGrid, loadWallpapers } from "../Wallpapers"
@@ -106,60 +103,6 @@ export function BarPage() {
   )
 }
 
-const WIDGET_POSITIONS_UI: [WidgetPosition, string][] = [
-  ["top-left", "↖"], ["top-center", "↑"], ["top-right", "↗"],
-  ["bottom-left", "↙"], ["bottom-center", "↓"], ["bottom-right", "↘"], ["center", "●"],
-]
-
-/** one wallpaper widget: on/off plus where it sits (config `widgets.*`, applied live) */
-function WidgetRow({ id, label, sub }: { id: string; label: string | Accessor<string>; sub?: string }) {
-  const on = config((c) => c.widgets.enabled.includes(id))
-  const pos = config((c) => widgetPosition(c.widgets.settings, id))
-  return (
-    <box orientation={Gtk.Orientation.VERTICAL}>
-      <SettingsRow label={label} sub={sub}>
-        <switch valign={Gtk.Align.CENTER} active={on} onNotifyActive={({ active }) => active !== on.peek() && setWidgetEnabled(id, active)} />
-      </SettingsRow>
-      <box class="settings-row" visible={on} spacing={12}>
-        <box orientation={Gtk.Orientation.VERTICAL} hexpand valign={Gtk.Align.CENTER}>
-          <label class="settings-label" label="Position" halign={Gtk.Align.START} />
-        </box>
-        <box class="segmented" valign={Gtk.Align.CENTER}>
-          {WIDGET_POSITIONS_UI.map(([value, text]) => (
-            <button class={pos((cur) => `seg-btn${cur === value ? " on" : ""}`)} label={text} onClicked={() => setWidgetPosition(id, value)} />
-          ))}
-        </box>
-      </box>
-    </box>
-  )
-}
-
-/** one user-defined command widget: toggle + position, title, command, interval, remove */
-function CmdCard({ id }: { id: string }) {
-  const title = config((c) => cmdTitle(id, cmdSettings(c.widgets.settings, id).title))
-  return (
-    <box class="settings-group" orientation={Gtk.Orientation.VERTICAL}>
-      <WidgetRow id={id} label={title} sub={id} />
-      <EntryRow label="Title" sub="Shown above the output" path={`widgets.settings.${id}.title`} placeholder="e.g. Duolingo" />
-      <EntryRow
-        label="Command"
-        sub="Stdout is shown trimmed (first lines); keep it fast"
-        path={`widgets.settings.${id}.command`}
-        placeholder="curl -s … | python3 -c …"
-      />
-      <SliderRow
-        label="Refresh every"
-        path={`widgets.settings.${id}.intervalSec`}
-        min={5}
-        max={600}
-        step={5}
-        format={(v) => (v >= 60 ? `${Math.round(v / 6) / 10} min` : `${v}s`)}
-      />
-      <ButtonRow label="Remove widget" sub="Forgets its title, command and position" button="Remove" icon="edit-delete-symbolic" onClicked={() => removeCmdWidget(id)} />
-    </box>
-  )
-}
-
 export function DesktopPage() {
   return (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
@@ -177,21 +120,8 @@ export function DesktopPage() {
       <Section title="Screen">
         <SwitchRow label="Rounded screen corners" sub="Click-through, hidden under fullscreen apps" path="desktop.screenCorners" />
         <SliderRow label="Corner radius" path="desktop.cornerRadius" min={4} max={48} unit="px" />
-      </Section>
-      <Section title="Widgets">
-        <WidgetRow id="clock" label="Clock" sub="Big time + date on the wallpaper, visible on empty workspaces" />
-        <WidgetRow id="sysinfo" label="System stats" sub="CPU, memory and temperature on the wallpaper" />
-      </Section>
-      <Section title="Command widgets">
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-          <label class="settings-sub" halign={Gtk.Align.START} wrap xalign={0}
-            label="Your own widgets, no code: each runs a command and shows its output — a Duolingo streak, a todo count, anything with stdout. Right-click the desktop to toggle them." />
-          <For each={cmdWidgetIds}>{(id) => <CmdCard id={id} />}</For>
-          <ButtonRow label="New command widget" sub="Enabled at a free corner right away" button="Add" icon="list-add-symbolic" onClicked={() => addCmdWidget()} />
-        </box>
-      </Section>
-      <Section title="Icons">
-        <SwitchRow label="Show desktop icons" sub="Files and apps from your Desktop folder, under your windows" path="desktop.showIcons" />
+        <SwitchRow label="Desktop clock" sub="Big clock on the wallpaper, visible on empty workspaces" path="desktop.clock" />
+        <ChoiceRow label="Clock position" path="desktop.clockPosition" options={[["top-left", "↖"], ["top-right", "↗"], ["center", "●"], ["bottom-left", "↙"], ["bottom-right", "↘"]]} />
       </Section>
       <Section title="Screen color">
         <SliderRow label="Night light warmth" sub="ypsilon nightlight · SUPER+SHIFT+N" path="display.nightTemp" min={1000} max={6000} step={100} unit="K" />

@@ -15,14 +15,11 @@ import { NotificationCenter, Toast } from "./widgets/Notifications"
 import OSD from "./widgets/OSD"
 import Powermenu from "./widgets/Powermenu"
 import Overview from "./widgets/Overview"
-import { ScreenCorners, Desktop } from "./widgets/Desktop"
-import { DesktopWidgets } from "./widgets/Widgets"
+import { ScreenCorners, DesktopClock } from "./widgets/Desktop"
 import SettingsApp, { openSettings } from "./widgets/settings/SettingsApp"
 import { showOsd } from "./services/osd"
 import { refreshBrightness } from "./services/brightness"
 import { initConfig, configProblems } from "./services/config"
-import { startDesktop } from "./services/desktop"
-import { startCmdWidgets } from "./services/widgets"
 import { startSysinfo } from "./services/sysinfo"
 import { startBatteryWatch } from "./services/battery"
 import { guarded, healthReport } from "./services/health"
@@ -77,8 +74,6 @@ app.start({
       watchFile(baseCssPath(), onStyleChange)
     })
     guarded("config", initConfig)
-    guarded("desktop icons", startDesktop)
-    guarded("command widgets", startCmdWidgets)
     guarded("sysinfo", startSysinfo)
     guarded("battery alerts", startBatteryWatch)
     guarded("brightness", refreshBrightness)
@@ -94,16 +89,15 @@ app.start({
     for (const [name, build] of components) guarded(name, build)
     // plugins last: they contribute into the bar/launcher/control center built above
     guarded("plugins", startPlugins)
-    // per monitor: bar + desktop chrome + wallpaper widgets; follows hotplug (created/destroyed as monitors come and go)
+    // per monitor: bar + desktop layers; follows hotplug (created/destroyed as monitors come and go)
     const monitors = createBinding(app, "monitors")
     return (
       <For each={monitors}>
         {(monitor) => (
           <This this={app}>
             {guarded(`Bar(${monitor.connector})`, () => <Bar gdkmonitor={monitor} />, () => <FallbackBar gdkmonitor={monitor} />)}
-            {guarded(`Desktop(${monitor.connector})`, () => Desktop({ gdkmonitor: monitor }))}
             {guarded(`ScreenCorners(${monitor.connector})`, () => ScreenCorners({ gdkmonitor: monitor }))}
-            {guarded(`Widgets(${monitor.connector})`, () => DesktopWidgets({ gdkmonitor: monitor }))}
+            {guarded(`DesktopClock(${monitor.connector})`, () => <DesktopClock gdkmonitor={monitor} />)}
           </This>
         )}
       </For>

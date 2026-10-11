@@ -92,9 +92,8 @@ export function writeConfig(path: string, value: unknown) {
   } catch {
     /* no file yet */
   }
-  // plugin and widget settings are free-form (validated on read: plugin schemas,
-  // widget positions) — everything else goes through the schema coercion
-  const accepted = /^(plugins|widgets)\.settings\./.test(path) ? value : coerce(path, value)
+  // plugin settings are validated against each plugin's schema when read (resolveSettings)
+  const accepted = path.startsWith("plugins.settings.") ? value : coerce(path, value)
   writeFile(CONFIG_PATH, JSON.stringify(setIn(current, path, accepted), null, 2) + "\n")
   if (COMPOSITOR_KEYS.test(path)) {
     // sliders fire many writes: apply once they settle
