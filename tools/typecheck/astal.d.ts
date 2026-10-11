@@ -38,7 +38,12 @@ declare module "gi://AstalHyprland" {
   namespace AstalHyprland {
     /** null when Hyprland IPC is unavailable / fails to initialize (hyprland.vala) */
     function get_default(): Hyprland | null
-    class Monitor extends GObject.Object { readonly id: number; readonly name: string }
+    class Monitor extends GObject.Object {
+      readonly id: number; readonly name: string
+      /** x/y: logical layout position; width/height: mode pixels (divide by scale, swap for odd transforms) */
+      readonly x: number; readonly y: number; readonly width: number; readonly height: number
+      readonly scale: number; readonly transform: number
+    }
     class Workspace extends GObject.Object {
       readonly id: number; readonly name: string; readonly monitor: Monitor; readonly clients: Client[]
       readonly hasFullscreen: boolean; readonly lastClient: Client
@@ -52,8 +57,18 @@ declare module "gi://AstalHyprland" {
       readonly pid: number; readonly xwayland: boolean; readonly pinned: boolean
       kill(): void; focus(): void; move_to(ws: Workspace): void; toggle_floating(): void
     }
+    namespace Hyprland {
+      /** hyprland.vala: client_added(Client), client_removed(string address), client_moved(Client, Workspace) */
+      interface SignalSignatures extends GObject.Object.SignalSignatures {
+        "client-added"(client: Client): void
+        "client-removed"(address: string): void
+        "client-moved"(client: Client, ws: Workspace): void
+      }
+    }
     class Hyprland extends GObject.Object {
       static get_default(): Hyprland | null
+      $signals: Hyprland.SignalSignatures
+      connect<K extends keyof Hyprland.SignalSignatures>(signal: K, callback: GObject.SignalCallback<this, Hyprland.SignalSignatures[K]>): number
       readonly monitors: Monitor[]; readonly workspaces: Workspace[]; readonly clients: Client[]
       /** null at runtime when nothing is focused / during startup */
       readonly focusedWorkspace: Workspace | null; readonly focusedMonitor: Monitor | null; readonly focusedClient: Client | null

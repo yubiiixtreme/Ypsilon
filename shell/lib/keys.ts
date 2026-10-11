@@ -20,7 +20,7 @@ const GROUPS: [RegExp, string][] = [
   [/ypsilon layout|cyclenext/, "windows"],
   [/killactive|fullscreen|floating|togglesplit|movefocus|movewindow|resizeactive|resizewindow|group|pin|exit/, "windows"],
   [/shot|record|pick/, "capture"],
-  [/ypsilon (gamemode|nightlight|caffeine)/, "system"],
+  [/ypsilon (gamemode|nightlight|caffeine|gamma|menu|status)/, "system"],
   [/wpctl|brightnessctl|playerctl/, "media"],
 ]
 

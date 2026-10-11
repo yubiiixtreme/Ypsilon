@@ -10,6 +10,7 @@ import PowerProfiles from "gi://AstalPowerProfiles"
 import { speakerProp, setVolume, toggleMute } from "../services/audio"
 import { shortDeviceName } from "../lib/audio"
 import { brightness, refreshBrightness, setBrightness } from "../services/brightness"
+import { gamma, refreshGamma, setGamma } from "../services/gamma"
 import { getNotifd, setDnd } from "../services/notif"
 import { currentTheme, setCurrentTheme, themeNames, setAutoTheme } from "../services/theme"
 import {
@@ -157,6 +158,7 @@ export default function ControlCenter() {
         setPage("main")
         setUp(uptime())
         refreshBrightness()
+        refreshGamma()
         for (const t of [game, night, caffeine]) t.refresh()
       }}
     >
@@ -205,6 +207,12 @@ export default function ControlCenter() {
             <image iconName="display-brightness-symbolic" pixelSize={16} />
           </box>
           <slider hexpand min={0.05} max={1} value={brightness((b) => Math.max(b, 0.05))} onChangeValue={(_s, _scroll, value) => setBrightness(value)} />
+        </box>
+        <box class="slider-row" spacing={8}>
+          <button class="icon-btn" tooltipText="Screen gamma — dims past the backlight minimum (click: reset)" onClicked={() => setGamma(100)}>
+            <image iconName="video-display-symbolic" pixelSize={16} />
+          </button>
+          <slider hexpand min={20} max={100} value={gamma((g) => Math.min(g, 100))} onChangeValue={(_s, _scroll, value) => setGamma(value)} />
         </box>
 
         <MediaCard />

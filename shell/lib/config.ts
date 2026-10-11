@@ -13,11 +13,17 @@ export type Config = {
     showSysinfo: boolean
     showUpdates: boolean
     showVisualizer: boolean
+    /** app icons in the workspace buttons instead of numbers (occupied workspaces) */
+    workspaceIcons: boolean
   }
   workspaces: number
   battery: { warnAt: number; criticalAt: number }
   launcher: { webSearch: string; maxResults: number }
   osdTimeoutMs: number
+  /** screen color via hyprsunset (`ypsilon gamma` / `ypsilon nightlight`): K, % and % steps */
+  display: { nightTemp: number; gammaDim: number; gammaStep: number }
+  /** rounded screen corners + desktop clock (shell layers, no compositor change) */
+  desktop: { screenCorners: boolean; cornerRadius: number; clock: boolean; clockPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" }
   theme: { followWallpaper: boolean; autoLight: boolean }
   /** accessibility: no slide/fade in the shell, Hyprland animations off */
   reduceMotion: boolean
@@ -44,11 +50,14 @@ export const DEFAULTS: Config = {
     showSysinfo: true,
     showUpdates: true,
     showVisualizer: true,
+    workspaceIcons: true,
   },
   workspaces: 5,
   battery: { warnAt: 20, criticalAt: 8 },
   launcher: { webSearch: "https://duckduckgo.com/?q=%s", maxResults: 7 },
   osdTimeoutMs: 1600,
+  display: { nightTemp: 4000, gammaDim: 70, gammaStep: 10 },
+  desktop: { screenCorners: true, cornerRadius: 16, clock: true, clockPosition: "bottom-left" },
   theme: { followWallpaper: false, autoLight: false },
   reduceMotion: false,
   hypr: { gapsIn: 6, gapsOut: 12, borderSize: 2, rounding: 18, blur: true, shadows: true, dimInactive: true },
@@ -67,6 +76,10 @@ export const RANGE: Record<string, [number, number]> = {
   "battery.criticalAt": [1, 30],
   "launcher.maxResults": [3, 12],
   osdTimeoutMs: [600, 6000],
+  "display.nightTemp": [1000, 6000],
+  "display.gammaDim": [20, 100],
+  "display.gammaStep": [1, 50],
+  "desktop.cornerRadius": [4, 48],
   "hypr.gapsIn": [0, 40],
   "hypr.gapsOut": [0, 60],
   "hypr.borderSize": [0, 8],
@@ -81,7 +94,11 @@ export const RANGE: Record<string, [number, number]> = {
   "updates.intervalMin": [10, 1440],
 }
 const FLOAT = new Set(["input.sensitivity"])
-export const ENUM: Record<string, string[]> = { "bar.position": ["top", "bottom"], "weather.units": ["metric", "imperial"] }
+export const ENUM: Record<string, string[]> = {
+  "bar.position": ["top", "bottom"],
+  "weather.units": ["metric", "imperial"],
+  "desktop.clockPosition": ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+}
 /** strings that end up inside Hyprland config lines: no newlines, commas only where Hyprland expects them */
 const SAFE_STRING: Record<string, RegExp> = {
   "input.kbLayout": /^[a-z0-9_,-]{0,64}$/i,

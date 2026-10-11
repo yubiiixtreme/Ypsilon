@@ -1,7 +1,7 @@
 #!/usr/bin/env -S ags run
 // Ypsilon shell entry — AGS v3 + GTK4. One Bar per monitor + popup windows.
 // Run:  ags run ./app.tsx
-// CLI:  ags toggle -i ypsilon <window> · ags request -i ypsilon reload-css|osd <volume|brightness>
+// CLI:  ags toggle -i ypsilon <window> · ags request -i ypsilon reload-css|osd <volume|brightness|gamma>
 import app from "ags/gtk4/app"
 import { createBinding, For, This } from "ags"
 import GLib from "gi://GLib"
@@ -15,6 +15,7 @@ import { NotificationCenter, Toast } from "./widgets/Notifications"
 import OSD from "./widgets/OSD"
 import Powermenu from "./widgets/Powermenu"
 import Overview from "./widgets/Overview"
+import { ScreenCorners, DesktopClock } from "./widgets/Desktop"
 import SettingsApp, { openSettings } from "./widgets/settings/SettingsApp"
 import { showOsd } from "./services/osd"
 import { refreshBrightness } from "./services/brightness"
@@ -61,10 +62,10 @@ app.start({
     if (cmd === "plugins-rescan") return response((rescanPlugins(), "rescanned"))
     if (cmd === "config") return response(configProblems().join("\n") || "config ok")
     if (cmd === "osd") {
-      showOsd(arg === "brightness" ? "brightness" : "volume")
+      showOsd(arg ?? "volume")
       return response("osd shown")
     }
-    response("unknown command (try: reload-css, health, config, settings [page], plugin …, osd <volume|brightness>)")
+    response("unknown command (try: reload-css, health, config, settings [page], plugin …, osd <volume|brightness|gamma>)")
   },
   main() {
     guarded("css", () => {
@@ -88,13 +89,15 @@ app.start({
     for (const [name, build] of components) guarded(name, build)
     // plugins last: they contribute into the bar/launcher/control center built above
     guarded("plugins", startPlugins)
-    // one bar per monitor; follows hotplug (bars are created/destroyed as monitors come and go)
+    // per monitor: bar + desktop layers; follows hotplug (created/destroyed as monitors come and go)
     const monitors = createBinding(app, "monitors")
     return (
       <For each={monitors}>
         {(monitor) => (
           <This this={app}>
             {guarded(`Bar(${monitor.connector})`, () => <Bar gdkmonitor={monitor} />, () => <FallbackBar gdkmonitor={monitor} />)}
+            {guarded(`ScreenCorners(${monitor.connector})`, () => ScreenCorners({ gdkmonitor: monitor }))}
+            {guarded(`DesktopClock(${monitor.connector})`, () => <DesktopClock gdkmonitor={monitor} />)}
           </This>
         )}
       </For>

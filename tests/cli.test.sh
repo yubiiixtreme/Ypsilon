@@ -23,7 +23,7 @@ export PATH="$T/bin:$PATH"
 Y="$ROOT/scripts/ypsilon"
 
 # --- read-only commands must have NO side effects (regression: an unquoted heredoc once ran `start`) ---
-for c in help frobnicate "theme list" "wallpaper list" "config path"; do
+for c in help frobnicate "theme list" "wallpaper list" "config path" status "status --json" "gamma status" "nightlight status" "menu --list"; do
   # shellcheck disable=SC2086
   "$Y" $c >/dev/null 2>&1
 done
@@ -56,6 +56,67 @@ expect "settings offline" "shell not running"          "$Y" settings updates
 expect "updates usage"   "usage: ypsilon updates run"  "$Y" updates bogus
 expect "toggle usage"    "usage: ypsilon toggle"         "$Y" toggle
 expect "record usage"    "usage: record.sh"              "$ROOT/scripts/record.sh" bogus
+expect "calc"            "^10$"                          "$Y" calc 'sqrt(16)+2*3'
+expect "help lists ocr"  "ypsilon ocr"                   "$Y" help
+if ! command -v satty >/dev/null && ! command -v swappy >/dev/null; then
+  expect "annotate needs editor" "install satty"         "$Y" shot annotate
+fi
+expect "calc rejects"    "not a valid expression"        "$Y" calc '__import__'
+expect "status card"     "cpu .*[0-9]+%"                 "$Y" status
+expect "status json"     '"mem": \{'                     "$Y" status --json
+expect "menu entries"    "Gamma 100%.*lower"             "$Y" menu --list
+expect "menu themes"     "Theme  ·  dark"                "$Y" menu --list
+expect "reload flags typo" "MISS +config .*problem"       "$Y" reload
+expect "reload offline"  "hyprland not reachable"        "$Y" reload
+
+# --- gamma + night light share ONE hyprsunset; fakes for it and its IPC (never the real screen) ---
+S=$T/sunset; mkdir -p "$S"
+cat > "$T/bin/hyprsunset" <<SH
+#!/usr/bin/env bash
+echo "\$*" > "$S/args"; echo 100 > "$S/gamma"; echo 6000 > "$S/temperature"; touch "$S/up"
+trap 'rm -f "$S/up"; exit 0' TERM
+while :; do sleep 0.1; done
+SH
+cat > "$T/bin/hyprctl" <<SH
+#!/usr/bin/env bash
+[ "\$1" = hyprsunset ] || exit 0
+[ -f "$S/up" ] || { echo "Couldn't connect to hyprsunset"; exit 1; }
+if [ -n "\${3:-}" ]; then echo "\$3" > "$S/\$2"; echo ok; else cat "$S/\$2"; fi
+SH
+printf '#!/usr/bin/env bash\necho "$*" >> "%s/ags"\n' "$S" > "$T/bin/ags"
+chmod +x "$T/bin/hyprsunset" "$T/bin/hyprctl" "$T/bin/ags"
+expect "gamma neutral"   "^gamma 100%$"                  "$Y" gamma status
+[ ! -f "$S/up" ] && ok || no "gamma status must not start hyprsunset"
+expect "gamma lower"     "^gamma 90%$"                   "$Y" gamma lower
+[ -f "$S/up" ] && ok || no "gamma lower must start hyprsunset"
+grep -q -- "--gamma_max 150" "$S/args" && ok || no "hyprsunset must start with >100% headroom (got: $(cat "$S/args"))"
+grep -q "osd gamma" "$S/ags" && ok || no "a gamma change must flash the OSD"
+expect "gamma set"       "^gamma 60%$"                   "$Y" gamma set 60
+expect "gamma relative"  "^gamma 70%$"                   "$Y" gamma set +10
+expect "gamma floor"     "^gamma 20%$"                   "$Y" gamma set 3
+expect "gamma ceiling"   "^gamma 150%$"                  "$Y" gamma set 999
+expect "gamma percent"   "^gamma 80%$"                   "$Y" gamma set 80%
+expect "gamma bad value" "not a number"                  "$Y" gamma set abc
+expect "gamma get"       "^80$"                          "$Y" gamma get
+[ "$("$Y" gamma get)" = 80 ] && [ "$("$Y" gamma status)" = "gamma 80%" ] && ok || no "gamma get/status must print exactly one line"
+: > "$S/ags"; "$Y" gamma set 75 --quiet >/dev/null; "$Y" gamma status >/dev/null
+[ ! -s "$S/ags" ] && ok || no "gamma --quiet / status must not flash the OSD"
+expect "night on"        "^on$"                          "$Y" nightlight on
+[ "$(cat "$S/temperature")" = 4000 ] && ok || no "night light should use display.nightTemp (got $(cat "$S/temperature"))"
+expect "night status"    "^on$"                          "$Y" nightlight status
+expect "gamma reset"     "^gamma 100%$"                  "$Y" gamma reset
+[ -f "$S/up" ] && ok || no "gamma reset must keep hyprsunset while night light is on"
+expect "night off"       "^off$"                         "$Y" nightlight off
+sleep 0.3
+[ ! -f "$S/up" ] && ok || no "a neutral screen must stop our hyprsunset"
+expect "gamma toggle"    "^gamma 70%$"                   "$Y" gamma toggle
+expect "gamma untoggle"  "^gamma 100%$"                  "$Y" gamma toggle
+expect "gamma fade"      "^gamma 98%$"                   "$Y" gamma fade 98 0
+expect "gamma usage"     "usage: ypsilon gamma"          "$Y" gamma bogus
+"$Y" gamma reset >/dev/null; sleep 0.3
+[ ! -f "$S/up" ] && ok || no "gamma reset to neutral must stop hyprsunset"
+ls "$XDG_RUNTIME_DIR"/ypsilon/*.sunset.pid >/dev/null 2>&1 && no "sunset pid file left behind" || ok
+rm -f "$T/bin/hyprsunset" "$T/bin/hyprctl" "$T/bin/ags"
 
 # --- installers refuse piped stdin (regression: `yes | install.sh` looped on a numeric prompt
 #     and filled a RAM-backed /tmp with a 2.8 GB log); they must exit before any sudo/pacman ---

@@ -9,7 +9,8 @@
     "showTray": true,
     "showSysinfo": true,
     "showUpdates": true,
-    "showVisualizer": true
+    "showVisualizer": true,
+    "workspaceIcons": true
   },
   "workspaces": 5,
   "battery": {
@@ -21,6 +22,17 @@
     "maxResults": 7
   },
   "osdTimeoutMs": 1600,
+  "display": {
+    "nightTemp": 4000,
+    "gammaDim": 70,
+    "gammaStep": 10
+  },
+  "desktop": {
+    "screenCorners": true,
+    "cornerRadius": 16,
+    "clock": true,
+    "clockPosition": "bottom-left"
+  },
   "theme": {
     "followWallpaper": false,
     "autoLight": false

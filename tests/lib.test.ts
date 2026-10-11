@@ -6,6 +6,8 @@ import { rank, bump, frecency, parseUsage } from "../shell/lib/rank.ts"
 import { parseBinds, groupBinds, findConflicts } from "../shell/lib/keys.ts"
 import { readFileSync } from "node:fs"
 import { splitTerse, parseSavedWifi, dedupeAps } from "../shell/lib/net.ts"
+import { monitorRect, fitRects, appsByWorkspace, rows } from "../shell/lib/overview.ts"
+import { groupByApp } from "../shell/lib/notifgroup.ts"
 
 test("config: defaults, partial override, bad values fall back", () => {
   assert.deepEqual(parseConfig(""), DEFAULTS)
@@ -256,4 +258,45 @@ test("audio: device names a person recognises", () => {
   assert.equal(shortDeviceName(""), "output")
   assert.equal(shortDeviceName(null), "output")
   assert.equal(shortDeviceName("A very long USB audio interface name here"), "A very long USB audio…")
+})
+
+test("overview: logical monitor rect handles scale and rotation", () => {
+  assert.deepEqual(monitorRect({ x: 0, y: 0, width: 2560, height: 1440, scale: 2, transform: 0 }), { x: 0, y: 0, w: 1280, h: 720 })
+  assert.deepEqual(monitorRect({ x: 1280, y: 0, width: 1920, height: 1080, scale: 1, transform: 1 }), { x: 1280, y: 0, w: 1080, h: 1920 })
+  assert.equal(monitorRect({ x: 0, y: 0, width: 800, height: 600, scale: 0, transform: 0 }).w, 800) // bad scale -> 1
+})
+
+test("overview: windows scale into the preview, clipped and clickable", () => {
+  const mon = { x: 1366, y: 0, w: 1366, h: 768 } // second monitor: client x is absolute
+  const fit = fitRects(mon, [{ x: 1366, y: 0, w: 683, h: 768 }, { x: 5000, y: 5000, w: 2, h: 2 }], 200)
+  assert.equal(fit.w, 200)
+  assert.equal(fit.h, 112)
+  assert.deepEqual(fit.rects[0], { x: 0, y: 0, w: 100, h: 112 })
+  const off = fit.rects[1] // far off-screen + tiny -> min size, pinned inside the box
+  assert.ok(off.w >= 14 && off.h >= 14 && off.x + off.w <= 200 && off.y + off.h <= 112)
+})
+
+test("overview: app icons per workspace are distinct and capped", () => {
+  const m = appsByWorkspace([
+    { ws: 1, cls: "foot" }, { ws: 1, cls: "foot" }, { ws: 1, cls: "firefox" },
+    { ws: 1, cls: "code" }, { ws: 1, cls: "steam" }, { ws: 2, cls: "" }, { ws: 3, cls: "mpv" },
+  ])
+  assert.deepEqual(m.get(1), ["foot", "firefox", "code"])
+  assert.equal(m.has(2), false) // windows without a class add nothing
+  assert.deepEqual(m.get(3), ["mpv"])
+  assert.deepEqual(rows([1, 2, 3, 4, 5], 3), [[1, 2, 3], [4, 5]])
+  assert.deepEqual(rows([1, 2, 3, 4], 4), [[1, 2, 3, 4]])
+  assert.deepEqual(rows([], 3), [])
+})
+
+test("notifications: grouped by app, newest group and item first", () => {
+  const g = groupByApp([
+    { id: 1, appName: "Discord", time: 100 },
+    { id: 2, appName: "Firefox", desktopEntry: "firefox", time: 300 },
+    { id: 3, appName: "discord", time: 200 }, // same app, different case -> same group
+    { id: 4, appName: "", time: 50 },
+  ])
+  assert.deepEqual(g.map((x) => x.key), ["firefox", "discord", "other"])
+  assert.deepEqual(g[1].items.map((n) => n.id), [3, 1])
+  assert.equal(g[2].name, "Other")
 })

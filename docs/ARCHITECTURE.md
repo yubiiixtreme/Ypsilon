@@ -7,7 +7,7 @@
 - **Lang:** TypeScript + JSX (Gnim) on GJS, GTK4 (`ags/gtk4`)
 - **Style:** `shell/style.css` (layout, only `@y_*` named colors) + `shell/style/_generated.css` (`@define-color`s from gen-theme.py). Both are read **from disk at runtime** and hot-reloaded via `watchFile` (services/watch.ts), so `ypsilon theme set X` re-themes the live shell with no rebuild.
 - **Theme:** `themes/tokens.json` → `hypr/themes/*.conf` + `_generated.css` + `extras/` (foot/kitty/ghostty/fuzzel/gtk) — see `scripts/gen-theme.py`
-- **CLI:** `scripts/ypsilon` (bash). `theme set` regenerates repo files; live-apply needs `--apply`.
+- **CLI:** `scripts/ypsilon` (bash) is a thin dispatcher over `scripts/cli/*.sh` (core helpers + styling, session, display, toggles, capture, menu) and Python helpers (`status.py`, `calc.py`). `theme set` regenerates repo files; live-apply needs `--apply`. Night light and gamma share one hyprsunset daemon driven over its IPC (`scripts/cli/display.sh`), stopped again once the screen is neutral.
 
 ## Hyprland layering
 
@@ -28,13 +28,16 @@ shell/app.tsx  (reads css from disk, watches it; requestHandler: reload-css, osd
   ├─ Popup (widgets/Popup.tsx) — shared shell: full-screen transparent scrim + one glass card.
   │    Esc or click outside closes; clicks on the card are claimed. Used by:
   │    Launcher (apps/calc/cmd/clipboard/windows/web) · ControlCenter (tiles → Wi-Fi/Bluetooth/Sound pages, sliders, profile, media, theme chips)
-  │    NotificationCenter · Dashboard (clock, calendar, cpu/mem/temp, media) · Wallpapers (thumbnails) · Cheatsheet
-  │    Powermenu (l/e/s/r/p) · Overview (windows per workspace)
+  │    NotificationCenter (grouped by app) · Dashboard (clock, calendar, cpu/mem/temp, media) · Wallpapers (thumbnails) · Cheatsheet
+  │    Powermenu (l/e/s/r/p) · Overview (each workspace as a scaled miniature with its windows in place)
   ├─ Toast — stacked (max 3), respects DND (critical still shows)
-  └─ OSD — bottom pill, `ags request -i ypsilon osd volume|brightness`
+  └─ OSD — bottom pill, `ags request -i ypsilon osd volume|brightness|gamma`
+Per monitor, next to the bar (widgets/Desktop.tsx, click-through, idle at rest):
+  ├─ ScreenCorners — 4 tiny TOP-layer surfaces drawing the rounded screen corners once (cairo)
+  └─ DesktopClock — BOTTOM-layer clock on the wallpaper (windows cover it)
 ```
 
-Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers).
+Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers), `clock` (one shared minute-aligned wall clock), `gamma` (hyprsunset).
 
 Pure logic lives in `shell/lib/` with **no gi/ags imports** so it is unit-tested under plain Node: `calc` `config` `sysinfo` `rank` `keys` `net` `battery`. Keep new logic there when it can be.
 

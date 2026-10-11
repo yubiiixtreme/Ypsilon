@@ -3,11 +3,12 @@ import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
 import Pango from "gi://Pango"
 import { Astal } from "ags/gtk4"
-import { createBinding, createState, For } from "ags"
+import { createBinding, createComputed, createState, For } from "ags"
 import Notifd from "gi://AstalNotifd"
 import { getNotifd, setDnd, timeLabel } from "../services/notif"
 import { getHypr } from "../services/hypr"
 import Popup from "./Popup"
+import { groupByApp, type Group } from "../lib/notifgroup"
 
 type Notif = Notifd.Notification
 const CRITICAL = Notifd.Urgency.CRITICAL
@@ -85,11 +86,46 @@ function Card({ n, onClose, after }: { n: Notif; onClose: () => void; after?: ()
   )
 }
 
-// History center. Toggle with: ags toggle ypsilon-notif-center (SUPER+N).
+// apps whose stack is unfolded (kept across rebuilds of the list)
+const [expanded, setExpanded] = createState<Set<string>>(new Set())
+const flip = (key: string) =>
+  setExpanded((s) => {
+    const next = new Set(s)
+    if (!next.delete(key)) next.add(key)
+    return next
+  })
+
+/** one app's notifications: newest card on top, the rest folded behind "+N more" */
+function AppGroup({ g }: { g: Group<Notif> }) {
+  const [first, ...rest] = g.items
+  const close = (n: Notif) => () => guard("notif dismiss", () => n.dismiss())
+  if (rest.length === 0) return <Card n={first} onClose={close(first)} />
+  const open = expanded((s) => s.has(g.key))
+  return (
+    <box class="notif-group" orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+      <box class="notif-group-head" spacing={6}>
+        <label class="notif-app" hexpand halign={Gtk.Align.START} label={`${g.name} · ${g.items.length}`} />
+        <button class="pill-btn" onClicked={() => flip(g.key)} label={open((o) => (o ? "Show less" : `+${rest.length} more`))} />
+        <button class="icon-btn" tooltipText={`Dismiss all from ${g.name}`} onClicked={() => guard("notif dismiss group", () => g.items.forEach((n) => n.dismiss()))}>
+          <image iconName="edit-clear-all-symbolic" pixelSize={13} />
+        </button>
+      </box>
+      <Card n={first} onClose={close(first)} />
+      <revealer revealChild={open} transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+          {rest.map((n) => <Card n={n} onClose={close(n)} />)}
+        </box>
+      </revealer>
+    </box>
+  )
+}
+
+// History center, grouped by app. Toggle with: ags toggle ypsilon-notif-center (SUPER+N).
 export function NotificationCenter() {
   const notifd = getNotifd()
   const list = createBinding(notifd, "notifications")
   const dnd = createBinding(notifd, "dontDisturb")
+  const groups = createComputed(() => groupByApp(list()))
 
   const clearAll = () => guard("notif clear", () => list().forEach((n) => n.dismiss()))
 
@@ -108,9 +144,7 @@ export function NotificationCenter() {
         visible={list((l) => l.length > 0)}
       >
         <box class="notif-center-list" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-          <For each={list}>
-            {(n) => <Card n={n} onClose={() => guard("notif dismiss", () => n.dismiss())} />}
-          </For>
+          <For each={groups}>{(g) => <AppGroup g={g} />}</For>
         </box>
       </scrolledwindow>
       <box orientation={Gtk.Orientation.VERTICAL} spacing={8} visible={list((l) => l.length === 0)} marginTop={24} marginBottom={24}>

@@ -73,10 +73,10 @@ python3 -m unittest discover -s "$ROOT/tests" >/dev/null 2>&1 && ok "unit tests 
 "$ROOT/tests/cli.test.sh" >/dev/null 2>&1 && ok "cli + supervisor tests (hermetic)" || bad "cli tests (run tests/cli.test.sh)"
 
 # 6. shell scripts
-for s in "$ROOT"/scripts/*.sh "$ROOT/scripts/ypsilon" "$ROOT"/tests/*.sh; do bash -n "$s" 2>/dev/null || bad "bash -n $(basename "$s")"; done
+for s in "$ROOT"/scripts/*.sh "$ROOT"/scripts/cli/*.sh "$ROOT/scripts/ypsilon" "$ROOT"/tests/*.sh; do bash -n "$s" 2>/dev/null || bad "bash -n $(basename "$s")"; done
 SC=$(command -v shellcheck || echo "$ROOT/.cache/shellcheck/shellcheck")
 if [ -x "$SC" ]; then
-  out=$("$SC" -S warning "$ROOT"/scripts/*.sh "$ROOT/scripts/ypsilon" "$ROOT"/tests/*.sh 2>&1) && ok "shellcheck (warnings)" || { bad "shellcheck"; echo "$out" | head -20 | sed 's/^/     /'; }
+  out=$("$SC" -S warning "$ROOT"/scripts/*.sh "$ROOT"/scripts/cli/*.sh "$ROOT/scripts/ypsilon" "$ROOT"/tests/*.sh 2>&1) && ok "shellcheck (warnings)" || { bad "shellcheck"; echo "$out" | head -20 | sed 's/^/     /'; }
 else skip "shellcheck (not installed)"; fi
 [ $fail -eq 0 ] && echo "all checks passed" || echo "checks FAILED"
 exit $fail

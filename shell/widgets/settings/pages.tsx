@@ -85,6 +85,7 @@ export function BarPage() {
         <ChoiceRow label="Visibility" sub="Auto-hide slides the bar away; touch the screen edge with the pointer to bring it back" path="bar.autohide" options={[[false, "Always shown"], [true, "Auto-hide"]]} />
         <ChoiceRow label="Position" path="bar.position" options={[["top", "Top"], ["bottom", "Bottom"]]} />
         <SliderRow label="Workspaces shown" path="workspaces" min={1} max={10} />
+        <SwitchRow label="App icons on workspaces" sub="Occupied workspaces show their apps instead of a number" path="bar.workspaceIcons" />
       </Section>
       <Section title="Clock">
         <SwitchRow label="24-hour clock" path="bar.clock24h" />
@@ -115,6 +116,17 @@ export function DesktopPage() {
         <SwitchRow label="Blur" sub="Glass behind windows and the shell" path="hypr.blur" />
         <SwitchRow label="Shadows" path="hypr.shadows" />
         <SwitchRow label="Dim inactive windows" path="hypr.dimInactive" />
+      </Section>
+      <Section title="Screen">
+        <SwitchRow label="Rounded screen corners" sub="Click-through, hidden under fullscreen apps" path="desktop.screenCorners" />
+        <SliderRow label="Corner radius" path="desktop.cornerRadius" min={4} max={48} unit="px" />
+        <SwitchRow label="Desktop clock" sub="Big clock on the wallpaper, visible on empty workspaces" path="desktop.clock" />
+        <ChoiceRow label="Clock position" path="desktop.clockPosition" options={[["top-left", "↖"], ["top-right", "↗"], ["center", "●"], ["bottom-left", "↙"], ["bottom-right", "↘"]]} />
+      </Section>
+      <Section title="Screen color">
+        <SliderRow label="Night light warmth" sub="ypsilon nightlight · SUPER+SHIFT+N" path="display.nightTemp" min={1000} max={6000} step={100} unit="K" />
+        <SliderRow label="Gamma dim level" sub="ypsilon gamma toggle · SUPER+ALT+G" path="display.gammaDim" min={20} max={100} unit="%" />
+        <SliderRow label="Gamma step" sub="SUPER+ALT+- / =" path="display.gammaStep" min={1} max={50} unit="%" />
       </Section>
       <Section title="Layout">
         <ButtonRow label="Tiling layout" sub="Switch between dwindle and master (SUPER+M)" button="Toggle" onClicked={() => cli("layout", "toggle")} />

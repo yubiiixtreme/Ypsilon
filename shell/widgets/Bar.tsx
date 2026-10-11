@@ -8,7 +8,9 @@ import Tray from "gi://AstalTray"
 import Network from "gi://AstalNetwork"
 import Bluetooth from "gi://AstalBluetooth"
 import Mpris from "gi://AstalMpris"
-import { hyprWorkspaces, hyprFocusedWorkspace, hyprFocusedClient, gotoWorkspace, stepWorkspace } from "../services/hypr"
+import { hyprWorkspaces, hyprFocusedWorkspace, hyprFocusedClient, gotoWorkspace, stepWorkspace, hyprLayoutTick, getHypr } from "../services/hypr"
+import { iconForClass } from "../services/icons"
+import { appsByWorkspace } from "../lib/overview"
 import { speakerProp } from "../services/audio"
 import { getBattery } from "../services/battery"
 import { getNotifd } from "../services/notif"
@@ -25,6 +27,7 @@ import Visualizer from "./Visualizer"
 import { guarded } from "../services/health"
 import { watchFile } from "../services/watch"
 import { distroGlyph } from "../services/icons"
+import { wallClock } from "../services/clock"
 
 const RECORD_PID = `${GLib.get_user_cache_dir()}/ypsilon/record.pid`
 
@@ -39,6 +42,15 @@ function Workspaces() {
     return [...all].sort((a, b) => a - b)
   })
   const state = createComputed(() => ({ active: focused()?.id ?? -1, occ: new Set(spaces().map((w) => w.id)) }))
+  // app icons per workspace (up to 3); recomputed only when windows open, close or move
+  const tick = hyprLayoutTick()
+  const apps = createComputed(() => {
+    tick()
+    spaces()
+    if (!config().bar.workspaceIcons) return new Map<number, string[]>()
+    const clients = getHypr()?.clients ?? []
+    return appsByWorkspace(clients.map((c) => ({ ws: c.workspace?.id ?? 0, cls: c.class || c.initialClass })))
+  })
 
   // scroll over the strip to step workspaces
   const scroll = (box: Gtk.Box) => {
@@ -56,9 +68,15 @@ function Workspaces() {
         {(id) => (
           <button
             class={state((s) => `ws-btn${id === s.active ? " active" : ""}${s.occ.has(id) ? " occupied" : ""}`)}
-            label={String(id)}
             onClicked={() => gotoWorkspace(id)}
-          />
+          >
+            <box halign={Gtk.Align.CENTER} spacing={3}>
+              <label label={String(id)} visible={apps((m) => !m.get(id)?.length)} />
+              <For each={apps((m) => m.get(id) ?? [])}>
+                {(cls: string) => <image class="ws-app" iconName={iconForClass(cls)} pixelSize={13} />}
+              </For>
+            </box>
+          </button>
         )}
       </For>
     </box>
@@ -329,11 +347,15 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
     win.destroy()
   })
 
-  const clock = createPoll("", 1000, () => {
-    const c = config().bar
-    const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%-I:%M:%S %p" : "%-I:%M %p"
-    return GLib.DateTime.new_now_local().format(`%a %-d %b  ${time}`) ?? ""
-  })
+  // shared clock: one minute-aligned tick for every bar, a 1 s tick only while seconds are shown
+  const clock = wallClock(
+    () => {
+      const c = config().bar
+      const time = c.clock24h ? (c.showSeconds ? "%H:%M:%S" : "%H:%M") : c.showSeconds ? "%-I:%M:%S %p" : "%-I:%M %p"
+      return `%a %-d %b  ${time}`
+    },
+    () => config().bar.showSeconds,
+  )
 
   return (
     <window

@@ -48,8 +48,9 @@ must_fail "theme sync" bash -c 'scripts/check.sh 2>&1 | grep -q "generated files
 fresh; python3 - "$T/r/scripts/ypsilon" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p).read()
-s = s.replace("  cat <<'USAGE'", "  cat <<USAGE", 1)                      # unquote the heredoc ...
-s = s.replace("ypsilon — our DE CLI", "ypsilon — our DE CLI `start`", 1)    # ... and let help text run a command
+assert "cat <<'USAGE'" in s, "usage heredoc moved: update this mutation"
+s = s.replace("cat <<'USAGE'", "cat <<USAGE", 1)                          # unquote the heredoc ...
+s = s.replace("ypsilon — our DE CLI", "ypsilon — our DE CLI `cmd_start`", 1)  # ... and let help text run a command
 open(p, "w").write(s)
 PY
 must_fail "cli side-effect guard" tests/cli.test.sh

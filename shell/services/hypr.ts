@@ -39,6 +39,23 @@ export const hyprFocusedClient = (): Accessor<Hyprland.Client | null> => {
   return h ? createBinding(h, "focusedClient") : constant(null)
 }
 
+/**
+ * Bumps whenever windows open, close or move between workspaces. A move only changes
+ * Client.workspace, which never notifies Hyprland.clients — bindings on the list alone miss it.
+ */
+let layoutTick: Accessor<number> | undefined
+export function hyprLayoutTick(): Accessor<number> {
+  if (layoutTick) return layoutTick
+  const [tick, setTick] = createState(0)
+  const h = getHypr()
+  const bump = () => setTick((t) => t + 1)
+  h?.connect("client-added", bump)
+  h?.connect("client-removed", bump)
+  h?.connect("client-moved", bump)
+  layoutTick = tick
+  return tick
+}
+
 // actions go through hyprctl, which works even when the IPC library does not
 const dispatch = (...args: string[]) =>
   execAsync(["hyprctl", "dispatch", ...args]).catch((e) => print(`ypsilon: dispatch ${args.join(" ")} failed: ${e}`))
