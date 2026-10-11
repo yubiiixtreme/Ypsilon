@@ -37,7 +37,7 @@ Per monitor, next to the bar (widgets/Desktop.tsx, click-through, idle at rest):
   └─ DesktopClock — BOTTOM-layer clock on the wallpaper (windows cover it)
 ```
 
-Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers), `clock` (one shared minute-aligned wall clock), `gamma` (hyprsunset).
+Services (`shell/services/`): `theme` (runtime tokens/css), `config` (user json, reactive), `hypr`, `audio`, `brightness` (brightnessctl), `media`, `notif`, `apps` + `usage` (frecency ranking), `clip` (cliphist), `wifi` (nmcli), `sysinfo` (/proc sampler), `battery` (low-battery alerts), `system` (exec helpers → CLI), `osd`, `shell` (window helpers), `clock` (one shared minute-aligned wall clock), `gamma` (hyprsunset), `aether` (displays whatever Aether's latest apply dropped in its backgrounds dir).
 
 Pure logic lives in `shell/lib/` with **no gi/ags imports** so it is unit-tested under plain Node: `calc` `config` `sysinfo` `rank` `keys` `net` `battery`. Keep new logic there when it can be.
 

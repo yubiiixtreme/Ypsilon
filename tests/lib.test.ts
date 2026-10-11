@@ -19,7 +19,6 @@ test("config: defaults, partial override, bad values fall back", () => {
   assert.equal(c.battery.warnAt, 30)
   assert.equal(c.battery.criticalAt, DEFAULTS.battery.criticalAt)
   assert.equal(parseConfig('{"bar":{"position":"left"}}').bar.position, "top")
-  assert.equal(parseConfig('{"theme":{"followWallpaper":true}}').theme.followWallpaper, true)
   assert.equal(parseConfig('{"launcher":{"webSearch":"nope"}}').launcher.webSearch, DEFAULTS.launcher.webSearch)
 })
 
@@ -299,4 +298,21 @@ test("notifications: grouped by app, newest group and item first", () => {
   assert.deepEqual(g.map((x) => x.key), ["firefox", "discord", "other"])
   assert.deepEqual(g[1].items.map((n) => n.id), [3, 1])
   assert.equal(g[2].name, "Other")
+})
+
+import { isImageFile, newestImage } from "../shell/lib/aether.ts"
+test("aether: follow picks the newest image Aether applied", () => {
+  assert.ok(isImageFile("wallhaven-zpvrkg.jpg") && isImageFile("a.PNG") && isImageFile("anim.webp"))
+  assert.equal(isImageFile("notes.txt"), false)
+  assert.equal(isImageFile("noext"), false)
+  assert.equal(newestImage([]), null)
+  assert.equal(newestImage([{ name: "a.txt", mtime: 9 }]), null)
+  assert.equal(
+    newestImage([
+      { name: "wallhaven-216xdx.jpg", mtime: 100 },
+      { name: "wallhaven-zpvrkg.jpg", mtime: 200 },
+      { name: "colors.toml", mtime: 300 },
+    ]),
+    "wallhaven-zpvrkg.jpg",
+  )
 })

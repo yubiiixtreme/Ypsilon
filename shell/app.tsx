@@ -26,6 +26,7 @@ import { guarded, healthReport } from "./services/health"
 import { startPlugins, runPluginCommand, rescanPlugins } from "./services/plugins"
 import { startUpdateChecks } from "./services/updates"
 import { startWeather } from "./services/weather"
+import { startAetherFollow } from "./services/aether"
 import { watchFile } from "./services/watch"
 import { baseCssPath, generatedCssPath, readCss, readTokens, setCurrentTheme } from "./services/theme"
 
@@ -79,6 +80,7 @@ app.start({
     guarded("brightness", refreshBrightness)
     guarded("update checks", startUpdateChecks)
     guarded("weather", startWeather)
+    guarded("aether follow", startAetherFollow)
 
     // each window is isolated: a failure is logged + notified, the rest keeps working
     const components: [string, () => unknown][] = [

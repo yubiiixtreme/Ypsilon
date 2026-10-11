@@ -63,8 +63,6 @@ export function AppearancePage() {
       </Section>
       <Section title="Wallpaper colors (Material-You style)">
         <ButtonRow label="Generate from wallpaper" sub="Builds a contrast-checked theme from your current wallpaper" button="Generate" icon="applications-graphics-symbolic" onClicked={() => setAutoTheme().then(() => setCurrentTheme("ypsilon-auto"))} />
-        <SwitchRow label="Follow wallpaper" sub="Regenerate the theme whenever the wallpaper changes" path="theme.followWallpaper" />
-        <SwitchRow label="Light variant" sub="Generated themes use light surfaces" path="theme.autoLight" />
       </Section>
       <Section title="Wallpaper">
         <box class="settings-row">

@@ -33,17 +33,6 @@ session_daemon() {
   echo $! > "$pidf"
 }
 
-# config.json {"theme": {"followWallpaper": true, "autoLight": false}} -> re-theme on every change
-follow_theme() {
-  local cfg=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/config.json mode
-  [ -f "$cfg" ] || return 0
-  mode=$(python3 -c 'import json,sys; t=json.load(open(sys.argv[1])).get("theme",{}); print(("light" if t.get("autoLight") else "dark") if t.get("followWallpaper") else "")' "$cfg" 2>/dev/null) || return 0
-  [ -n "$mode" ] || return 0
-  local args=(theme auto --apply)
-  [ "$mode" = light ] && args+=(--light)
-  "$ROOT/scripts/ypsilon" "${args[@]}" >/dev/null 2>&1 &
-}
-
 apply() {
   local img; img=$(resolve "$1")
   mkdir -p "$RUN"
@@ -68,7 +57,6 @@ apply() {
   fi
   mkdir -p "$(dirname "$STATE")"; echo "$img" > "$STATE"
   echo "wallpaper: $img"
-  follow_theme
 }
 
 case "${1:-status}" in

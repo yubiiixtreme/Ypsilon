@@ -24,7 +24,6 @@ export type Config = {
   display: { nightTemp: number; gammaDim: number; gammaStep: number }
   /** rounded screen corners + desktop clock (shell layers, no compositor change) */
   desktop: { screenCorners: boolean; cornerRadius: number; clock: boolean; clockPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" }
-  theme: { followWallpaper: boolean; autoLight: boolean }
   /** accessibility: no slide/fade in the shell, Hyprland animations off */
   reduceMotion: boolean
   /** applied to Hyprland through hypr/generated/user.conf */
@@ -58,7 +57,6 @@ export const DEFAULTS: Config = {
   osdTimeoutMs: 1600,
   display: { nightTemp: 4000, gammaDim: 70, gammaStep: 10 },
   desktop: { screenCorners: true, cornerRadius: 16, clock: false, clockPosition: "bottom-left" },
-  theme: { followWallpaper: false, autoLight: false },
   reduceMotion: false,
   hypr: { gapsIn: 6, gapsOut: 12, borderSize: 2, rounding: 18, blur: true, shadows: true, dimInactive: true },
   input: { kbLayout: "us", kbVariant: "", kbOptions: "", naturalScroll: true, sensitivity: 0, repeatRate: 35, repeatDelay: 300 },

@@ -33,10 +33,6 @@
     "clock": false,
     "clockPosition": "bottom-left"
   },
-  "theme": {
-    "followWallpaper": false,
-    "autoLight": false
-  },
   "reduceMotion": false,
   "hypr": {
     "gapsIn": 6,
