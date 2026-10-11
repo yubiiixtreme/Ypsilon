@@ -174,6 +174,16 @@ for b in hypridle awww-daemon; do printf '#!/usr/bin/env bash\nexec sleep 30\n' 
 printf '#!/usr/bin/env bash\n[ "$1" = run ] && exec sleep 30\nexit 1\n' > "$T/bin/ags"; chmod +x "$T/bin/ags"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$T/bin/awww"; chmod +x "$T/bin/awww"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$T/bin/hyprctl"; chmod +x "$T/bin/hyprctl"
+
+# --- wallpaper: Ypsilon always paints; Aether only gets a best-effort sync ---
+# (paths baked in: fakes run without the test's shell variables)
+printf '#!/usr/bin/env bash\necho "aether $*" >> "%s/aether-calls"\n[ "${AETHER_FAIL:-0}" = 1 ] && exit 1\nexit 0\n' "$T" > "$T/bin/aether"; chmod +x "$T/bin/aether"
+: > "$T/aether-calls"
+expect "wallpaper set paints" "^wallpaper: " "$Y" wallpaper set ypsilon-aurora
+grep -q "aether set-wallpaper.*ypsilon-aurora" "$T/aether-calls" && ok || no "wallpaper set must sync aether"
+export AETHER_FAIL=1
+expect "wallpaper survives failing sync" "^wallpaper: " "$Y" wallpaper set ypsilon-aurora
+unset AETHER_FAIL
 export WAYLAND_DISPLAY=ypsilon-test-$$ YPSILON_SKIP_PREFLIGHT=1
 "$Y" start >/dev/null 2>&1; sleep 0.3
 pidf="$XDG_RUNTIME_DIR/ypsilon/$WAYLAND_DISPLAY.hypridle.pid"

@@ -75,6 +75,9 @@ else
   echo "unchanged (pick 'Ypsilon' at the login screen, or re-run with --make-default)"
 fi
 
+# best-effort, never fatal: one Aether apply (Ctrl+Enter) changes theme + wallpaper together
+"$ROOT/scripts/link-aether.sh" || true
+
 echo ""
 echo "Done. Back to your old desktop any time: pick it at the login screen, or run"
 echo "  $ROOT/scripts/default-session.sh restore      (old default)"

@@ -7,7 +7,6 @@
 set -euo pipefail
 ROOT=${YPSILON_ROOT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}
 AETHER_DIR="$HOME/.local/share/aether/wallpapers"
-AETHER_SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/aether/aether.sock"
 DIRS=("$ROOT/assets/wallpapers" "$HOME/Pictures/Wallpapers" "$HOME/Pictures/4KWALL" "$AETHER_DIR")
 STATE=~/.cache/ypsilon/wallpaper
 
@@ -49,9 +48,11 @@ apply() {
   local img; img=$(resolve "$1")
   mkdir -p "$RUN"
   [ -n "$img" ] && [ -f "$img" ] || { echo "no such wallpaper: $1 (try: $0 list)"; exit 1; }
-  if command -v aether &>/dev/null && [ -S "$AETHER_SOCK" ] && aether set-wallpaper "$img" >/dev/null 2>&1; then
-    : # Aether is live (GUI running with live-apply): it paints + remembers — stay out of its way
-  elif command -v awww &>/dev/null; then
+  # Aether owns wallpaper state: sync its editor (instant no-op unless its GUI is live).
+  # Ypsilon always paints below — it is the only display pipe, so theme + wallpaper
+  # change together no matter who initiated the set (and a failing sync never breaks it).
+  if command -v aether &>/dev/null; then aether set-wallpaper "$img" >/dev/null 2>&1 || true; fi
+  if command -v awww &>/dev/null; then
     awww img "$img" --transition-type grow --transition-duration 1
   elif command -v swww &>/dev/null; then
     swww img "$img" --transition-type grow --transition-duration 1
