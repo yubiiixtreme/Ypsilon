@@ -46,8 +46,8 @@ AUR_STAGES=(
    libastal-tray:libastal-tray-git libastal-wireplumber:libastal-wireplumber-git"
   "aylurs-gtk-shell:aylurs-gtk-shell"
 )
-# visualizer only (the shell runs without it)
-AUR_OPTIONAL="libcava:libcava libastal-cava:libastal-cava-git"
+# visualizer only (the shell runs without it) + Aether (wallpaper browser/manager)
+AUR_OPTIONAL="libcava:libcava libastal-cava:libastal-cava-git aether:aether"
 
 if ! command -v pacman >/dev/null; then
   cat <<'MSG'
@@ -105,8 +105,8 @@ done
 
 read -ra todo <<< "$(missing_of "$AUR_OPTIONAL")"
 if [ ${#todo[@]} -gt 0 ] && [ -n "$AUR" ]; then
-  echo "AUR (optional, audio visualizer): ${todo[*]}"
-  "$AUR" -S "${AUR_FLAGS[@]}" "${todo[@]}" || echo "note: visualizer libs failed to build — Ypsilon works without them"
+  echo "AUR (optional, audio visualizer + Aether wallpaper manager): ${todo[*]}"
+  "$AUR" -S "${AUR_FLAGS[@]}" "${todo[@]}" || echo "note: optional packages failed to build — Ypsilon works without them"
 fi
 
 # wallpaper daemon (optional): awww is the renamed swww — only if no backend exists yet

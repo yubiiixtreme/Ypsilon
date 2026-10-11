@@ -105,6 +105,7 @@ cmd_doctor() {
     have "${t%%:*}" && okm "${t%%:*}" || say_info "optional: ${t%%:*} (${t##*:})"
   done
   if have awww-daemon || have swww-daemon || have hyprpaper || have swaybg; then okm "wallpaper backend"; else fix "wallpaper backend" "install awww (or swww)"; fi
+  if have aether; then okm "aether (wallpaper browser + themes)"; else say_info "optional: aether (wallpaper browser; AUR: aether)"; fi
   python3 -c "import PIL" 2>/dev/null && okm "python-pillow" || fix "python-pillow (wallpaper themes)" "pacman -S python-pillow"
   [ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ] && okm "polkit agent" || fix "hyprpolkitagent (password prompts for apps)" "pacman -S hyprpolkitagent"
   # two color daemons fight over the screen: hyprsunset drives night light + gamma here

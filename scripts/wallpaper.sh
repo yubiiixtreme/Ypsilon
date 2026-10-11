@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# ypsilon wallpaper manager — backends: awww/swww > hyprpaper > swaybg.
-# Sources: assets/wallpapers + ~/Pictures/Wallpapers (png/jpg/jpeg/webp).
-# Only runs when YOU (or the session bring-up) invoke it.
+# ypsilon wallpaper manager — backends: Aether (when its GUI is live) > awww/swww > hyprpaper > swaybg.
+# Sources: assets/wallpapers + ~/Pictures/Wallpapers + Aether's library
+# (~/.local/share/aether/wallpapers), so everything you grab in Aether — the wallpaper
+# manager (AUR: aether) — shows up in `ypsilon wallpaper list`, the Wallpapers picker
+# (SUPER+Shift+W) and Settings. Only runs when YOU (or the session bring-up) invoke it.
 set -euo pipefail
 ROOT=${YPSILON_ROOT:-$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)}
-DIRS=("$ROOT/assets/wallpapers" "$HOME/Pictures/Wallpapers")
+AETHER_DIR="$HOME/.local/share/aether/wallpapers"
+AETHER_SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/aether/aether.sock"
+DIRS=("$ROOT/assets/wallpapers" "$HOME/Pictures/Wallpapers" "$AETHER_DIR")
 STATE=~/.cache/ypsilon/wallpaper
 
 files() {
@@ -45,7 +49,9 @@ apply() {
   local img; img=$(resolve "$1")
   mkdir -p "$RUN"
   [ -n "$img" ] && [ -f "$img" ] || { echo "no such wallpaper: $1 (try: $0 list)"; exit 1; }
-  if command -v awww &>/dev/null; then
+  if command -v aether &>/dev/null && [ -S "$AETHER_SOCK" ] && aether set-wallpaper "$img" >/dev/null 2>&1; then
+    : # Aether is live (GUI running with live-apply): it paints + remembers — stay out of its way
+  elif command -v awww &>/dev/null; then
     awww img "$img" --transition-type grow --transition-duration 1
   elif command -v swww &>/dev/null; then
     swww img "$img" --transition-type grow --transition-duration 1
