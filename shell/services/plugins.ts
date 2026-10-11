@@ -7,7 +7,7 @@ import { execAsync } from "ags/process"
 import { readFile, writeFile } from "ags/file"
 import GLib from "gi://GLib"
 import { validateManifest, resolveSettings, type Manifest } from "../lib/plugins"
-import type { PluginApi, PluginMain, BarItem, LauncherProvider, Tile, Disposer } from "../lib/plugin-types"
+import type { PluginApi, PluginMain, BarItem, LauncherProvider, Tile, DesktopWidget, Disposer } from "../lib/plugin-types"
 import { config, CONFIG_DIR, writeConfig } from "./config"
 import { ROOT } from "./theme"
 import { openUri } from "./system"
@@ -21,7 +21,8 @@ const [plugins, setPlugins] = createState<PluginInfo[]>([])
 const [barItems, setBarItems] = createState<Owned<BarItem>[]>([])
 const [providers, setProviders] = createState<Owned<LauncherProvider>[]>([])
 const [tiles, setTiles] = createState<Owned<Tile>[]>([])
-export { plugins, barItems, providers, tiles }
+const [desktopItems, setDesktopItems] = createState<Owned<DesktopWidget>[]>([])
+export { plugins, barItems, providers, tiles, desktopItems }
 
 const commands = new Map<string, (args: string[]) => string | void>()
 const cleanups = new Map<string, Disposer[]>()
@@ -140,6 +141,7 @@ function makeApi(info: PluginInfo): PluginApi {
     bar: { add: (item) => own(id, setBarItems, item) },
     launcher: { addProvider: (p) => own(id, setProviders, p) },
     controlCenter: { addTile: (t) => own(id, setTiles, t) },
+    desktop: { add: (w) => own(id, setDesktopItems, w) },
     commands: {
       add: (name, fn) => {
         const k = `${id}:${name}`

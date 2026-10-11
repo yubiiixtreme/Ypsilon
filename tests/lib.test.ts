@@ -300,3 +300,29 @@ test("notifications: grouped by app, newest group and item first", () => {
   assert.deepEqual(g[1].items.map((n) => n.id), [3, 1])
   assert.equal(g[2].name, "Other")
 })
+
+import { widgetPosition, isWidgetPosition, normalizeEnabled, BUILTIN_WIDGETS } from "../shell/lib/widgets.ts"
+test("widgets: positions validate, per-widget setting wins, built-in defaults apply", () => {
+  assert.ok(isWidgetPosition("bottom-left") && isWidgetPosition("center") && isWidgetPosition("top-center"))
+  assert.equal(isWidgetPosition("left"), false)
+  assert.equal(isWidgetPosition(undefined), false)
+  assert.deepEqual(BUILTIN_WIDGETS.map((w) => w.id), ["clock", "sysinfo"])
+  assert.equal(widgetPosition({}, "clock"), "bottom-left")
+  assert.equal(widgetPosition({}, "sysinfo"), "top-right")
+  assert.equal(widgetPosition({ clock: { position: "top-right" } }, "clock"), "top-right")
+  assert.equal(widgetPosition({ clock: { position: "nowhere" } }, "clock"), "bottom-left") // bad value -> default
+  assert.equal(widgetPosition({ clock: {} }, "clock"), "bottom-left")
+  assert.equal(widgetPosition(null, "clock"), "bottom-left")
+  assert.deepEqual(normalizeEnabled(["clock", 3, "clock", "sysinfo"]), ["clock", "sysinfo"])
+  assert.deepEqual(normalizeEnabled("clock"), [])
+})
+
+test("widgets: config defaults to an empty desktop; the old permanent clock is gone", () => {
+  const c = parseConfig("{}")
+  assert.deepEqual(c.widgets, { enabled: [], settings: {} })
+  assert.deepEqual(parseConfig(JSON.stringify({ widgets: { enabled: ["clock", "clock", 7], settings: { clock: { position: "center" }, bad: 1 } } })).widgets,
+    { enabled: ["clock"], settings: { clock: { position: "center" } } })
+  const old = parseConfig(JSON.stringify({ desktop: { screenCorners: true, cornerRadius: 16, clock: true, clockPosition: "top-left" } }))
+  assert.deepEqual(old.desktop, { screenCorners: true, cornerRadius: 16 }) // unknown keys dropped: no permanent clock
+  assert.ok(diagnoseConfig(JSON.stringify({ desktop: { clock: true } })).some((x) => x.startsWith("desktop.clock: unknown key")))
+})

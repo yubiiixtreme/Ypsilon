@@ -2,7 +2,7 @@
 
 Plugins are plain ES modules loaded at runtime — no build step, no shell rebuild.
 They get a typed API (`shell/lib/plugin-types.ts`) and can add **bar widgets**, **launcher
-modes**, **control-center tiles**, **CLI commands**, **settings** (auto-rendered in
+modes**, **control-center tiles**, **wallpaper widgets**, **CLI commands**, **settings** (auto-rendered in
 Settings → Plugins) and **persistent storage**.
 
 ```bash
@@ -76,6 +76,14 @@ export default function main(api) {
 
   // control-center tile
   api.controlCenter.addTile({ icon: "alarm-symbolic", title: "Load", sub: api.computed(() => String(load())), onClick: () => {} })
+
+  // wallpaper widget (one per monitor, windows cover it): position is a corner/edge
+  // ("top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "center")
+  api.desktop.add({
+    position: "top-right",
+    widget: () => api.h("label", { label, class: "desk-sys-sub" }),
+    // interactive: true,   // opt out of click-through when the widget takes clicks
+  })
 
   // CLI: ypsilon plugin run my-plugin reset
   api.commands.add("reset", () => (setN(0), "reset"))

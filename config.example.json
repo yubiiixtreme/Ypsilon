@@ -29,9 +29,11 @@
   },
   "desktop": {
     "screenCorners": true,
-    "cornerRadius": 16,
-    "clock": true,
-    "clockPosition": "bottom-left"
+    "cornerRadius": 16
+  },
+  "widgets": {
+    "enabled": [],
+    "settings": {}
   },
   "theme": {
     "followWallpaper": false,

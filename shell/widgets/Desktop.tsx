@@ -1,16 +1,16 @@
-// Desktop layers, one set per monitor: rounded screen corners and a big clock on the wallpaper.
-// Both are click-through and idle at rest — corners are drawn once, the clock text changes once
-// a minute through the shared wall clock. Settings → Desktop (config `desktop.*`) switches them live.
+// Desktop chrome, one set per monitor: rounded screen corners (cairo, drawn once).
+// Click-through and idle at rest. Settings → Desktop (config `desktop.*`) switches it live.
+// Wallpaper widgets (clock, stats, …) live in ./Widgets.tsx and only render when enabled
+// (config `widgets.enabled`) — nothing sits on the desktop unless you put it there.
 import Gtk from "gi://Gtk"
 import Gdk from "gi://Gdk"
 import Cairo from "cairo"
 import { Astal } from "ags/gtk4"
 import { onCleanup } from "ags"
 import { config } from "../services/config"
-import { wallClock } from "../services/clock"
 
 /** pointer input passes through to whatever is below (wallpaper, windows) */
-function clickThrough(win: Gtk.Window) {
+export function clickThrough(win: Gtk.Window) {
   const apply = () => win.get_surface()?.set_input_region(new Cairo.Region())
   win.connect("map", apply)
   if (win.get_mapped()) apply()
@@ -64,41 +64,4 @@ function ScreenCorner({ gdkmonitor, at }: { gdkmonitor: Gdk.Monitor; at: Corner 
 
 export function ScreenCorners({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   return (["tl", "tr", "bl", "br"] as const).map((at) => <ScreenCorner gdkmonitor={gdkmonitor} at={at} />)
-}
-
-/** big time + date on the wallpaper (BOTTOM layer: windows cover it, empty workspaces show it) */
-export function DesktopClock({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
-  let win: Astal.Window
-  let reapply = () => {}
-  onCleanup(() => win.destroy())
-  const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
-  const pos = config((c) => c.desktop.clockPosition)
-  const anchor = pos((p) => {
-    if (p === "center") return 0 as Astal.WindowAnchor
-    return (p.startsWith("top") ? TOP : BOTTOM) | (p.endsWith("left") ? LEFT : RIGHT)
-  })
-  const time = wallClock(() => (config().bar.clock24h ? "%H:%M" : "%-I:%M"))
-  const date = wallClock(() => "%A, %-d %B")
-  const align = pos((p) => (p.endsWith("right") ? Gtk.Align.END : p === "center" ? Gtk.Align.CENTER : Gtk.Align.START))
-  return (
-    <window
-      $={(self) => {
-        win = self
-        reapply = clickThrough(self)
-      }}
-      visible={config((c) => c.desktop.clock)}
-      namespace="ypsilon-desktop"
-      class="ypsilon-desktop"
-      gdkmonitor={gdkmonitor}
-      layer={Astal.Layer.BOTTOM}
-      exclusivity={Astal.Exclusivity.NORMAL}
-      anchor={anchor}
-    >
-      <box class="desk-clock" orientation={Gtk.Orientation.VERTICAL} halign={align}>
-        {/* a new text can resize the surface; keep the input region empty after every change */}
-        <label class="desk-time" label={time} halign={align} onNotifyLabel={() => reapply()} />
-        <label class="desk-date" label={date} halign={align} />
-      </box>
-    </window>
-  )
 }

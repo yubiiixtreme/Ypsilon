@@ -15,7 +15,8 @@ import { NotificationCenter, Toast } from "./widgets/Notifications"
 import OSD from "./widgets/OSD"
 import Powermenu from "./widgets/Powermenu"
 import Overview from "./widgets/Overview"
-import { ScreenCorners, DesktopClock } from "./widgets/Desktop"
+import { ScreenCorners } from "./widgets/Desktop"
+import { DesktopWidgets } from "./widgets/Widgets"
 import SettingsApp, { openSettings } from "./widgets/settings/SettingsApp"
 import { showOsd } from "./services/osd"
 import { refreshBrightness } from "./services/brightness"
@@ -89,7 +90,7 @@ app.start({
     for (const [name, build] of components) guarded(name, build)
     // plugins last: they contribute into the bar/launcher/control center built above
     guarded("plugins", startPlugins)
-    // per monitor: bar + desktop layers; follows hotplug (created/destroyed as monitors come and go)
+    // per monitor: bar + desktop chrome + wallpaper widgets; follows hotplug (created/destroyed as monitors come and go)
     const monitors = createBinding(app, "monitors")
     return (
       <For each={monitors}>
@@ -97,7 +98,7 @@ app.start({
           <This this={app}>
             {guarded(`Bar(${monitor.connector})`, () => <Bar gdkmonitor={monitor} />, () => <FallbackBar gdkmonitor={monitor} />)}
             {guarded(`ScreenCorners(${monitor.connector})`, () => ScreenCorners({ gdkmonitor: monitor }))}
-            {guarded(`DesktopClock(${monitor.connector})`, () => <DesktopClock gdkmonitor={monitor} />)}
+            {guarded(`Widgets(${monitor.connector})`, () => DesktopWidgets({ gdkmonitor: monitor }))}
           </This>
         )}
       </For>

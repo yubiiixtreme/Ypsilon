@@ -22,8 +22,10 @@ export type Config = {
   osdTimeoutMs: number
   /** screen color via hyprsunset (`ypsilon gamma` / `ypsilon nightlight`): K, % and % steps */
   display: { nightTemp: number; gammaDim: number; gammaStep: number }
-  /** rounded screen corners + desktop clock (shell layers, no compositor change) */
-  desktop: { screenCorners: boolean; cornerRadius: number; clock: boolean; clockPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" }
+  /** rounded screen corners (shell layer, no compositor change) */
+  desktop: { screenCorners: boolean; cornerRadius: number }
+  /** desktop widgets on the wallpaper layer (Settings → Desktop): nothing shows unless enabled */
+  widgets: { enabled: string[]; settings: Record<string, Record<string, unknown>> }
   theme: { followWallpaper: boolean; autoLight: boolean }
   /** accessibility: no slide/fade in the shell, Hyprland animations off */
   reduceMotion: boolean
@@ -57,7 +59,8 @@ export const DEFAULTS: Config = {
   launcher: { webSearch: "https://duckduckgo.com/?q=%s", maxResults: 7 },
   osdTimeoutMs: 1600,
   display: { nightTemp: 4000, gammaDim: 70, gammaStep: 10 },
-  desktop: { screenCorners: true, cornerRadius: 16, clock: true, clockPosition: "bottom-left" },
+  desktop: { screenCorners: true, cornerRadius: 16 },
+  widgets: { enabled: [], settings: {} },
   theme: { followWallpaper: false, autoLight: false },
   reduceMotion: false,
   hypr: { gapsIn: 6, gapsOut: 12, borderSize: 2, rounding: 18, blur: true, shadows: true, dimInactive: true },
@@ -97,7 +100,6 @@ const FLOAT = new Set(["input.sensitivity"])
 export const ENUM: Record<string, string[]> = {
   "bar.position": ["top", "bottom"],
   "weather.units": ["metric", "imperial"],
-  "desktop.clockPosition": ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
 }
 /** strings that end up inside Hyprland config lines: no newlines, commas only where Hyprland expects them */
 const SAFE_STRING: Record<string, RegExp> = {
@@ -114,8 +116,8 @@ function merge(base: any, user: any, path = ""): any {
     return Array.isArray(user) ? [...new Set(user.filter((x) => typeof x === "string"))] : base
   }
   if (base !== null && typeof base === "object") {
-    if (path === "plugins.settings") {
-      // free-form per-plugin objects
+    if (path === "plugins.settings" || path === "widgets.settings") {
+      // free-form per-plugin / per-widget objects
       if (!user || typeof user !== "object" || Array.isArray(user)) return {}
       return Object.fromEntries(Object.entries(user).filter(([, v]) => v && typeof v === "object" && !Array.isArray(v)))
     }
@@ -215,7 +217,7 @@ export function diagnoseConfig(text: string | null | undefined): string[] {
         continue
       }
       const b = base[k], v = u[k]
-      if (p === "plugins.settings" || Array.isArray(b)) {
+      if (p === "plugins.settings" || p === "widgets.settings" || Array.isArray(b)) {
         const fixed = merge(b, v, p)
         if (JSON.stringify(fixed) !== JSON.stringify(v)) out.push(`${p}: some entries were invalid and ignored`)
       } else if (b !== null && typeof b === "object") walk(b, v, p)

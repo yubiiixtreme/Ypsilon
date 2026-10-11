@@ -3,6 +3,7 @@
 //   /** @param {import("<repo>/shell/lib/plugin-types").PluginApi} api */
 import type { Accessor, Setter } from "ags"
 import type { Manifest } from "./plugins"
+import type { WidgetPosition } from "./widgets"
 
 export type Widget = JSX.Element
 export type MaybeAccessor<T> = T | Accessor<T>
@@ -27,6 +28,15 @@ export type Tile = {
   sub: MaybeAccessor<string>
   active?: Accessor<boolean>
   onClick: () => void
+}
+
+/** a wallpaper widget (BOTTOM layer: windows cover it, empty workspaces show it) */
+export type DesktopWidget = {
+  widget: () => Widget
+  /** wallpaper corner/edge; invalid values fall back to bottom-left */
+  position?: MaybeAccessor<WidgetPosition>
+  /** true when the widget takes clicks (buttons, sliders); display widgets stay click-through */
+  interactive?: boolean
 }
 
 export type Disposer = () => void
@@ -66,6 +76,8 @@ export interface PluginApi {
   bar: { add(item: BarItem): Disposer }
   launcher: { addProvider(p: LauncherProvider): Disposer }
   controlCenter: { addTile(t: Tile): Disposer }
+  /** wallpaper widgets, one per monitor (`ypsilon-widget` layer, see shell/widgets/Widgets.tsx) */
+  desktop: { add(w: DesktopWidget): Disposer }
   /** `ypsilon plugin run <id> <name> [args…]` → fn(args); return a string to print */
   commands: { add(name: string, fn: (args: string[]) => string | void): Disposer }
 

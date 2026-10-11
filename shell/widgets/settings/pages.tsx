@@ -5,6 +5,9 @@ import PowerProfiles from "gi://AstalPowerProfiles"
 import { createBinding } from "ags"
 import { execAsync } from "ags/process"
 import { Section, SwitchRow, SliderRow, EntryRow, ChoiceRow, ButtonRow, SettingsRow } from "./controls"
+import { config } from "../../services/config"
+import { setWidgetEnabled, setWidgetPosition } from "../../services/widgets"
+import { widgetPosition, type WidgetPosition } from "../../lib/widgets"
 import { currentTheme, setCurrentTheme, themeNames, themePalette, setAutoTheme, ROOT } from "../../services/theme"
 import { setTheme } from "../../services/system"
 import { WallpaperGrid, loadWallpapers } from "../Wallpapers"
@@ -103,6 +106,34 @@ export function BarPage() {
   )
 }
 
+const WIDGET_POSITIONS_UI: [WidgetPosition, string][] = [
+  ["top-left", "↖"], ["top-center", "↑"], ["top-right", "↗"],
+  ["bottom-left", "↙"], ["bottom-center", "↓"], ["bottom-right", "↘"], ["center", "●"],
+]
+
+/** one wallpaper widget: on/off plus where it sits (config `widgets.*`, applied live) */
+function WidgetRow({ id, label, sub }: { id: string; label: string; sub?: string }) {
+  const on = config((c) => c.widgets.enabled.includes(id))
+  const pos = config((c) => widgetPosition(c.widgets.settings, id))
+  return (
+    <box orientation={Gtk.Orientation.VERTICAL}>
+      <SettingsRow label={label} sub={sub}>
+        <switch valign={Gtk.Align.CENTER} active={on} onNotifyActive={({ active }) => active !== on.peek() && setWidgetEnabled(id, active)} />
+      </SettingsRow>
+      <box class="settings-row" visible={on} spacing={12}>
+        <box orientation={Gtk.Orientation.VERTICAL} hexpand valign={Gtk.Align.CENTER}>
+          <label class="settings-label" label="Position" halign={Gtk.Align.START} />
+        </box>
+        <box class="segmented" valign={Gtk.Align.CENTER}>
+          {WIDGET_POSITIONS_UI.map(([value, text]) => (
+            <button class={pos((cur) => `seg-btn${cur === value ? " on" : ""}`)} label={text} onClicked={() => setWidgetPosition(id, value)} />
+          ))}
+        </box>
+      </box>
+    </box>
+  )
+}
+
 export function DesktopPage() {
   return (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
@@ -120,8 +151,10 @@ export function DesktopPage() {
       <Section title="Screen">
         <SwitchRow label="Rounded screen corners" sub="Click-through, hidden under fullscreen apps" path="desktop.screenCorners" />
         <SliderRow label="Corner radius" path="desktop.cornerRadius" min={4} max={48} unit="px" />
-        <SwitchRow label="Desktop clock" sub="Big clock on the wallpaper, visible on empty workspaces" path="desktop.clock" />
-        <ChoiceRow label="Clock position" path="desktop.clockPosition" options={[["top-left", "↖"], ["top-right", "↗"], ["center", "●"], ["bottom-left", "↙"], ["bottom-right", "↘"]]} />
+      </Section>
+      <Section title="Widgets">
+        <WidgetRow id="clock" label="Clock" sub="Big time + date on the wallpaper, visible on empty workspaces" />
+        <WidgetRow id="sysinfo" label="System stats" sub="CPU, memory and temperature on the wallpaper" />
       </Section>
       <Section title="Screen color">
         <SliderRow label="Night light warmth" sub="ypsilon nightlight · SUPER+SHIFT+N" path="display.nightTemp" min={1000} max={6000} step={100} unit="K" />
