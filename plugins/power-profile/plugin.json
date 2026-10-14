@@ -1,0 +1,10 @@
+{
+  "id": "power-profile",
+  "name": "Power profile",
+  "version": "1.0.0",
+  "description": "Switch power-saver / balanced / performance from the launcher (\"power\") or a control-center tile. Needs power-profiles-daemon.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec"],
+  "settings": []
+}

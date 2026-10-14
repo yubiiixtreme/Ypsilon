@@ -1,0 +1,12 @@
+{
+  "id": "timer",
+  "name": "Timer",
+  "version": "1.0.0",
+  "description": "Countdown timers from the launcher: type \"timer 5m\" or \"timer 1h30m\". Notifies when time is up.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["notifications"],
+  "settings": [
+    { "key": "showInBar", "label": "Show the running timer in the bar", "type": "boolean", "default": true }
+  ]
+}

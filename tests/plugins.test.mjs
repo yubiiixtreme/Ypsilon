@@ -11,6 +11,9 @@ import * as Todo from "../plugins/todo/list.js"
 import { search as emojiSearch, EMOJI } from "../plugins/emoji/data.js"
 import { convert, format as fmtUnit } from "../plugins/units/convert.js"
 import { parseEntries, isWord } from "../plugins/dictionary/parse.js"
+import { parseDuration, format as fmtTimer } from "../plugins/timer/countdown.js"
+import { parseMem, parseLoad, formatMb } from "../plugins/sysmon/stats.js"
+import { parseProfile, nextProfile, matchProfiles } from "../plugins/power-profile/profiles.js"
 
 const cfg = { work: 25, shortBreak: 5, longBreak: 15, cycles: 2, autoContinue: true }
 
@@ -179,4 +182,37 @@ test("clock: zones, offsets, formatting", () => {
   assert.equal(formatAt(Date.UTC(2026, 0, 1, 12, 0, 0), -240), "08:00")
   assert.equal(offsetToString(330), "+05:30")
   assert.equal(offsetToString(-240), "-04:00")
+})
+
+test("timer: duration parsing and formatting", () => {
+  assert.equal(parseDuration("5m"), 300_000)
+  assert.equal(parseDuration("1h30m"), 5_400_000)
+  assert.equal(parseDuration("90s"), 90_000)
+  assert.equal(parseDuration("10"), 600_000) // bare number = minutes
+  assert.equal(parseDuration("1 h 5 min"), 3_900_000)
+  for (const bad of ["", "abc", "0", "0s", "25h", "m", "5x"]) assert.equal(parseDuration(bad), null, bad)
+  assert.equal(fmtTimer(245_000), "4:05")
+  assert.equal(fmtTimer(3_723_000), "1:02:03")
+  assert.equal(fmtTimer(-5), "0:00")
+})
+
+test("sysmon: meminfo + loadavg parsing", () => {
+  const mem = parseMem("MemTotal:       8000000 kB\nMemFree: 100 kB\nMemAvailable:   2000000 kB\n")
+  assert.deepEqual(mem, { usedPct: 75, usedMb: 5859, totalMb: 7813 })
+  assert.equal(parseMem("garbage"), null)
+  assert.equal(parseLoad("0.52 0.40 0.31 1/500 1234"), 0.52)
+  assert.equal(parseLoad(""), null)
+  assert.equal(formatMb(512), "512 MB")
+  assert.equal(formatMb(2048), "2.0 GB")
+})
+
+test("power-profile: parsing, cycling, matching", () => {
+  assert.equal(parseProfile("performance\n"), "performance")
+  assert.equal(parseProfile("nonsense"), null)
+  assert.equal(nextProfile("power-saver"), "balanced")
+  assert.equal(nextProfile("performance"), "power-saver")
+  assert.equal(nextProfile(null), "performance") // unknown starts from balanced
+  assert.deepEqual(matchProfiles("perf"), ["performance"])
+  assert.deepEqual(matchProfiles("save"), ["power-saver"])
+  assert.equal(matchProfiles("").length, 3)
 })

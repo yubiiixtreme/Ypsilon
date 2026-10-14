@@ -45,7 +45,8 @@ crashes=()
 delay=${YPSILON_RESTART_DELAY:-1}   # tests set 0
 while true; do
   [ -f "$LOG" ] && mv -f "$LOG" "$LOG.prev"
-  YPSILON_ROOT="$ROOT" ags run "$ROOT/shell/app.tsx" --log-file "$LOG"
+  # 2 malloc arenas instead of 8 x cores: the shell is effectively single-threaded, so this just trims RSS
+  MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-2} YPSILON_ROOT="$ROOT" ags run "$ROOT/shell/app.tsx" --log-file "$LOG"
   rc=$?
   [ $rc -eq 0 ] && exit 0   # deliberate quit
 

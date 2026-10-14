@@ -1,0 +1,12 @@
+{
+  "id": "caffeine",
+  "name": "Caffeine",
+  "version": "1.0.0",
+  "description": "Keep the screen on and stop auto-suspend while it is switched on (control-center tile, \"caffeine\" in the launcher). Always off after a shell restart.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec"],
+  "settings": [
+    { "key": "maxHours", "label": "Switch off automatically after (hours)", "type": "number", "default": 4, "min": 1, "max": 24 }
+  ]
+}

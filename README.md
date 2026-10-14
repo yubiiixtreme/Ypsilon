@@ -117,7 +117,7 @@ shell/      app.tsx · widgets/ (+pages/, settings/) · services/ · lib/ (pure 
 themes/     tokens.json · user/ (generated/custom, gitignored)
 scripts/    ypsilon · check.sh · typecheck.sh · gen-theme.py · palette.py · wallpaper.sh · install/uninstall
 extras/     foot · kitty · ghostty · fuzzel · gtk — extras/current/ always = active theme
-plugins/    pomodoro · quicklinks · dev-ports (+ docs/PLUGINS.md)
+plugins/    pomodoro · quicklinks · dev-ports · timer · sysmon · power-profile · caffeine · … (+ docs/PLUGINS.md)
 tests/  tools/  .github/  config.example.json
 ```
 

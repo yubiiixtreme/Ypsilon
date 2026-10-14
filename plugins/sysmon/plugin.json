@@ -1,0 +1,13 @@
+{
+  "id": "sysmon",
+  "name": "System monitor",
+  "version": "1.0.0",
+  "description": "RAM use and load average in the bar, with a tooltip. Polls every few seconds.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["files"],
+  "settings": [
+    { "key": "intervalSec", "label": "Refresh every (seconds)", "type": "number", "default": 5, "min": 2, "max": 60 },
+    { "key": "position", "label": "Bar position", "type": "enum", "default": "right", "options": ["left", "center", "right"] }
+  ]
+}
