@@ -159,6 +159,9 @@ async function activate(info: PluginInfo) {
   cleanups.set(info.id, [])
   try {
     const mod = (await import(`file://${info.dir}/${info.manifest.entry}`)) as { default?: PluginMain }
+    // Disabled while the import was in flight: leave it off instead of
+    // activating into a deleted cleanup list (cleanups.get(id)! would throw).
+    if (!cleanups.has(info.id)) return
     if (typeof mod.default !== "function") throw new Error("module has no default export function")
     const ret = await mod.default(makeApi(info))
     if (typeof ret === "function") cleanups.get(info.id)!.push(ret)
@@ -214,7 +217,10 @@ export function startPlugins() {
 /** rescan plugin folders (new plugin dropped in) without restarting */
 export function rescanPlugins() {
   const running = new Map(plugins.peek().map((p) => [p.id, p]))
-  setPlugins(discover().map((p) => (cleanups.has(p.id) ? { ...p, status: running.get(p.id)?.status ?? "active" } : p)))
+  const found = discover()
+  // Deleted from disk while running: tear down, or its contributions live on.
+  for (const id of [...cleanups.keys()]) if (!found.some((p) => p.id === id)) deactivate(id)
+  setPlugins(found.map((p) => (cleanups.has(p.id) ? { ...p, status: running.get(p.id)?.status ?? "active" } : p)))
   sync()
 }
 
