@@ -14,6 +14,9 @@ import { parseEntries, isWord } from "../plugins/dictionary/parse.js"
 import { parseDuration, format as fmtTimer } from "../plugins/timer/countdown.js"
 import { parseMem, parseLoad, formatMb } from "../plugins/sysmon/stats.js"
 import { parseProfile, nextProfile, matchProfiles } from "../plugins/power-profile/profiles.js"
+import { parseAddrs, parsePublic } from "../plugins/ip/addrs.js"
+import { parsePs, matchProcs } from "../plugins/kill/procs.js"
+import { parseLsblk, matchParts, parseMounted, formatSize } from "../plugins/disk/devices.js"
 
 const cfg = { work: 25, shortBreak: 5, longBreak: 15, cycles: 2, autoContinue: true }
 
@@ -215,4 +218,50 @@ test("power-profile: parsing, cycling, matching", () => {
   assert.deepEqual(matchProfiles("perf"), ["performance"])
   assert.deepEqual(matchProfiles("save"), ["power-saver"])
   assert.equal(matchProfiles("").length, 3)
+})
+
+test("ip: loopback and link-local dropped, IPv4 first, public lookup validated", () => {
+  const json = JSON.stringify([
+    { ifname: "lo", operstate: "UNKNOWN", addr_info: [{ family: "inet", local: "127.0.0.1" }] },
+    { ifname: "wlan0", operstate: "UP", addr_info: [{ family: "inet6", local: "2001:db8::5" }, { family: "inet6", local: "fe80::1" }, { family: "inet", local: "192.168.1.5" }] },
+    { ifname: "eth0", operstate: "DOWN", addr_info: [] },
+  ])
+  const a = parseAddrs(json)
+  assert.deepEqual(a.map((x) => x.address), ["192.168.1.5", "2001:db8::5"])
+  assert.equal(a[0].iface, "wlan0")
+  assert.deepEqual(parseAddrs("not json"), [])
+  assert.equal(parsePublic("203.0.113.9\n"), "203.0.113.9")
+  assert.equal(parsePublic("<html>nope</html>"), null)
+})
+
+test("kill: ps parsing, name match, biggest first, self and init excluded", () => {
+  const ps = "    1  2048 systemd\n 4242 512000 firefox\n 4300 102400 firefox-bin\n 77 1024 Web Content\n  garbage\n"
+  const p = parsePs(ps)
+  assert.equal(p.length, 4)
+  assert.equal(p.find((x) => x.pid === 77)?.name, "Web Content")
+  assert.deepEqual(matchProcs(p, "fire").map((x) => x.pid), [4242, 4300])
+  assert.deepEqual(matchProcs(p, "fire", 8, 4242).map((x) => x.pid), [4300])
+  assert.deepEqual(matchProcs(p, ""), [])
+  assert.deepEqual(matchProcs(p, "systemd"), [])
+})
+
+test("disk: lsblk tree flattened, swap/zram skipped, removable inherited, mounted first", () => {
+  const json = JSON.stringify({ blockdevices: [
+    { name: "sda", size: 15700000000, rm: true, type: "disk", children: [
+      { name: "sda1", size: 15600000000, fstype: "vfat", label: "APKS", mountpoint: null, rm: true, type: "part" },
+      { name: "sda2", size: 32000000, fstype: "vfat", label: "VTOYEFI", mountpoint: null, rm: true, type: "part" } ] },
+    { name: "zram0", size: 4e9, fstype: "swap", mountpoint: "[SWAP]", rm: false, type: "disk" },
+    { name: "nvme0n1", size: 5e11, rm: false, type: "disk", children: [
+      { name: "nvme0n1p2", size: 4.7e11, fstype: "ext4", label: null, mountpoint: "/", rm: false, type: "part" } ] },
+  ] })
+  const parts = parseLsblk(json)
+  assert.deepEqual(parts.map((p) => p.dev), ["/dev/nvme0n1p2", "/dev/sda1", "/dev/sda2"])
+  assert.equal(parts[0].removable, false)
+  assert.equal(parts[1].removable, true)
+  assert.equal(parts[1].label, "APKS")
+  assert.deepEqual(matchParts(parts, "vtoy").map((p) => p.dev), ["/dev/sda2"])
+  assert.equal(parseMounted("Mounted /dev/sda1 at /run/media/u/APKS."), "/run/media/u/APKS")
+  assert.equal(formatSize(32e6), "32 MB")
+  assert.equal(formatSize(15.6e9), "15.6 GB")
+  assert.deepEqual(parseLsblk("oops"), [])
 })

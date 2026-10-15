@@ -1,0 +1,12 @@
+{
+  "id": "ip",
+  "name": "IP addresses",
+  "version": "1.0.0",
+  "description": "Type \"ip\" in the launcher to see this machine's addresses; Enter copies one. Optionally shows your public IP too.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec", "clipboard", "network"],
+  "settings": [
+    { "key": "publicIp", "label": "Look up public IP (contacts api.ipify.org)", "type": "boolean", "default": false }
+  ]
+}

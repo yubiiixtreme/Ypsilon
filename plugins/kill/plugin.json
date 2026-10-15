@@ -1,0 +1,10 @@
+{
+  "id": "kill",
+  "name": "Process killer",
+  "version": "1.0.0",
+  "description": "Type \"kill firefox\" in the launcher to list your matching processes; Enter ends one (SIGTERM). Only your own processes are listed.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["exec", "notifications"],
+  "settings": []
+}

@@ -31,6 +31,26 @@ class PaletteTest(unittest.TestCase):
         self.assertEqual(len(t["ansi"]), 16)
         self.assertGreater(P.hue_dist(P.hls(P.rgb_of(t["primary"]))[0], P.hls(P.rgb_of(t["accent"]))[0]), 0.08)
 
+    def test_tertiary_is_legible_and_distinct_from_primary(self):
+        px = [(20, 30, 60)] * 500 + [(230, 120, 30)] * 150 + [(40, 200, 180)] * 120
+        t = P.build_theme(P.kmeans(px))
+        self.assertGreaterEqual(P.contrast(P.rgb_of(t["tertiary"]), P.rgb_of(t["bg"])), 4.5)
+        self.assertGreater(P.hue_dist(P.hls(P.rgb_of(t["primary"]))[0], P.hls(P.rgb_of(t["tertiary"]))[0]), 0.08)
+
+    def test_theme_css_has_tonal_surface_ladder(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("gen_theme", os.path.join(os.path.dirname(__file__), "..", "scripts", "gen-theme.py"))
+        g = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(g)
+        px = [(20, 30, 60)] * 500 + [(230, 120, 30)] * 150
+        t = P.build_theme(P.kmeans(px))
+        css = g.theme_css("test", t, {"radius": {}, "opacity": {}})
+        for role in ("y_surface_low", "y_surface_mid", "y_surface_high", "y_surface_highest", "y_tertiary", "y_outline", "y_glow"):
+            self.assertIn("@define-color %s " % role, css)
+        # a theme without a tertiary key (every hand-written one) still renders
+        t.pop("tertiary")
+        self.assertIn("@define-color y_tertiary ", g.theme_css("test", t, {"radius": {}, "opacity": {}}))
+
     def test_monochrome_wallpaper_still_gets_an_accent(self):
         t = P.build_theme(P.kmeans([(128, 128, 128)] * 200 + [(30, 30, 30)] * 200))
         self.assertNotEqual(t["primary"], t["accent"])

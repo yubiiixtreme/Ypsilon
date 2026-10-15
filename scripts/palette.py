@@ -145,6 +145,10 @@ def build_theme(clusters, light=False):
     muted = ensure_contrast(muted_seed, bg, 4.6)
     primary = ensure_contrast(vivid(primary), bg, 4.5)
     accent = ensure_contrast(vivid(accent), bg, 4.5)
+    # tertiary: a third hue, a triadic step from the primary, pulled toward the wallpaper's own
+    # colors by harmonize() so it sits with them instead of fighting them
+    th, tl, ts = hls(primary)
+    tertiary = ensure_contrast(vivid(harmonize(from_hls(th + 0.33, tl, max(ts, 0.5)), accent)), bg, 4.5)
     sem = {k: ensure_contrast(from_hls(h, 0.62 if not light else 0.38, 0.7), bg, 4.5)
            for k, h in (("good", 0.40), ("warn", 0.12), ("bad", 0.97))}
 
@@ -152,7 +156,7 @@ def build_theme(clusters, light=False):
     br, bgc = rgb_of(hex_of(primary)), rgb_of(hex_of(bg_alt))
     theme = {
         "bg": hex_of(bg), "bg_alt": hex_of(bg_alt), "fg": hex_of(fg), "muted": hex_of(muted),
-        "primary": hex_of(primary), "accent": hex_of(accent),
+        "primary": hex_of(primary), "accent": hex_of(accent), "tertiary": hex_of(tertiary),
         "good": hex_of(sem["good"]), "warn": hex_of(sem["warn"]), "bad": hex_of(sem["bad"]),
         "surface": "rgba(%d,%d,%d,%s)" % (bgc + (surf_a,)),
         "border": "rgba(%d,%d,%d,%s)" % (br + (0.22 if light else 0.30,)),

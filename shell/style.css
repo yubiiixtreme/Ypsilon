@@ -4,7 +4,10 @@
  * from disk (see app.tsx). No web-only props (backdrop-filter etc.): blur is done by Hyprland.
  *
  * The rules of the look, so additions stay consistent:
- *  - surfaces are neutral layers (@y_faint < @y_soft < @y_hover < @y_strong); no colored outlines
+ *  - surfaces are neutral layers (@y_faint < @y_soft < @y_hover < @y_strong); nested cards use the
+ *    tonal ladder (@y_surface_low < _mid < _high < _highest) at 50-60% alpha so the glass shows; no colored outlines
+ *  - floating surfaces get a 1px inner top light (@y_edge) above their drop shadow
+ *  - ON states are @y_primary with a 30% slide toward @y_tertiary, never a loud multi-hue gradient
  *  - @y_primary marks what is ON or SELECTED, nothing else; text on it is @y_on_primary
  *  - one hairline (@y_border) around floating surfaces only; cards inside them have none
  *  - radii: 22 popups · 16 cards · 12 rows · full for pills; spacing in steps of 4
@@ -65,9 +68,9 @@ button {
 .icon-btn { padding: 6px; }
 .pill-btn:hover, .icon-btn:hover { background: @y_soft; }
 .pill-btn:active, .icon-btn:active { background: @y_hover; }
-.pill-btn.on, .icon-btn.on { background: @y_primary; }
+.pill-btn.on, .icon-btn.on { background: @y_primary; background-image: linear-gradient(135deg, @y_primary, mix(@y_primary, @y_tertiary, 0.3)); }
 .pill-btn.on, .pill-btn.on label, .icon-btn.on image { color: @y_on_primary; }
-.pill-btn.primary { background: @y_primary; font-weight: 500; }
+.pill-btn.primary { background: @y_primary; background-image: linear-gradient(135deg, @y_primary, mix(@y_primary, @y_tertiary, 0.3)); font-weight: 500; }
 .pill-btn.primary, .pill-btn.primary label, .pill-btn.primary image { color: @y_on_primary; }
 
 entry.search {
@@ -81,7 +84,7 @@ entry.search {
   caret-color: @y_primary;
   transition: border-color 160ms ease, background 160ms ease;
 }
-entry.search:focus-within { background: @y_soft; border-color: @y_primary_soft; }
+entry.search:focus-within { background: @y_soft; border-color: @y_primary_soft; box-shadow: 0 0 0 4px @y_glow; }
 entry.search image { color: @y_muted; margin-right: 6px; }
 
 scale trough {
@@ -91,6 +94,7 @@ scale trough {
 }
 scale highlight {
   background: @y_primary;
+  background-image: linear-gradient(90deg, @y_primary, mix(@y_primary, @y_tertiary, 0.4));
   border-radius: 9999px;
 }
 scale slider {
@@ -129,7 +133,7 @@ tooltip label { font-size: 12px; }
   border: 1px solid @y_border;
   margin: 8px 8px 0 8px;
   padding: 4px 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 @y_edge, 0 6px 22px rgba(0, 0, 0, 0.26);
 }
 window.ypsilon-bar.bottom .bar-inner, .bar-inner.bottom { margin: 0 8px 8px 8px; }
 
@@ -157,7 +161,7 @@ window.ypsilon-bar.bottom .bar-inner, .bar-inner.bottom { margin: 0 8px 8px 8px;
 }
 .ws-btn:hover { background: @y_faint; color: @y_fg; }
 .ws-btn.occupied { color: @y_fg; }
-.ws-btn.active { background: @y_primary; color: @y_on_primary; min-width: 40px; }
+.ws-btn.active { background: @y_primary; background-image: linear-gradient(135deg, @y_primary, mix(@y_primary, @y_tertiary, 0.3)); color: @y_on_primary; min-width: 40px; box-shadow: 0 0 14px @y_glow; }
 .ws-app { margin: 0 1px; }
 .ws-btn.big { padding: 8px 0; min-width: 0; font-size: 20px; font-weight: 600; background: none; color: @y_fg; }
 
@@ -210,7 +214,7 @@ button:hover .clock { background: @y_faint; }
   border: 1px solid @y_border;
   padding: 16px;
   color: @y_fg;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.40);
+  box-shadow: inset 0 1px 0 @y_edge, 0 16px 48px rgba(0, 0, 0, 0.44);
 }
 .popup-card.top-sheet { margin-top: 84px; min-width: 520px; }
 .popup-card.corner { margin: 10px; min-width: 380px; }
@@ -242,7 +246,7 @@ button:hover .clock { background: @y_faint; }
   transition: background 200ms ease;
 }
 .tile:hover { background: @y_soft; }
-.tile.on { background: @y_primary_container; }
+.tile.on { background: @y_primary_container; box-shadow: inset 0 1px 0 @y_edge; }
 .tile.on:hover { background: shade(@y_primary_container, 1.12); }
 .tile.on label { color: @y_on_primary_container; }
 .tile.on image { color: @y_primary; }
@@ -259,7 +263,7 @@ button:hover .clock { background: @y_faint; }
 .theme-chip { padding: 3px 10px; font-size: 12px; }
 
 .media-card {
-  background: @y_faint;
+  background: alpha(@y_surface_high, 0.55);
   border-radius: 18px;
   padding: 10px;
 }
@@ -270,7 +274,7 @@ button:hover .clock { background: @y_faint; }
   background: @y_soft;
 }
 .media-progress trough { min-height: 4px; }
-.icon-btn.play { background: @y_primary; padding: 8px 10px; }
+.icon-btn.play { background: @y_primary; background-image: linear-gradient(135deg, @y_primary, mix(@y_primary, @y_tertiary, 0.3)); padding: 8px 10px; box-shadow: 0 4px 14px @y_glow; }
 .icon-btn.play image { color: @y_on_primary; }
 .notif-image { border-radius: 12px; min-width: 48px; min-height: 48px; }
 
@@ -295,7 +299,7 @@ window.ypsilon-toast .toast-inner {
   padding: 10px 14px;
   margin: 56px 10px 0 0;
   min-width: 340px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 @y_edge, 0 10px 32px rgba(0, 0, 0, 0.38);
 }
 window.ypsilon-toast .toast-inner.critical { border-color: alpha(@y_bad, 0.6); }
 
@@ -306,7 +310,7 @@ window.ypsilon-osd .osd-inner {
   border-radius: 9999px;
   padding: 10px 18px;
   margin-bottom: 40px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 @y_edge, 0 10px 32px rgba(0, 0, 0, 0.38);
 }
 .osd-inner image { color: @y_primary; }
 .osd-inner levelbar { min-width: 200px; }
@@ -393,7 +397,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 .popup-card.panel { padding: 0; min-width: 960px; min-height: 620px; }
 .settings-root { min-height: 620px; }
 .settings-nav {
-  background: @y_faint;
+  background: alpha(@y_surface_low, 0.6);
   border-radius: 21px 0 0 21px;
   padding: 16px 10px;
   min-width: 210px;
@@ -410,7 +414,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 .settings-page > box { min-width: 640px; }
 .settings-section-title { font-size: 12px; font-weight: 500; color: @y_primary; padding: 8px 6px 6px 6px; }
 .settings-group {
-  background: @y_faint;
+  background: alpha(@y_surface_high, 0.5);
   border-radius: 18px;
 }
 .settings-row { padding: 12px 16px; border-bottom: 1px solid alpha(@y_bg, 0.5); min-height: 26px; }
@@ -431,7 +435,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 .segmented { background: @y_faint; border-radius: 9999px; padding: 3px; }
 .seg-btn { border-radius: 9999px; padding: 4px 12px; font-size: 12px; transition: background 140ms ease; }
 .seg-btn:hover { background: @y_faint; }
-.seg-btn.on { background: @y_primary; }
+.seg-btn.on { background: @y_primary; background-image: linear-gradient(135deg, @y_primary, mix(@y_primary, @y_tertiary, 0.3)); }
 .seg-btn.on label, .seg-btn.on { color: @y_on_primary; font-weight: 500; }
 .embedded-page > box { min-width: 560px; }
 
@@ -441,7 +445,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 .swatches { border-radius: 12px; padding: 10px 12px; min-width: 96px; }
 .swatch { min-width: 18px; min-height: 18px; border-radius: 9999px; }
 
-.plugin-card { background: @y_faint; border-radius: 16px; padding: 12px 14px; }
+.plugin-card { background: alpha(@y_surface_high, 0.5); border-radius: 16px; padding: 12px 14px; }
 .plugin-card.broken { background: alpha(@y_bad, 0.10); }
 .status-chip { font-size: 10px; font-weight: 600; border-radius: 9999px; padding: 1px 8px; background: @y_soft; color: @y_muted; }
 .status-chip.active { background: alpha(@y_good, 0.18); color: @y_good; }
@@ -454,7 +458,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
   padding: 10px 14px;
 }
 .warn-banner image, .reboot-banner image { color: @y_warn; }
-.updates-hero, .about-hero { background: @y_faint; border-radius: 20px; padding: 16px 18px; }
+.updates-hero, .about-hero { background: alpha(@y_surface_highest, 0.6); border-radius: 20px; padding: 16px 18px; }
 .settings-hero-title { font-size: 18px; font-weight: 600; }
 .update-row { padding: 6px 14px; }
 .about-logo { font-size: 26px; font-weight: 600; color: @y_primary; }
@@ -469,7 +473,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 /* ---------- visualizer, weather, graphs ---------- */
 .visualizer { min-height: 14px; }
 .media-card .visualizer { min-height: 36px; }
-.weather-card { background: @y_faint; border-radius: 18px; padding: 12px 14px; }
+.weather-card { background: alpha(@y_surface_high, 0.55); border-radius: 18px; padding: 12px 14px; }
 .weather-temp { font-size: 30px; font-weight: 600; }
 .weather-day { min-width: 52px; }
 .graph { min-height: 46px; background: @y_faint; border-radius: 12px; color: @y_muted; }
