@@ -1,0 +1,32 @@
+{
+  "bg": "#0c0c12",
+  "bg_alt": "#171721",
+  "fg": "#e8e8ed",
+  "muted": "#9f9fb1",
+  "primary": "#7575d7",
+  "accent": "#bd6137",
+  "good": "#5ae291",
+  "warn": "#e2bc5a",
+  "bad": "#e25a73",
+  "surface": "rgba(23,23,33,0.72)",
+  "border": "rgba(117,117,215,0.3)",
+  "ansi": [
+    "#0c0c12",
+    "#db5767",
+    "#57db7c",
+    "#dbbe57",
+    "#577cdb",
+    "#c157db",
+    "#57dbdb",
+    "#e8e8ed",
+    "#4c4c67",
+    "#ed828f",
+    "#82eda0",
+    "#edd682",
+    "#82a0ed",
+    "#d882ed",
+    "#82eded",
+    "#ffffff"
+  ],
+  "source": "/home/yubiii/.config/aether/theme/backgrounds/wallhaven-7jxkqe.png"
+}

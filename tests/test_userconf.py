@@ -59,8 +59,10 @@ class UserConfTest(unittest.TestCase):
                     f.write("$YPSILON = %s\n$ypsilon = %s/scripts/ypsilon\n" % (ROOT, ROOT))
                 with open(os.path.join(hypr, "generated", "user.conf"), "w") as f:
                     f.write(U.render_user_conf(self.load(cfg)))
+                # bare containers often lack XDG_RUNTIME_DIR and Hyprland aborts without it
+                env = dict(os.environ, XDG_RUNTIME_DIR=d)
                 out = subprocess.run(["Hyprland", "--verify-config", "-c", os.path.join(hypr, "ypsilon.conf")],
-                                     capture_output=True, text=True).stdout
+                                      capture_output=True, text=True, env=env).stdout
                 self.assertIn("config ok", out, out[-800:])
 
 

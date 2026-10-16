@@ -194,8 +194,10 @@ second=$(cat "$pidf" 2>/dev/null)
 [ -f "$XDG_CONFIG_HOME/ypsilon/.welcomed" ] && ok || no "first start should mark welcome"
 [ -f "$XDG_CONFIG_HOME/ypsilon/config.json" ] && ok || no "first start should create config.json"
 expect "stop"            "stopped hypridle"            "$Y" stop
-sleep 0.3
-kill -0 "$first" 2>/dev/null && no "stop must end the daemons" || ok
+# poll: loaded runners can take a moment to reap the group kill
+gone=0
+for _ in $(seq 1 25); do kill -0 "$first" 2>/dev/null || { gone=1; break; }; sleep 0.2; done
+[ "$gone" = 1 ] && ok || { no "stop must end the daemons (pid $first still alive: $(ps -o pid,ppid,pgid,stat,comm -p "$first" 2>/dev/null | tail -1))"; kill -KILL "$first" 2>/dev/null; }
 ls "$XDG_RUNTIME_DIR"/ypsilon/*.pid >/dev/null 2>&1 && no "stop must remove pid files" || ok
 
 echo "cli tests: $pass passed, $fail failed"

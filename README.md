@@ -6,12 +6,12 @@
 
 Your config is never touched — Ypsilon runs as its own login session, previews nested, and uninstalls cleanly.
 
-[![check](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml/badge.svg)](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml)
-![Arch](https://img.shields.io/badge/Arch-rolling-1793D1?logo=archlinux&logoColor=white)
-![Hyprland](https://img.shields.io/badge/Hyprland-%3E%3D0.53-58E6D9?logo=wayland&logoColor=black)
-![AGS](https://img.shields.io/badge/AGS-v3-TypeScript-3178C6?logo=typescript&logoColor=white)
-![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?logo=wayland&logoColor=black)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![check](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml/badge.svg?style=flat)](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml)
+![Arch](https://img.shields.io/badge/Arch-rolling-1793D1?style=flat&logo=archlinux&logoColor=white)
+![Hyprland](https://img.shields.io/badge/Hyprland-%3E%3D0.53-58E6D9?style=flat&logo=wayland&logoColor=black)
+![AGS](https://img.shields.io/badge/AGS-v3_TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?style=flat&logo=wayland&logoColor=black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
 
 </div>
 
@@ -45,6 +45,8 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Themes** | Five hand-tuned themes: dark, neon, light, ocean, sunset — plus auto from any wallpaper (`ypsilon theme list`) |
 | **Dashboard** *(clock click)* | Big clock, calendar, live CPU/memory/temperature graphs, now playing |
 | **Notifications** | Stacked image toasts, silent under DND and fullscreen apps (critical still shows), history center |
+| **Login** | Ypsilon SDDM theme (`extras/sddm-ypsilon/`) — glass card, clock, user + session picker. `scripts/install-sddm-theme.sh set` installs + selects it, `restore` falls back to a stock theme |
+| **Lockscreen** | hyprlock glass card: big clock, date, `✦ ypsilon` mark, now-playing + battery, themed password field. Idle path: dim → lock → screen off → suspend (`ypsilon lock` previews it) |
 | **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
 | **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Password** (`pw 20`), **Color** (`#ff0000`), **World clock** (`time tokyo`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) · **IP addresses** (`ip`) · **Process killer** (`kill firefox`) · **Disks** (`disk`, `eject`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
@@ -80,6 +82,7 @@ ypsilon theme list|set|auto
 ypsilon wallpaper list|status|set|next
 ypsilon shot select|full  ypsilon record select|full|stop
 ypsilon calc 'sqrt(16)+2*3'  ypsilon pw 20  # calculator + password generator
+ypsilon clip  ypsilon lock  ypsilon ocr     # themed clipboard · lock now · screen text → clipboard
 ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness
@@ -110,6 +113,7 @@ Every push runs [`scripts/check.sh`](scripts/check.sh) in CI — and you can run
 | Logic | TS + Python unit tests, hermetic CLI/supervisor tests |
 | Bash | `bash -n` + shellcheck |
 | The checkers | Mutation tests — each checker must catch an injected fault |
+| Failure output | Every failing check prints what failed (CI-friendly: no silent `>/dev/null`) |
 
 ## Layout
 
@@ -117,8 +121,8 @@ Every push runs [`scripts/check.sh`](scripts/check.sh) in CI — and you can run
 hypr/       ypsilon.conf + core/*.conf · generated/ (paths, user, idle, lock) · themes/
 shell/      app.tsx · widgets/ (+pages/, settings/) · services/ · lib/ (pure + tested) · style.css
 themes/     tokens.json · user/ (generated/custom, gitignored)
-scripts/    ypsilon · check.sh · typecheck.sh · gen-theme.py · palette.py · wallpaper.sh · install/uninstall
-extras/     foot · kitty · ghostty · fuzzel · gtk — extras/current/ always = active theme
+scripts/    ypsilon · check.sh · typecheck.sh · gen-theme.py · palette.py · wallpaper.sh · install/uninstall · install-sddm-theme.sh
+extras/     foot · kitty · ghostty · fuzzel · gtk · sddm-ypsilon — extras/current/ always = active theme
 plugins/    pomodoro · quicklinks · dev-ports · timer · sysmon · power-profile · caffeine · … (+ docs/PLUGINS.md)
 tests/  tools/  .github/  config.example.json
 ```

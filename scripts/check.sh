@@ -8,6 +8,14 @@
 #   6. shell scripts pass bash -n
 set -uo pipefail
 ROOT=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
+# Hyprland aborts when XDG_RUNTIME_DIR is unset (bare containers, cron, fresh ssh):
+# fall back to a private dir for this run only. Nothing outside the repo is touched.
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+  export XDG_RUNTIME_DIR=/tmp/ypsilon-check-runtime
+  mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
+fi
+# fresh containers often check out root-owned repos: keep git diagnostics working there
+GIT="git -c safe.directory=$ROOT"
 fail=0
 ok()  { echo "OK   $1"; }
 bad() { echo "FAIL $1"; fail=1; }
@@ -28,7 +36,7 @@ sig() { (cd "$ROOT" && find hypr/themes shell/style extras -path extras/current 
 before=$(sig)
 python3 "$ROOT/scripts/gen-theme.py" >/dev/null || bad "gen-theme.py failed"
 [ "$before" = "$(sig)" ] && ok "generated files in sync with tokens.json" \
-  || { bad "generated files were stale — now regenerated, review 'git diff' and commit"; git -C "$ROOT" status --short | head -20 | sed 's/^/     /'; git -C "$ROOT" diff --stat | tail -8 | sed 's/^/     /'; }
+  || { bad "generated files were stale — now regenerated, review 'git diff' and commit"; $GIT -C "$ROOT" status --short 2>/dev/null | head -20 | sed 's/^/     /'; $GIT -C "$ROOT" diff --stat 2>/dev/null | tail -8 | sed 's/^/     /'; }
 
 # 3. css
 python3 - "$ROOT" <<'PY' && ok "css parses + all @y_* defined" || bad "css"
