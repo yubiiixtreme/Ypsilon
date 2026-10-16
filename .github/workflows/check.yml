@@ -9,7 +9,7 @@ jobs:
       - name: deps
         run: |
           pacman -Syu --noconfirm --needed git hyprland gtk4 python-gobject python-pillow nodejs npm \
-            adwaita-icon-theme shellcheck libnotify
+            adwaita-icon-theme shellcheck libnotify diffutils
       - uses: actions/checkout@v4
       - name: typecheck env
         run: scripts/typecheck.sh --setup
