@@ -17,5 +17,11 @@ if [ -L "$link" ] && [ "$(readlink -f "$link")" = "$ROOT/shell" ]; then
   [ -n "$latest" ] && mv "$latest" "$link" && echo "restored your previous $link from $latest"
 fi
 
+# the `ypsilon` command; only remove it if it points at us
+cmd=${XDG_BIN_HOME:-$HOME/.local/bin}/ypsilon
+if [ -L "$cmd" ] && [ "$(readlink -f "$cmd")" = "$ROOT/scripts/ypsilon" ]; then
+  rm "$cmd" && echo "removed $cmd (pointed at Ypsilon)"
+fi
+
 ags quit -i ypsilon >/dev/null 2>&1 && echo "stopped the shell"
 echo "Optional cleanup (your data): ${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon  ${XDG_CACHE_HOME:-$HOME/.cache}/ypsilon"

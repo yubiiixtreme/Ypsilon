@@ -13,6 +13,8 @@ Your config is never touched — Ypsilon runs as its own login session, previews
 ![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?style=flat&logo=wayland&logoColor=black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
 
+<video src="assets/showcase.mp4" width="100%" controls></video>
+
 </div>
 
 ## Install (Arch)
@@ -27,6 +29,7 @@ what's missing (**no system upgrade**; existing alternatives such as `tuned-ppd`
 check, **boots Ypsilon in a nested window and requires the shell to report healthy**, and only then adds
 the "Ypsilon" login session and makes SDDM preselect it. Your old session stays in the login list:
 `scripts/default-session.sh restore` switches the default back, `scripts/uninstall.sh` removes it all.
+Install also puts the `ypsilon` command on your PATH (`~/.local/bin/ypsilon`).
 
 Separately: `ypsilon doctor` (what's missing + fix), `ypsilon try` (nested preview, ALT = modifier,
 ALT+Shift+E exits), `scripts/verify-live.sh`. Hit by an older installer? `scripts/recover.sh`.

@@ -31,21 +31,21 @@ ver_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
 step() { printf '\n== %s\n' "$*"; }
 
 echo "== Ypsilon install (explicit opt-in) =="
-step "1/6 dependencies"
+step "1/7 dependencies"
 if [ -n "$NO_DEPS" ]; then echo "skipped (--no-deps)"
 else "$ROOT/scripts/install-deps.sh" ${YES:+--yes}; fi
 
-step "2/6 Hyprland version"
+step "2/7 Hyprland version"
 hv=$(Hyprland --version 2>/dev/null | sed -n 's/^Hyprland \([0-9.]*\).*/\1/p' | head -1)
 [ -n "$hv" ] || { echo "Hyprland not found"; exit 1; }
 ver_ge "$hv" "$MIN_HYPR" || { echo "Hyprland $hv is too old; Ypsilon needs >= $MIN_HYPR"; exit 1; }
 echo "Hyprland $hv OK"
 
-step "3/6 generate + static checks"
+step "3/7 generate + static checks"
 python3 "$ROOT/scripts/gen-theme.py" >/dev/null
 "$ROOT/scripts/check.sh" || { echo "checks failed — not installing (nothing was changed)"; exit 1; }
 
-step "4/6 live test (Ypsilon boots in a nested window for a few seconds)"
+step "4/7 live test (Ypsilon boots in a nested window for a few seconds)"
 if [ -n "${WAYLAND_DISPLAY:-}" ]; then
   if ! "$ROOT/scripts/verify-live.sh"; then
     echo "Ypsilon did not come up healthy — NOT installing the session (nothing was changed)."
@@ -57,7 +57,7 @@ else
   [ -n "$MAKE_DEFAULT" ] && { echo "--make-default needs the live test; run this from your desktop."; exit 1; }
 fi
 
-step "5/6 login session (startup is logged to ~/.local/share/ypsilon/logs/)"
+step "5/7 login session (startup is logged to ~/.local/share/ypsilon/logs/)"
 sudo tee "$SESSION" >/dev/null <<DESKTOP
 [Desktop Entry]
 Name=Ypsilon
@@ -68,7 +68,20 @@ DesktopNames=Hyprland
 DESKTOP
 echo "wrote $SESSION"
 
-step "6/6 default session"
+step "6/7 terminal command"
+BIN=${XDG_BIN_HOME:-$HOME/.local/bin}
+mkdir -p "$BIN"
+link=$BIN/ypsilon
+if [ -L "$link" ] && [ "$(readlink -f "$link")" = "$ROOT/scripts/ypsilon" ]; then
+  echo "command ready: ypsilon ($link)"
+elif [ -e "$link" ]; then
+  echo "kept your existing $link (not ours) — run Ypsilon via $ROOT/scripts/ypsilon"
+else
+  ln -s "$ROOT/scripts/ypsilon" "$link" && echo "command ready: ypsilon ($link)"
+fi
+case ":$PATH:" in *":$BIN:"*) :;; *) echo "note: $BIN is not on PATH — add it to use 'ypsilon' anywhere";; esac
+
+step "7/7 default session"
 if [ -n "$MAKE_DEFAULT" ]; then
   "$ROOT/scripts/default-session.sh" set "$SESSION"
 else
