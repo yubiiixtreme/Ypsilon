@@ -1,0 +1,13 @@
+{
+  "id": "glorb",
+  "name": "Glorb",
+  "version": "1.0.0",
+  "description": "A desktop pet that lives in your bar. It judges your CPU, gets hungry, evolves, and throws parties.",
+  "author": "Ypsilon",
+  "apiVersion": 1,
+  "permissions": ["notifications"],
+  "settings": [
+    { "key": "hungerRate", "label": "Hunger speed", "type": "number", "default": 2, "min": 1, "max": 10 },
+    { "key": "grumpyCpu", "label": "CPU load that annoys Glorb (0-100%)", "type": "number", "default": 80, "min": 10, "max": 100 }
+  ]
+}

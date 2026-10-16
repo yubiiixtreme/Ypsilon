@@ -17,6 +17,7 @@ import { parseProfile, nextProfile, matchProfiles } from "../plugins/power-profi
 import { parseAddrs, parsePublic } from "../plugins/ip/addrs.js"
 import { parsePs, matchProcs } from "../plugins/kill/procs.js"
 import { parseLsblk, matchParts, parseMounted, formatSize } from "../plugins/disk/devices.js"
+import * as Glorb from "../plugins/glorb/glorb.js"
 
 const cfg = { work: 25, shortBreak: 5, longBreak: 15, cycles: 2, autoContinue: true }
 
@@ -264,4 +265,35 @@ test("disk: lsblk tree flattened, swap/zram skipped, removable inherited, mounte
   assert.equal(formatSize(32e6), "32 MB")
   assert.equal(formatSize(15.6e9), "15.6 GB")
   assert.deepEqual(parseLsblk("oops"), [])
+})
+
+test("glorb: hunger grows, feeding works, forms evolve, dice are pure", () => {
+  const t0 = 1_000_000
+  let p = Glorb.newborn(t0)
+  assert.equal(p.hunger, 20)
+  const later = Glorb.tick(p, t0 + 60_000, { cpu: 0.9, mem: 0 }, { hungerRate: 2 })
+  assert.ok(later.hunger > p.hunger)
+  assert.ok(later.happiness < p.happiness)
+  assert.equal(Glorb.tick(p, t0, { cpu: 0, mem: 0 }).hunger, p.hunger) // no time = no change
+  const fed = Glorb.feed({ ...p, hunger: 90 }, t0)
+  assert.equal(fed.hunger, 55)
+  assert.ok(fed.xp > p.xp)
+  const played = Glorb.play(p, t0)
+  assert.ok(played.happiness > p.happiness && played.energy < p.energy)
+  assert.equal(Glorb.evolve({ ...p, hunger: 100, happiness: 5, xp: 0 }, { cpu: 0, mem: 0 }).emoji, "👻")
+  assert.equal(Glorb.evolve({ ...p, hunger: 80, xp: 0 }, { cpu: 0.95, mem: 0 }).emoji, "🔥")
+  assert.equal(Glorb.evolve({ ...p, xp: 600 }, { cpu: 0.3, mem: 0 }).emoji, "🌈")
+  assert.equal(Glorb.evolve({ ...p, xp: 0 }, { cpu: 0.3, mem: 0 }).emoji, "🥚")
+  assert.ok(Glorb.mood({ ...p, hunger: 90 }, { cpu: 0, mem: 0 }).text.includes("STARVING"))
+  assert.deepEqual(Glorb.sanitize("nope", t0).hunger, 20)
+  assert.deepEqual(Glorb.parseGame("2d20+3"), { kind: "dice", n: 2, sides: 20, mod: 3 })
+  assert.deepEqual(Glorb.parseGame("d6"), { kind: "dice", n: 1, sides: 6, mod: 0 })
+  assert.deepEqual(Glorb.parseGame("coin"), { kind: "coin" })
+  assert.deepEqual(Glorb.parseGame("8ball will i ship"), { kind: "eight" })
+  assert.equal(Glorb.parseGame("99d99"), null)
+  assert.equal(Glorb.parseGame("hello"), null)
+  assert.deepEqual(Glorb.rollDice({ n: 2, sides: 6, mod: 1 }, () => 0), { rolls: [1, 1], total: 3 })
+  assert.equal(Glorb.coinFlip(() => 0.1), "heads")
+  assert.equal(Glorb.coinFlip(() => 0.9), "tails")
+  assert.equal(Glorb.eightBall(() => 0), "yes. glorb has seen it.")
 })
