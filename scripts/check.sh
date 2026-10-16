@@ -31,8 +31,16 @@ if command -v Hyprland &>/dev/null; then
   else bad "hypr conf (Hyprland $(Hyprland -v 2>/dev/null | head -1 | cut -c1-24), exit $?)"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; echo "$out" | head -25 | sed 's/^/     raw: /'; fi
 else skip "hypr conf (Hyprland not installed)"; fi
 
-# 2. theme sync — regenerate and see whether anything changed
-siglist() { (cd "$ROOT" && find hypr/themes shell/style extras -path extras/current -prune -o -type f -print0 | sort -z | xargs -0 sha256sum); }
+# 2. theme sync — regenerate and see whether anything changed.
+# Only TRACKED files count: fresh clones lack gitignored outputs (hypr/generated/,
+# extras/current/, lock-current.conf), and regen legitimately creates them.
+siglist() {
+  if git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    (cd "$ROOT" && git ls-files -z -- hypr/themes shell/style extras | sort -z | xargs -0 sha256sum)
+  else
+    (cd "$ROOT" && find hypr/themes shell/style extras -path 'extras/current' -prune -o -path 'hypr/themes/lock-current.conf' -prune -o -type f -print0 | sort -z | xargs -0 sha256sum)
+  fi
+}
 list_before=$(mktemp); list_after=$(mktemp); trap 'rm -f "$list_before" "$list_after"' EXIT
 siglist >"$list_before"
 before=$(sha256sum <"$list_before" | cut -d' ' -f1)
