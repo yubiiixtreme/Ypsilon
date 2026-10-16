@@ -194,9 +194,16 @@ second=$(cat "$pidf" 2>/dev/null)
 [ -f "$XDG_CONFIG_HOME/ypsilon/.welcomed" ] && ok || no "first start should mark welcome"
 [ -f "$XDG_CONFIG_HOME/ypsilon/config.json" ] && ok || no "first start should create config.json"
 expect "stop"            "stopped hypridle"            "$Y" stop
-# poll: loaded runners can take a moment to reap the group kill
+# dead to us = gone, or an unreaped zombie (containers without an init keep
+# orphans as Z until the runner cleans up; kill -0 still "succeeds" on those)
+pdead() {
+  [ -n "${1:-}" ] || return 0
+  kill -0 "$1" 2>/dev/null || return 0
+  case "$(cat "/proc/$1/stat" 2>/dev/null)" in *") Z"*|*") X"*) return 0;; *) return 1;; esac
+}
+# poll: loaded runners can take a moment to deliver the group kill
 gone=0
-for _ in $(seq 1 25); do kill -0 "$first" 2>/dev/null || { gone=1; break; }; sleep 0.2; done
+for _ in $(seq 1 25); do pdead "$first" && { gone=1; break; }; sleep 0.2; done
 [ "$gone" = 1 ] && ok || { no "stop must end the daemons (pid $first still alive: $(ps -o pid,ppid,pgid,stat,comm -p "$first" 2>/dev/null | tail -1))"; kill -KILL "$first" 2>/dev/null; }
 ls "$XDG_RUNTIME_DIR"/ypsilon/*.pid >/dev/null 2>&1 && no "stop must remove pid files" || ok
 

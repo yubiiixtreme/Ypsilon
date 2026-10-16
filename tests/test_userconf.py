@@ -61,8 +61,10 @@ class UserConfTest(unittest.TestCase):
                     f.write(U.render_user_conf(self.load(cfg)))
                 # bare containers often lack XDG_RUNTIME_DIR and Hyprland aborts without it
                 env = dict(os.environ, XDG_RUNTIME_DIR=d)
-                out = subprocess.run(["Hyprland", "--verify-config", "-c", os.path.join(hypr, "ypsilon.conf")],
-                                      capture_output=True, text=True, env=env).stdout
+                cmd = ["Hyprland", "--verify-config", "-c", os.path.join(hypr, "ypsilon.conf")]
+                if os.geteuid() == 0:
+                    cmd.append("--i-am-really-stupid")  # CI containers run as root
+                out = subprocess.run(cmd, capture_output=True, text=True, env=env).stdout
                 self.assertIn("config ok", out, out[-800:])
 
 

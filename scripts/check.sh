@@ -14,8 +14,6 @@ if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
   export XDG_RUNTIME_DIR=/tmp/ypsilon-check-runtime
   mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 fi
-# fresh containers often check out root-owned repos: keep git diagnostics working there
-GIT="git -c safe.directory=$ROOT"
 fail=0
 ok()  { echo "OK   $1"; }
 bad() { echo "FAIL $1"; fail=1; }
@@ -26,17 +24,22 @@ python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null 2>&1 || true
 
 # 1. hyprland config
 if command -v Hyprland &>/dev/null; then
-  out=$(Hyprland --verify-config -c "$ROOT/hypr/ypsilon.conf" 2>&1)
+  hyargs=(--verify-config -c "$ROOT/hypr/ypsilon.conf")
+  [ "$(id -u)" = 0 ] && hyargs+=(--i-am-really-stupid)  # CI containers run as root; Hyprland refuses otherwise
+  out=$(Hyprland "${hyargs[@]}" 2>&1)
   if echo "$out" | grep -q "^config ok"; then ok "hypr conf ($(Hyprland -v | head -1 | cut -c1-24))"
   else bad "hypr conf (Hyprland $(Hyprland -v 2>/dev/null | head -1 | cut -c1-24), exit $?)"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; echo "$out" | head -25 | sed 's/^/     raw: /'; fi
 else skip "hypr conf (Hyprland not installed)"; fi
 
 # 2. theme sync — regenerate and see whether anything changed
-sig() { (cd "$ROOT" && find hypr/themes shell/style extras -path extras/current -prune -o -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum); }
-before=$(sig)
+siglist() { (cd "$ROOT" && find hypr/themes shell/style extras -path extras/current -prune -o -type f -print0 | sort -z | xargs -0 sha256sum); }
+list_before=$(mktemp); list_after=$(mktemp); trap 'rm -f "$list_before" "$list_after"' EXIT
+siglist >"$list_before"
+before=$(sha256sum <"$list_before" | cut -d' ' -f1)
 python3 "$ROOT/scripts/gen-theme.py" >/dev/null || bad "gen-theme.py failed"
-[ "$before" = "$(sig)" ] && ok "generated files in sync with tokens.json" \
-  || { bad "generated files were stale — now regenerated, review 'git diff' and commit"; $GIT -C "$ROOT" status --short 2>/dev/null | head -20 | sed 's/^/     /'; $GIT -C "$ROOT" diff --stat 2>/dev/null | tail -8 | sed 's/^/     /'; }
+siglist >"$list_after"
+[ "$before" = "$(sha256sum <"$list_after" | cut -d' ' -f1)" ] && ok "generated files in sync with tokens.json" \
+  || { bad "generated files were stale — now regenerated, review 'git diff' and commit"; diff "$list_before" "$list_after" | head -20 | sed 's/^/     /'; }
 
 # 3. css
 python3 - "$ROOT" <<'PY' && ok "css parses + all @y_* defined" || bad "css"
