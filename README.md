@@ -13,7 +13,9 @@ Your config is never touched — Ypsilon runs as its own login session, previews
 ![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?style=flat&logo=wayland&logoColor=black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
 
-<video src="assets/showcase.mp4" width="100%" controls></video>
+[![Showcase](assets/showcase.gif)](https://github.com/yubiiixtreme/Ypsilon/releases/tag/v0.4.0)
+
+*Preview above — [watch the full 27&nbsp;s video](https://github.com/yubiiixtreme/Ypsilon/releases/download/v0.4.0/showcase.mp4).*
 
 </div>
 
