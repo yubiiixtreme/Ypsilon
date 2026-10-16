@@ -43,14 +43,12 @@ cmd_try() {
   have Hyprland || { echo "Hyprland not found"; return 1; }
   [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || { echo "run this from inside a graphical session (it opens a nested window)"; return 1; }
   # Your main session grabs SUPER first, so the preview uses ALT as its modifier.
-  # (override: YPSILON_TRY_MOD=CTRL ypsilon try). Generated config lives in $XDG_RUNTIME_DIR.
-  local mod=${YPSILON_TRY_MOD:-ALT} d conf
-  d=${XDG_RUNTIME_DIR:-/tmp}/ypsilon; mkdir -p "$d"; conf="$d/try.conf"
-  sed 's/^\$mod = SUPER/$mod = '"$mod"'/' "$ROOT/hypr/core/keybinds.conf" > "$d/try-keybinds.conf"
+  # (override: YPSILON_TRY_MOD=CTRL ypsilon try). Lua reads YPSILON_TRY_MOD in
+  # hypr/core/keybinds.lua, so no config rewriting is needed.
+  local mod=${YPSILON_TRY_MOD:-ALT}
   ensure_generated
-  sed -e "s#^source = core/keybinds.conf#source = $d/try-keybinds.conf#" -e "s#^source = \(core\|themes\|generated\)/#source = $ROOT/hypr/\1/#" "$ROOT/hypr/ypsilon.conf" > "$conf"
   echo "nested preview: modifier=$mod · exit with $mod+Shift+E, or Ctrl+C here, or close the window"
-  YPSILON_NESTED=1 YPSILON_TRY_MOD=$mod exec Hyprland -c "$conf"
+  YPSILON_NESTED=1 YPSILON_TRY_MOD=$mod exec Hyprland -c "$ROOT/hypr/ypsilon.lua"
 }
 
 # reload — validate config.json, re-render hypr/generated from it, reload Hyprland + shell CSS,
@@ -80,11 +78,11 @@ cmd_doctor() {
 
   section "compositor"
   hv=$(Hyprland --version 2>/dev/null | sed -n 's/^Hyprland \([0-9.]*\).*/\1/p' | head -1)
-  if [ -z "$hv" ]; then fix "Hyprland" "install hyprland (>= 0.53)"
-  elif [ "$(printf '%s\n0.53\n' "$hv" | sort -V | head -1)" != "0.53" ]; then fix "Hyprland $hv" "upgrade to >= 0.53"
+  if [ -z "$hv" ]; then fix "Hyprland" "install hyprland (>= 0.55, Lua configs)"
+  elif [ "$(printf '%s\n0.55\n' "$hv" | sort -V | head -1)" != "0.55" ]; then fix "Hyprland $hv" "upgrade to >= 0.55 (Ypsilon configs are Lua now)"
   else okm "Hyprland $hv"; fi
-  if Hyprland --verify-config -c "$ROOT/hypr/ypsilon.conf" 2>&1 | grep -q '^config ok'; then okm "hypr/ypsilon.conf parses"; else fix "hypr/ypsilon.conf has errors" "ypsilon check"; fi
-  [ -f "$ROOT/hypr/generated/paths.conf" ] && okm "hypr/generated/ present" || fix "hypr/generated/" "python3 scripts/gen-theme.py"
+  if Hyprland --verify-config -c "$ROOT/hypr/ypsilon.lua" 2>&1 | grep -q '^config ok'; then okm "hypr/ypsilon.lua parses"; else fix "hypr/ypsilon.lua has errors" "ypsilon check"; fi
+  [ -f "$ROOT/hypr/generated/paths.lua" ] && [ -f "$ROOT/hypr/generated/user.lua" ] && okm "hypr/generated/ present" || fix "hypr/generated/" "python3 scripts/gen-theme.py"
 
   section "shell (AGS + Astal)"
   have ags && okm "ags $(ags --version 2>/dev/null | head -1)" || fix "ags" "AUR: aylurs-gtk-shell"

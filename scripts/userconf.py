@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""config.json -> Hyprland/hypridle settings (hypr/generated/user.conf, hypridle.conf).
+"""config.json -> Hyprland/hypridle settings (hypr/generated/user.lua, hypridle.conf).
 
 Mirrors the hypr/input/idle/reduceMotion part of shell/lib/config.ts (DEFAULTS, RANGE,
 safe-string rules). tests/lib.test.ts runs `userconf.py --dump-defaults` and fails if the
@@ -11,7 +11,7 @@ import re
 import sys
 
 DEFAULTS = {
-    "hypr": {"gapsIn": 6, "gapsOut": 12, "borderSize": 2, "rounding": 18, "blur": True, "shadows": True, "dimInactive": True},
+    "hypr": {"gapsIn": 6, "gapsOut": 12, "borderSize": 2, "rounding": 18, "blur": True, "shadows": True, "dimInactive": True, "cube": True},
     "input": {"kbLayout": "us", "kbVariant": "", "kbOptions": "", "naturalScroll": True, "sensitivity": 0, "repeatRate": 35, "repeatDelay": 300},
     "idle": {"dimSec": 150, "lockSec": 300, "screenOffSec": 360, "suspendSec": 1200},
     "reduceMotion": False,
@@ -66,28 +66,54 @@ def _b(v):
     return "true" if v else "false"
 
 
+def _num(v):
+    s = ("%.2f" % v).rstrip("0").rstrip(".")
+    return s or "0"
+
+
 def render_user_conf(c):
+    """Hyprland Lua override (hypr/generated/user.lua). Loaded after core + 3d,
+    so Settings win over the base config and the cube effect."""
     h, i = c["hypr"], c["input"]
     lines = [
-        "# GENERATED from ~/.config/ypsilon/config.json by scripts/gen-theme.py — use Settings or `ypsilon config edit`",
-        "general {", "    gaps_in = %d" % h["gapsIn"], "    gaps_out = %d" % h["gapsOut"], "    border_size = %d" % h["borderSize"], "}",
-        "decoration {", "    rounding = %d" % h["rounding"], "    dim_inactive = %s" % _b(h["dimInactive"]),
-        "    blur {", "        enabled = %s" % _b(h["blur"]), "    }",
-        "    shadow {", "        enabled = %s" % _b(h["shadows"]), "    }", "}",
-        "input {", "    kb_layout = %s" % (i["kbLayout"] or "us"),
+        "-- GENERATED from ~/.config/ypsilon/config.json by scripts/gen-theme.py — use Settings or `ypsilon config edit`",
+        "hl.config({",
+        "  general = { gaps_in = %d, gaps_out = %d, border_size = %d }," % (h["gapsIn"], h["gapsOut"], h["borderSize"]),
+        "  decoration = {",
+        "    rounding = %d," % h["rounding"],
+        "    dim_inactive = %s," % _b(h["dimInactive"]),
+        "    blur = { enabled = %s }," % _b(h["blur"]),
+        "    shadow = { enabled = %s }," % _b(h["shadows"]),
+        "  },",
+        "  input = {",
+        "    kb_layout = %s," % _q(i["kbLayout"] or "us"),
     ]
     if i["kbVariant"]:
-        lines.append("    kb_variant = %s" % i["kbVariant"])
+        lines.append("    kb_variant = %s," % _q(i["kbVariant"]))
     if i["kbOptions"]:
-        lines.append("    kb_options = %s" % i["kbOptions"])
+        lines.append("    kb_options = %s," % _q(i["kbOptions"]))
     lines += [
-        "    sensitivity = %s" % (("%.2f" % i["sensitivity"]).rstrip("0").rstrip(".") or "0"),
-        "    repeat_rate = %d" % i["repeatRate"], "    repeat_delay = %d" % i["repeatDelay"],
-        "    touchpad {", "        natural_scroll = %s" % _b(i["naturalScroll"]), "    }", "}",
+        "    sensitivity = %s," % _num(i["sensitivity"]),
+        "    repeat_rate = %d," % i["repeatRate"],
+        "    repeat_delay = %d," % i["repeatDelay"],
+        "    touchpad = { natural_scroll = %s }," % _b(i["naturalScroll"]),
+        "  },",
+        "})",
     ]
     if c["reduceMotion"]:
-        lines += ["animations {", "    enabled = false", "}"]
+        lines += ["hl.config({ animations = { enabled = false } })"]
+    elif not h["cube"]:
+        # flat mode: undo the 3D swing from hypr/3d.lua, keep the fast Ypsilon slide
+        lines += [
+            'hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "glide", style = "slidefade 20%" })',
+            'hl.animation({ leaf = "workspacesIn", enabled = true, speed = 5, bezier = "glide", style = "slidefade 20%" })',
+            'hl.animation({ leaf = "workspacesOut", enabled = true, speed = 5, bezier = "glide", style = "slidefade 20%" })',
+        ]
     return "\n".join(lines) + "\n"
+
+
+def _q(s):
+    return '"%s"' % s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def render_hypridle(c, root):

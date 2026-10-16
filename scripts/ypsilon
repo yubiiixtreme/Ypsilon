@@ -26,6 +26,7 @@ Display & quick toggles
   ypsilon gamma tune                interactive: arrows/hjkl adjust, 0 reset, d dim, q done
   ypsilon nightlight [on|off|toggle|status] warm screen (config display.nightTemp)
   ypsilon gamemode [on|off|toggle|status]   kill animations/blur/gaps for max perf
+  ypsilon 3d [on|off|toggle|status|install]  3D cube workspaces (SUPER+Z) · install builds desktop-cube.so
   ypsilon caffeine [on|off|toggle|status]   keep the screen awake (pauses hypridle)
   ypsilon layout [dwindle|master|toggle]    switch tiling layout
   ypsilon pip                       picture-in-picture: float + pin the window bottom-right (again: tile)
@@ -101,6 +102,7 @@ case "$cmd" in
   gamma) shift; cmd_gamma "$@";;
   nightlight) cmd_nightlight "${2:-toggle}";;
   gamemode) cmd_gamemode "${2:-toggle}";;
+  3d) shift; cmd_3d "$@";;
   caffeine) cmd_caffeine "${2:-toggle}";;
   layout) cmd_layout "${2:-toggle}";;
   pip) cmd_pip;;
@@ -231,7 +233,7 @@ PY
     git -C "$ROOT" pull --ff-only && python3 "$ROOT/scripts/gen-theme.py" >/dev/null && "$ROOT/scripts/check.sh" \
       && { ags request -i ypsilon reload-css >/dev/null 2>&1; echo "updated - run 'ypsilon restart' to load the new shell"; };;
   apply)
-    # config.json -> hypr/generated/{user,hypridle}.conf, then make Hyprland + hypridle use it
+    # config.json -> hypr/generated/{user.lua,hypridle.conf}, then make Hyprland + hypridle use it
     python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || { echo "gen failed"; exit 1; }
     hyprctl reload >/dev/null 2>&1 || true
     if [ -f "${XDG_RUNTIME_DIR:-/tmp}/ypsilon/${WAYLAND_DISPLAY:-wl}.hypridle.pid" ]; then

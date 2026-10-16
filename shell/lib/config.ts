@@ -26,8 +26,8 @@ export type Config = {
   desktop: { screenCorners: boolean; cornerRadius: number; clock: boolean; clockPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" }
   /** accessibility: no slide/fade in the shell, Hyprland animations off */
   reduceMotion: boolean
-  /** applied to Hyprland through hypr/generated/user.conf */
-  hypr: { gapsIn: number; gapsOut: number; borderSize: number; rounding: number; blur: boolean; shadows: boolean; dimInactive: boolean }
+  /** applied to Hyprland through hypr/generated/user.lua */
+  hypr: { gapsIn: number; gapsOut: number; borderSize: number; rounding: number; blur: boolean; shadows: boolean; dimInactive: boolean; cube: boolean }
   input: { kbLayout: string; kbVariant: string; kbOptions: string; naturalScroll: boolean; sensitivity: number; repeatRate: number; repeatDelay: number }
   /** seconds; 0 disables that step (rendered into hypr/generated/hypridle.conf) */
   idle: { dimSec: number; lockSec: number; screenOffSec: number; suspendSec: number }
@@ -58,7 +58,7 @@ export const DEFAULTS: Config = {
   display: { nightTemp: 4000, gammaDim: 70, gammaStep: 10 },
   desktop: { screenCorners: true, cornerRadius: 16, clock: false, clockPosition: "bottom-left" },
   reduceMotion: false,
-  hypr: { gapsIn: 6, gapsOut: 12, borderSize: 2, rounding: 18, blur: true, shadows: true, dimInactive: true },
+  hypr: { gapsIn: 6, gapsOut: 12, borderSize: 2, rounding: 18, blur: true, shadows: true, dimInactive: true, cube: true },
   input: { kbLayout: "us", kbVariant: "", kbOptions: "", naturalScroll: true, sensitivity: 0, repeatRate: 35, repeatDelay: 300 },
   idle: { dimSec: 150, lockSec: 300, screenOffSec: 360, suspendSec: 1200 },
   terminal: "",

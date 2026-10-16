@@ -37,8 +37,44 @@ cmd_layout() {
   esac
 }
 
+# 3D cube workspaces: config.json hypr.cube -> hypr/generated/user.lua -> hyprctl reload.
+# The cube-feel animations live in hypr/3d.lua; the true desktop-cube.so plugin
+# (when installed) is loaded from there too. SUPER+Z toggles.
+cmd_3d() {
+  local sub="${1:-toggle}" cur
+  cur=$(python3 -c 'import json,sys; print("on" if json.load(open(sys.argv[1])).get("hypr",{}).get("cube",True) else "off")' "$CFG" 2>/dev/null || echo on)
+  case "$sub" in
+    status) echo "$cur";;
+    on|off)
+      python3 - "$CFG" "$sub" <<'PY' || { echo "could not update $CFG"; return 1; }
+import json, os, sys
+path, want = sys.argv[1], sys.argv[2] == "on"
+try:
+    cfg = json.load(open(path))
+except (OSError, ValueError):
+    cfg = {}
+cfg.setdefault("hypr", {})["cube"] = want
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(cfg, open(path, "w"), indent=2)
+print("3D cube", "on" if want else "off")
+PY
+      python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || { echo "gen failed"; return 1; }
+      hyprctl reload >/dev/null 2>&1 || echo "(hyprctl reload failed — not in a Hyprland session?)";;
+    toggle) if [ "$cur" = on ]; then cmd_3d off; else cmd_3d on; fi;;
+    install)
+      # true 3D compositor plugin (desktop-cube.so). Needs hyprpm + Hyprland headers.
+      if ! have hyprpm; then echo "hyprpm not found (Arch: sudo pacman -S hyprpm hyprland-protocols)"; return 1; fi
+      local dest=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/plugins
+      mkdir -p "$dest"
+      echo "building desktop-cube into $dest (must match Hyprland $(Hyprland --version 2>/dev/null | head -1))…"
+      (cd "$dest" && hyprpm add https://github.com/pluseight8/omarchy-desktop-cube 2>/dev/null || true)
+      echo "If hyprpm built desktop-cube.so, move it to $dest/desktop-cube.so, then reload (SUPER+ALT+R).";;
+    *) echo "usage: ypsilon 3d [on|off|toggle|status|install]"; return 1;;
+  esac
+}
+
 # picture-in-picture: float + pin the focused window small in the bottom-right; again = back to tiled
-# tagged ypsilon-pip so rules.conf keeps it above fullscreen apps (YouTube F / SUPER+F)
+# tagged ypsilon-pip so rules.lua keeps it above tiled windows (YouTube F / SUPER+F)
 cmd_pip() {
   local info addr
   info=$(hyprctl activewindow); addr=$(echo "$info" | awk 'NR==1{print "0x"$2}')
@@ -50,7 +86,7 @@ cmd_pip() {
   fi
 }
 
-# snap the active floating video to a screen corner (keeps pin + top-layer tag)
+# snap the active floating video to a screen corner (keeps pin + ypsilon-pip tag)
 cmd_pip_corner() {
   local info addr pos
   pos="${1:-}"

@@ -8,7 +8,7 @@ Your config is never touched — Ypsilon runs as its own login session, previews
 
 [![check](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml/badge.svg?style=flat)](https://github.com/yubiiixtreme/Ypsilon/actions/workflows/check.yml)
 ![Arch](https://img.shields.io/badge/Arch-rolling-1793D1?style=flat&logo=archlinux&logoColor=white)
-![Hyprland](https://img.shields.io/badge/Hyprland-%3E%3D0.53-58E6D9?style=flat&logo=wayland&logoColor=black)
+![Hyprland](https://img.shields.io/badge/Hyprland-%3E%3D0.55-58E6D9?style=flat&logo=wayland&logoColor=black)
 ![AGS](https://img.shields.io/badge/AGS-v3_TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Wayland](https://img.shields.io/badge/Wayland-only-FFBC00?style=flat&logo=wayland&logoColor=black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
@@ -52,7 +52,7 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Notifications** | Stacked image toasts, silent under DND and fullscreen apps (critical still shows), history center |
 | **Login** | Ypsilon SDDM theme (`extras/sddm-ypsilon/`) — glass card, clock, user + session picker. `scripts/install-sddm-theme.sh set` installs + selects it, `restore` falls back to a stock theme |
 | **Lockscreen** | hyprlock glass card: big clock, date, `✦ ypsilon` mark, now-playing + battery, themed password field. Idle path: dim → lock → screen off → suspend (`ypsilon lock` previews it) |
-| **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
+| **Settings** `SUPER+I` | 12 pages: General · Appearance · Bar · Desktop (gaps, rounding, blur, shadows, 3D cube applied to Hyprland live) · Keyboard & mouse · Wi-Fi · Bluetooth · Sound · Power & idle · Updates · Plugins · About |
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
 | **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Password** (`pw 20`), **Color** (`#ff0000`), **World clock** (`time tokyo`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) · **IP addresses** (`ip`) · **Process killer** (`kill firefox`) · **Disks** (`disk`, `eject`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
 | **CLI** | `ypsilon calc 'sqrt(16)+2*3'` safe calculator · `ypsilon pw 20` passwords · `ypsilon theme/ocean/sunset` · full list below |
@@ -61,7 +61,7 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 ## Keybinds
 
 `SUPER` is the modifier (preview uses `ALT`). Full list anytime: `SUPER+K` — it reads
-`hypr/core/keybinds.conf`, and the `# text` after each bind is the description it shows.
+`hypr/core/keybinds.lua`, and the `description` flag on each `hl.bind` is what it shows.
 Type in the cheatsheet to filter it.
 
 | Keys | Action |
@@ -69,7 +69,7 @@ Type in the cheatsheet to filter it.
 | `SUPER+Enter` (or `Ctrl+Alt+T`) / `W` / `B` / `E` | Terminal (Settings → Apps) · default browser (+ alias) · files |
 | `SUPER+Space` (or `.`) / `C` / `Shift+C` (or `D`) / `N` / `Tab` (or `Shift+O`) | Launcher · control center · dashboard · notifications · overview |
 | `SUPER+Shift+Q` / `I` (or `,`) / `K` (or `/`) / `Shift+W` | Power menu · settings · searchable cheatsheet · wallpapers |
-| `SUPER+L` / `X` / `Shift+V` / `P` | Lock · next wallpaper · clipboard · color picker |
+| `SUPER+L` / `X` / `Shift+V` / `P` / `Z` | Lock · next wallpaper · clipboard · color picker · 3D cube |
 | `SUPER+Shift+G` / `Shift+N` / `M` | Game mode · night light · layout toggle |
 | `SUPER+Q` / `Shift+E` / `F` / `V` / `J` / `T` | Close · log out · fullscreen · float · split · group |
 | `SUPER+Alt+HJKL` / `SUPER+Shift+HJKL` | Focus / move window vim-style (no arrows needed) |
@@ -93,6 +93,7 @@ ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness
 ypsilon gamemode|nightlight|caffeine|layout toggle
+ypsilon 3d [on|off|toggle|status|install]
 ypsilon config edit|check ypsilon keys
 ypsilon health|logs|restart|stop|report
 ypsilon check             # = scripts/check.sh
@@ -112,7 +113,7 @@ Every push runs [`scripts/check.sh`](scripts/check.sh) in CI — and you can run
 
 | Check | How |
 |---|---|
-| Hyprland config | `Hyprland --verify-config` on the real compositor |
+| Hyprland config | `Hyprland --verify-config` on the real compositor (Lua entry `hypr/ypsilon.lua`) |
 | CSS | Parsed by GTK4 itself; every `@y_*` color must be defined |
 | TypeScript | Strict `tsc` — real Gtk/Gnim/AGS 3.1.2 types, Astal types transcribed from Astal's source |
 | Imports / icons | Every import resolves · every icon exists in Adwaita |
@@ -124,7 +125,7 @@ Every push runs [`scripts/check.sh`](scripts/check.sh) in CI — and you can run
 ## Layout
 
 ```
-hypr/       ypsilon.conf + core/*.conf · generated/ (paths, user, idle, lock) · themes/
+hypr/       ypsilon.lua + core/*.lua + 3d.lua (cube) · generated/ (paths, user — Lua; idle, lock — conf) · themes/*.lua
 shell/      app.tsx · widgets/ (+pages/, settings/) · services/ · lib/ (pure + tested) · style.css
 themes/     tokens.json · user/ (generated/custom, gitignored)
 scripts/    ypsilon · check.sh · typecheck.sh · gen-theme.py · palette.py · wallpaper.sh · install/uninstall · install-sddm-theme.sh

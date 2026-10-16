@@ -13,7 +13,7 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
 SESSION=/usr/share/wayland-sessions/ypsilon.desktop
-MIN_HYPR=0.53   # layerrule/windowrule `match:` syntax and `gesture =` need this
+MIN_HYPR=0.55   # Lua configs (hypr/*.lua) need this
 
 NO_DEPS=""; YES=""; MAKE_DEFAULT=""
 for a in "$@"; do

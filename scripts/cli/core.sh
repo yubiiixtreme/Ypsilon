@@ -74,8 +74,8 @@ stop_daemons() {
 
 # hypr/generated/* bakes in the repo path; (re)create it when missing or after the repo moved
 ensure_generated() {
-  local p="$ROOT/hypr/generated/paths.conf"
-  if [ ! -f "$p" ] || ! grep -qxF "\$YPSILON = $ROOT" "$p"; then
+  local p="$ROOT/hypr/generated/paths.lua"
+  if [ ! -f "$p" ] || ! grep -qxF "hl.env(\"YPSILON_ROOT\", \"$ROOT\")" "$p"; then
     python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || echo "ypsilon: gen-theme failed" >&2
   fi
 }

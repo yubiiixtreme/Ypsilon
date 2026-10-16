@@ -1,5 +1,5 @@
 // Settings pages backed by config.json. Compositor-related rows apply to Hyprland live
-// (writeConfig -> `ypsilon apply` -> hypr/generated/user.conf + hyprctl reload).
+// (writeConfig -> `ypsilon apply` -> hypr/generated/user.lua + hyprctl reload).
 import Gtk from "gi://Gtk"
 import PowerProfiles from "gi://AstalPowerProfiles"
 import { createBinding } from "ags"
@@ -114,6 +114,7 @@ export function DesktopPage() {
         <SwitchRow label="Blur" sub="Glass behind windows and the shell" path="hypr.blur" />
         <SwitchRow label="Shadows" path="hypr.shadows" />
         <SwitchRow label="Dim inactive windows" path="hypr.dimInactive" />
+        <SwitchRow label="3D cube workspaces" sub="Depth swing on workspace switch (SUPER+Z)" path="hypr.cube" />
       </Section>
       <Section title="Screen">
         <SwitchRow label="Rounded screen corners" sub="Click-through, hidden under fullscreen apps" path="desktop.screenCorners" />
@@ -149,7 +150,7 @@ export function InputPage() {
         <SwitchRow label="Natural scrolling (touchpad)" path="input.naturalScroll" />
       </Section>
       <Section title="Shortcuts">
-        <ButtonRow label="Keybind cheatsheet" sub="All shortcuts, read live from keybinds.conf" button="Open" icon="input-keyboard-symbolic" onClicked={() => cli("keys")} />
+        <ButtonRow label="Keybind cheatsheet" sub="All shortcuts, read live from keybinds.lua" button="Open" icon="input-keyboard-symbolic" onClicked={() => cli("keys")} />
       </Section>
     </box>
   )

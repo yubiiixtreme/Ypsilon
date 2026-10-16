@@ -18,8 +18,8 @@ must_fail() { # name, command...
   if (cd "$T/r" && "$@") >/dev/null 2>&1; then echo "FAIL: '$name' did not catch its injected fault"; fail=$((fail + 1)); else pass=$((pass + 1)); fi
 }
 
-fresh; printf 'general {\n  bogus_option = 1\n}\n' >> "$T/r/hypr/core/misc.conf"
-command -v Hyprland >/dev/null && must_fail "hypr verify" bash -c 'Hyprland --verify-config -c hypr/ypsilon.conf 2>&1 | grep -q "^config ok"'
+fresh; printf '\nhl.config({ misc = { bogus_option = 1 } })\n' >> "$T/r/hypr/core/misc.lua"
+command -v Hyprland >/dev/null && must_fail "hypr verify" bash -c 'Hyprland --verify-config -c hypr/ypsilon.lua 2>&1 | grep -q "^config ok"'
 
 fresh; echo 'label { color: @y_nope; }' >> "$T/r/shell/style.css"
 must_fail "css colors" bash -c 'scripts/check.sh 2>&1 | grep -q "^FAIL css"; [ $? -ne 0 ]'

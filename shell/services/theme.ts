@@ -10,7 +10,7 @@ type Palette = Record<string, string>
 type Tokens = { active?: string; themes: Record<string, Palette> }
 
 /**
- * Repo location, in order: $YPSILON_ROOT (exported by hypr/generated/paths.conf and
+ * Repo location, in order: $YPSILON_ROOT (exported by hypr/generated/paths.lua and
  * `ypsilon start`) → the ~/.config/ags symlink made by install.sh → ~/Projects/Ypsilon.
  */
 function findRoot(): string {
@@ -31,7 +31,7 @@ export const ROOT = findRoot()
 export const tokensPath = () => `${ROOT}/themes/tokens.json`
 export const baseCssPath = () => `${ROOT}/shell/style.css`
 export const generatedCssPath = () => `${ROOT}/shell/style/_generated.css`
-export const hyprCurrentPath = () => `${ROOT}/hypr/themes/current.conf`
+export const hyprCurrentPath = () => `${ROOT}/hypr/themes/current.lua`
 
 export function readTokens(): Tokens {
   try {

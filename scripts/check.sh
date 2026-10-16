@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ypsilon static checks — repo-only, no live impact. Exit 1 on any failure.
-#   1. hypr conf parses under the installed Hyprland   (Hyprland --verify-config)
+# 1. hyprland config (Lua, Hyprland >= 0.55) parses under the installed Hyprland   (Hyprland --verify-config)
 #   2. generated theme files are in sync with tokens.json
 #   3. shell CSS parses under the installed GTK4, and every @y_* color is defined
 #   4. imports resolve, strict typecheck (scripts/typecheck.sh), icon names exist
@@ -22,14 +22,25 @@ skip(){ echo "SKIP $1"; }
 # 0. machine-specific generated files (repo path) must exist before verifying hypr
 python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null 2>&1 || true
 
-# 1. hyprland config
+# 1. hyprland config (Lua entry hypr/ypsilon.lua)
 if command -v Hyprland &>/dev/null; then
-  hyargs=(--verify-config -c "$ROOT/hypr/ypsilon.conf")
+  hyargs=(--verify-config -c "$ROOT/hypr/ypsilon.lua")
   [ "$(id -u)" = 0 ] && hyargs+=(--i-am-really-stupid)  # CI containers run as root; Hyprland refuses otherwise
   out=$(Hyprland "${hyargs[@]}" 2>&1)
-  if echo "$out" | grep -q "^config ok"; then ok "hypr conf ($(Hyprland -v | head -1 | cut -c1-24))"
-  else bad "hypr conf (Hyprland $(Hyprland -v 2>/dev/null | head -1 | cut -c1-24), exit $?)"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; echo "$out" | head -25 | sed 's/^/     raw: /'; fi
-else skip "hypr conf (Hyprland not installed)"; fi
+  if echo "$out" | grep -q "^config ok"; then ok "hypr lua ($(Hyprland -v | head -1 | cut -c1-24))"
+  else bad "hypr lua (Hyprland $(Hyprland -v 2>/dev/null | head -1 | cut -c1-24), exit $?)"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; echo "$out" | head -25 | sed 's/^/     raw: /'; fi
+  # every required hypr/*.lua module must exist (entry require()s each one)
+  for m in generated/paths generated/user themes/current core/env core/monitors core/general core/decoration core/animations core/input core/keybinds core/rules core/execs core/misc 3d; do
+    [ -f "$ROOT/hypr/$m.lua" ] || bad "hypr/$m.lua missing"
+  done
+  # Lua syntax check when luac is available (verify-config above is the real gate)
+  if command -v luac &>/dev/null; then
+    for f in "$ROOT"/hypr/ypsilon.lua "$ROOT"/hypr/3d.lua "$ROOT"/hypr/core/*.lua "$ROOT"/hypr/generated/*.lua "$ROOT"/hypr/themes/*.lua; do
+      luac -p "$f" 2>/dev/null || bad "luac $(basename "$f")"
+    done
+    ok "lua syntax (luac -p)"
+  fi
+else skip "hypr lua (Hyprland not installed)"; fi
 
 # 2. theme sync — regenerate and see whether anything changed.
 # Only TRACKED files count: fresh clones lack gitignored outputs (hypr/generated/,

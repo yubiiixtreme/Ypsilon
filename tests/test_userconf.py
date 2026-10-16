@@ -1,5 +1,5 @@
-# config.json -> hypr/generated/{user,hypridle}.conf. If Hyprland is installed, the rendered
-# files (default AND extreme values) must pass `Hyprland --verify-config`.
+# config.json -> hypr/generated/{user.lua,hypridle.conf}. If Hyprland is installed, the rendered
+# user.lua (default AND extreme values) must pass `Hyprland --verify-config`.
 import json
 import os
 import shutil
@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import userconf as U  # noqa: E402
 
 EXTREME = {
-    "hypr": {"gapsIn": 9999, "gapsOut": -5, "borderSize": 8, "rounding": 40, "blur": False, "shadows": False, "dimInactive": False},
+    "hypr": {"gapsIn": 9999, "gapsOut": -5, "borderSize": 8, "rounding": 40, "blur": False, "shadows": False, "dimInactive": False, "cube": False},
     "input": {"kbLayout": "us,de,fr", "kbVariant": ",nodeadkeys,", "kbOptions": "grp:alt_shift_toggle,caps:escape",
               "naturalScroll": False, "sensitivity": -0.75, "repeatRate": 100, "repeatDelay": 100},
     "idle": {"dimSec": 0, "lockSec": 60, "screenOffSec": 0, "suspendSec": 0},
@@ -39,11 +39,17 @@ class UserConfTest(unittest.TestCase):
         self.assertEqual(self.load({"input": {"kbLayout": "us\nexec-once = evil"}})["input"]["kbLayout"], "us")
         self.assertEqual(self.load({"hypr": {"blur": "yes"}})["hypr"]["blur"], True)  # wrong type -> default
         self.assertEqual(self.load({"hypr": {"rounding": True}})["hypr"]["rounding"], 18)  # bool is not a number
+        self.assertEqual(self.load({})["hypr"]["cube"], True)  # 3D cube on by default
+        self.assertEqual(self.load({"hypr": {"cube": False}})["hypr"]["cube"], False)
 
     def test_render(self):
         txt = U.render_user_conf(self.load(EXTREME))
-        self.assertIn("kb_options = grp:alt_shift_toggle,caps:escape", txt)
-        self.assertIn("enabled = false", txt)  # animations off for reduceMotion
+        self.assertIn('kb_options = "grp:alt_shift_toggle,caps:escape"', txt)
+        self.assertIn("animations = { enabled = false }", txt)  # reduceMotion kills animations
+        flat = U.render_user_conf(self.load({"hypr": {"cube": False}}))
+        self.assertIn('slidefade 20%', flat)  # cube off flattens the 3D swing
+        cube = U.render_user_conf(self.load({}))
+        self.assertNotIn('slidefade 20%', cube)  # cube on: 3d.lua owns the workspace anims
         idle = U.render_hypridle(self.load(EXTREME), "/x")
         self.assertEqual(idle.count("listener {"), 1)  # only the lock step is enabled
         self.assertIn("lock_cmd = /x/scripts/ypsilon lock", idle)
@@ -55,13 +61,14 @@ class UserConfTest(unittest.TestCase):
                 hypr = os.path.join(d, "hypr")
                 shutil.copytree(os.path.join(ROOT, "hypr"), hypr, ignore=shutil.ignore_patterns("generated"))
                 os.makedirs(os.path.join(hypr, "generated"))
-                with open(os.path.join(hypr, "generated", "paths.conf"), "w") as f:
-                    f.write("$YPSILON = %s\n$ypsilon = %s/scripts/ypsilon\n" % (ROOT, ROOT))
-                with open(os.path.join(hypr, "generated", "user.conf"), "w") as f:
+                with open(os.path.join(hypr, "generated", "paths.lua"), "w") as f:
+                    f.write('hl.env("YPSILON_ROOT", "%s")\nreturn { ROOT = "%s", YPSILON = "%s/scripts/ypsilon" }\n'
+                            % (ROOT, ROOT, ROOT))
+                with open(os.path.join(hypr, "generated", "user.lua"), "w") as f:
                     f.write(U.render_user_conf(self.load(cfg)))
                 # bare containers often lack XDG_RUNTIME_DIR and Hyprland aborts without it
                 env = dict(os.environ, XDG_RUNTIME_DIR=d)
-                cmd = ["Hyprland", "--verify-config", "-c", os.path.join(hypr, "ypsilon.conf")]
+                cmd = ["Hyprland", "--verify-config", "-c", os.path.join(hypr, "ypsilon.lua")]
                 if os.geteuid() == 0:
                     cmd.append("--i-am-really-stupid")  # CI containers run as root
                 out = subprocess.run(cmd, capture_output=True, text=True, env=env).stdout

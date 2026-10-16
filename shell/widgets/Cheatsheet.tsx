@@ -5,7 +5,7 @@ import { ROOT } from "../services/theme"
 import { filterBinds, groupBinds, parseBinds, type Bind } from "../lib/keys"
 import Popup from "./Popup"
 
-// Keybind cheat-sheet, parsed live from hypr/core/keybinds.conf. Toggle: SUPER+K or SUPER+/.
+// Keybind cheat-sheet, parsed live from hypr/core/keybinds.lua. Toggle: SUPER+K or SUPER+/.
 // Type to filter (matches "Super + Space launcher", "vim", "workspace", ...).
 export default function Cheatsheet() {
   const [groups, setGroups] = createState<[string, Bind[]][]>([])
@@ -13,7 +13,7 @@ export default function Cheatsheet() {
   const filtered = createComputed(() => filterBinds(groups(), query()))
   const load = () => {
     try {
-      setGroups(groupBinds(parseBinds(readFile(`${ROOT}/hypr/core/keybinds.conf`))))
+      setGroups(groupBinds(parseBinds(readFile(`${ROOT}/hypr/core/keybinds.lua`))))
     } catch (e) {
       print(`ypsilon cheatsheet: ${e}`)
     }

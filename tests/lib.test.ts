@@ -47,44 +47,43 @@ test("rank: habits break ties but exact match leads; frecency decays", () => {
   assert.deepEqual(parseUsage('{"a":{"n":1,"t":2},"b":5}'), { a: { n: 1, t: 2 } })
 })
 
-test("keys: parses binds, expands vars, groups", () => {
-  const conf = `$mod = SUPER
-bind = $mod, Space, exec, ags toggle -i ypsilon ypsilon-launcher || fuzzel
-bind = $mod SHIFT, 1, movetoworkspace, 1
-bindel = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && ags request osd volume
-bindm = $mod, mouse:272, movewindow
-# bind = $mod, X, exec, nope
+test("keys: parses binds, groups", () => {
+  const conf = `local MOD = os.getenv("YPSILON_TRY_MOD") or "SUPER"
+hl.bind(MOD .. " + Space", hl.dsp.exec_cmd("ags toggle -i ypsilon ypsilon-launcher || fuzzel"), { description = "App launcher" })
+hl.bind("SUPER + SHIFT + 1", hl.dsp.window.move({ workspace = 1 }), { description = "Move to 1" })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && ags request osd volume"), { repeating = true, description = "Volume up" })
+hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true, description = "Drag move" })
+-- hl.bind("SUPER + X", hl.dsp.exec_cmd("nope"), { description = "hidden" })
 `
   const b = parseBinds(conf)
   assert.equal(b.length, 4)
   assert.equal(b[0].combo, "Super + Space")
-  assert.equal(b[0].action, "toggle launcher")
+  assert.equal(b[0].action, "App launcher")
   assert.equal(b[0].group, "shell")
   assert.equal(b[1].combo, "Super + Shift + 1")
-  assert.equal(b[2].action, "volume up")
+  assert.equal(b[2].action, "Volume up")
   assert.equal(b[3].combo, "Super + LMB")
   assert.ok(groupBinds(b).length >= 3)
 })
 
-test("keys: trailing comment is the description; mute is not mistaken for volume", () => {
-  const b = parseBinds(`$mod = SUPER
-bind = $mod, E, exec, thunar || dolphin   # Files
-bind = $mod, Q, killactive,#Close window
-bindl = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && ags request -i ypsilon osd volume
-bindel = , XF86AudioLowerVolume, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && ags request -i ypsilon osd volume
-bind = $mod, H, exec, echo ##not-a-comment
+test("keys: description flag wins; mute is not mistaken for volume", () => {
+  const b = parseBinds(`hl.bind("SUPER + E", hl.dsp.exec_cmd("thunar || dolphin"), { description = "Files" })
+hl.bind("SUPER + Q", hl.dsp.window.kill(), { description = "Close window" })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && ags request -i ypsilon osd volume"), { locked = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && ags request -i ypsilon osd volume"), { repeating = true, locked = true })
+hl.bind("SUPER + H", hl.dsp.exec_cmd("echo foo"), { description = "echo stuff" })
 `)
-  assert.deepEqual(b.map((x) => x.action), ["Files", "Close window", "mute", "volume down", "echo ##not-a-comment"])
+  assert.deepEqual(b.map((x) => x.action), ["Files", "Close window", "mute", "volume down", "echo stuff"])
 })
 
-test("keys: every bind in the REAL keybinds.conf has a human description", () => {
-  const conf = readFileSync(new URL("../hypr/core/keybinds.conf", import.meta.url), "utf8")
-  const missing = conf.split("\n").filter((l) => /^\s*bind[a-z]*\s*=/.test(l) && !/[^#]#(?!#)\s*\S/.test(l))
-  assert.deepEqual(missing, [], "add a trailing `# description` to these binds")
+test("keys: every bind in the REAL keybinds.lua has a human description", () => {
+  const conf = readFileSync(new URL("../hypr/core/keybinds.lua", import.meta.url), "utf8")
+  const missing = conf.split("\n").filter((l) => /^\s*hl\.bind\(/.test(l) && !/description\s*=\s*"[^"]*\S[^"]*"/.test(l))
+  assert.deepEqual(missing, [], "add a `description = \"...\"` flag to these binds")
 })
 
 test("keys: filterBinds searches combo + action", () => {
-  const g = groupBinds(parseBinds("bind = SUPER, Space, exec, ags toggle -i ypsilon ypsilon-launcher || fuzzel   # App launcher & search\nbind = SUPER ALT, H, movefocus, l   # Focus left (vim)\n"))
+  const g = groupBinds(parseBinds('hl.bind("SUPER + Space", hl.dsp.exec_cmd("ags toggle -i ypsilon ypsilon-launcher || fuzzel"), { description = "App launcher & search" })\nhl.bind("SUPER + ALT + H", hl.dsp.focus({ direction = "left" }), { description = "Focus left (vim)" })\n'))
   assert.deepEqual(filterBinds(g, "").length, g.length)
   assert.deepEqual(filterBinds(g, "vim").flatMap(([, l]) => l.map((b) => b.action)), ["Focus left (vim)"])
   assert.deepEqual(filterBinds(g, "super + space").flatMap(([, l]) => l.map((b) => b.combo)), ["Super + Space"])
@@ -150,13 +149,13 @@ test("config: diagnostics explain every fallback", () => {
   assert.match(diagnoseConfig('{"bar": {"shwTray": true}}')[0], /did you mean "showTray"/)
 })
 
-test("keys: the REAL keybinds.conf has no duplicate combos and every bind parses", () => {
-  const conf = readFileSync(new URL("../hypr/core/keybinds.conf", import.meta.url), "utf8")
+test("keys: the REAL keybinds.lua has no duplicate combos and every bind parses", () => {
+  const conf = readFileSync(new URL("../hypr/core/keybinds.lua", import.meta.url), "utf8")
   const binds = parseBinds(conf)
-  const lines = conf.split("\n").filter((l) => /^\s*bind[a-z]*\s*=/.test(l))
-  assert.equal(binds.length, lines.length, "every bind line must parse")
+  const lines = conf.split("\n").filter((l) => /^\s*hl\.bind\(/.test(l))
+  assert.equal(binds.length, lines.length, "every hl.bind line must parse")
   assert.deepEqual(findConflicts(binds), [])
-  assert.deepEqual(findConflicts(parseBinds("bind = SUPER, Q, killactive,\nbind = SUPER, Q, exec, x")), ["Super + Q"])
+  assert.deepEqual(findConflicts(parseBinds('hl.bind("SUPER + Q", hl.dsp.window.kill())\nhl.bind("SUPER + Q", hl.dsp.exec_cmd("x"))')), ["Super + Q"])
 })
 
 import { setIn, coerce, getIn } from "../shell/lib/config.ts"

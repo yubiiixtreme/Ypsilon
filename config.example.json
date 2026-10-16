@@ -41,7 +41,8 @@
     "rounding": 18,
     "blur": true,
     "shadows": true,
-    "dimInactive": true
+    "dimInactive": true,
+    "cube": true
   },
   "input": {
     "kbLayout": "us",

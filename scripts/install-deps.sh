@@ -52,7 +52,7 @@ AUR_OPTIONAL="libcava:libcava libastal-cava:libastal-cava-git aether:aether"
 if ! command -v pacman >/dev/null; then
   cat <<'MSG'
 Ypsilon's installer automates Arch Linux only. On your distro, install the equivalents of:
-  compositor/shell : Hyprland >= 0.53, AGS v3 (aylurs-gtk-shell), Astal libraries
+  compositor/shell : Hyprland >= 0.55 (Lua configs), AGS v3 (aylurs-gtk-shell), Astal libraries
                      (astal4 io hyprland tray network bluetooth battery mpris notifd wireplumber apps powerprofiles cava)
   gtk              : gtk4, gtk4-layer-shell, gobject-introspection, python3-gobject, python3-pillow
   services         : NetworkManager, bluez, upower, a power-profiles provider (power-profiles-daemon or tuned-ppd), wireplumber

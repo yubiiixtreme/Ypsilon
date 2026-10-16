@@ -1,6 +1,7 @@
-// Parse hyprlang `bind*` lines into a human cheat-sheet. Pure + unit-tested.
-// A trailing comment is the human description:  bind = $mod, E, exec, thunar   # Files
-// (without one, a description is guessed from the command).
+// Parse Hyprland Lua `hl.bind` lines into a human cheat-sheet. Pure + unit-tested.
+// A `description` flag is the human text:
+//   hl.bind("SUPER + E", hl.dsp.exec_cmd("thunar || dolphin"), { description = "File manager" })
+// (without one, a description is guessed from the dispatcher).
 export type Bind = { combo: string; action: string; group: string }
 
 const PRETTY: Record<string, string> = {
@@ -24,45 +25,62 @@ const GROUPS: [RegExp, string][] = [
   [/wpctl|brightnessctl|playerctl/, "media"],
 ]
 
-function expand(value: string, vars: Record<string, string>) {
-  return value.replace(/\$\w+/g, (m) => vars[m] ?? m)
+/** split "code  -- note" — Lua comments start at `--` (kept for tolerance, binds use description flags) */
+function splitComment(raw: string): [string, string] {
+  const i = raw.search(/(^|[^-])--(?!-)/)
+  if (i < 0) return [raw, ""]
+  const at = raw[i] === "-" ? i : i + 1
+  return [raw.slice(0, at), raw.slice(at + 2).trim()]
 }
 
-/** split "code  # note" — hyprlang comments start at `#`; `##` is an escaped literal `#` */
-function splitComment(raw: string): [string, string] {
-  const i = raw.search(/(^|[^#])#(?!#)/)
-  if (i < 0) return [raw, ""]
-  const at = raw[i] === "#" ? i : i + 1
-  return [raw.slice(0, at), raw.slice(at + 1).trim()]
+/** parse the combo + dispatcher + description out of one `hl.bind(...)` line.
+ * Combo is either a literal ("SUPER + Space") or MOD-prefixed (MOD .. " + Space",
+ * MOD = YPSILON_TRY_MOD or SUPER in the nested preview — shown as Super). */
+function parseBindLine(line: string): { combo: string; dispatcher: string; note: string } | null {
+  const m = /^\s*hl\.bind\(\s*(?:"([^"]+)"|([A-Za-z_]+)\s*\.\.\s*"([^"]+)")\s*,\s*(.+?)\s*\)\s*$/.exec(line)
+  if (!m) return null
+  const combo = m[1] ?? `SUPER${m[3] ?? ""}`
+  const rest = m[4]
+  // dispatcher is the second arg: either hl.dsp....(...) (balanced parens) or a function — for
+  // grouping we only need its source text; description comes from the trailing opts table.
+  let dispatcher = rest.trim()
+  let note = ""
+  const desc = /,?\s*\{\s*[^}]*description\s*=\s*"((?:[^"\\]|\\.)*)"/.exec(rest)
+  if (desc) {
+    note = desc[1].replace(/\\"/g, '"')
+    dispatcher = rest.slice(0, desc.index).replace(/,\s*$/, "").trim()
+  } else {
+    // no opts table: strip a trailing bare `{ ... }` without description, if any
+    dispatcher = rest.replace(/,\s*\{[^}]*\}\s*$/, "").trim()
+  }
+  return { combo, dispatcher, note }
 }
 
 export function parseBinds(conf: string): Bind[] {
-  const vars: Record<string, string> = {}
   const out: Bind[] = []
   for (const raw of conf.split("\n")) {
-    const [code, note] = splitComment(raw)
+    const [code, comment] = splitComment(raw)
     const line = code.trim()
     if (!line) continue
-    const v = /^(\$\w+)\s*=\s*(.+)$/.exec(line)
-    if (v) {
-      vars[v[1]] = v[2].trim()
-      continue
-    }
-    const m = /^bind[a-z]*\s*=\s*(.*)$/.exec(line)
-    if (!m) continue
-    const [mods, key, dispatcher, ...rest] = m[1].split(",").map((s) => s.trim())
-    if (key === undefined || dispatcher === undefined) continue
-    const arg = rest.join(",").trim()
-    const modParts = expand(mods, vars).split(/\s+/).filter(Boolean).map((x) => (x === "SUPER" ? "Super" : x[0] + x.slice(1).toLowerCase()))
+    const b = parseBindLine(line)
+    if (!b) continue
+    // `Y` is keybinds.lua's `P.YPSILON` shortcut: normalize so grouping/describe see plain text
+    const src = b.dispatcher.replace(/\bY\s*\.\.\s*"/g, 'ypsilon "')
+    const parts = b.combo.split("+").map((s) => s.trim()).filter(Boolean)
+    const mods = parts.slice(0, -1).map((x) => (x === "SUPER" ? "Super" : x[0] + x.slice(1).toLowerCase()))
+    const key = parts[parts.length - 1] ?? ""
     const k = PRETTY[key.toLowerCase()] ?? (key.length === 1 ? key.toUpperCase() : key)
-    const group = GROUPS.find(([re]) => re.test(`${dispatcher} ${arg}`))?.[1] ?? "other"
-    out.push({ combo: [...modParts, k].join(" + "), action: note || describe(dispatcher, arg), group })
+    const group = GROUPS.find(([re]) => re.test(src))?.[1] ?? "other"
+    out.push({ combo: [...mods, k].join(" + "), action: b.note || comment || describe(src), group })
   }
   return out
 }
 
-function describe(d: string, arg: string): string {
-  if (d === "exec") {
+function describe(dispatcher: string): string {
+  const d = dispatcher.trim()
+  let m = /hl\.dsp\.exec_cmd\(\s*"((?:[^"\\]|\\.)*)"/.exec(d)
+  if (m) {
+    const arg = m[1]
     const t = /ags toggle (?:-i \S+ )?ypsilon-(\w+)/.exec(arg)
     if (t) return `toggle ${t[1]}`
     const r = /ags request (?:-i \S+ )?(\w+)/.exec(arg)
@@ -77,7 +95,20 @@ function describe(d: string, arg: string): string {
     if (y) return `ypsilon ${y.slice(1).filter(Boolean).join(" ")}`
     return arg.split("&&")[0].split("||")[0].trim().slice(0, 36)
   }
-  return arg ? `${d} ${arg}` : d
+  // non-exec dispatchers: `hl.dsp.window.close()` -> "close", `hl.dsp.focus({ workspace = 1 })` -> "focus 1"
+  m = /hl\.dsp\.(\w+)\.(\w+)\(\s*(.*)\s*\)/.exec(d)
+  if (m) {
+    const [, ns, fn, args] = m
+    const w = /\bworkspace\s*=\s*"?([^",}]+)"?/.exec(args)
+    if (w) return `${fn} ${w[1].replace(/^"|"$/g, "")}`
+    const dir = /\bdirection\s*=\s*"(\w+)"/.exec(args)
+    if (dir) return `${fn} ${dir[1]}`
+    if (/^\s*$/.test(args)) return fn
+    return `${ns} ${fn} ${args.slice(0, 24)}`.trim()
+  }
+  m = /hl\.dsp\.(\w+)\(\s*"([^"]*)"\s*\)/.exec(d)
+  if (m) return `${m[1]} ${m[2]}`.trim()
+  return d.slice(0, 36)
 }
 
 export function groupBinds(binds: Bind[]): [string, Bind[]][] {

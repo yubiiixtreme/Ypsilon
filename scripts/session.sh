@@ -12,9 +12,9 @@ LOG="$LOGDIR/session-$(date +%Y%m%d-%H%M%S).log"
   echo "== Ypsilon session $(date -Is) =="
   echo "root=$ROOT ags=$(command -v ags || echo MISSING) hyprland=$(Hyprland --version 2>/dev/null | head -1)"
   SHL=$(command -v start-hyprland || true)
-  if [ -n "$SHL" ]; then exec "$SHL" -- -c "$ROOT/hypr/ypsilon.conf"; fi
+  if [ -n "$SHL" ]; then exec "$SHL" -- -c "$ROOT/hypr/ypsilon.lua"; fi
   HC=$(command -v Hyprland || true)
-  if [ -n "$HC" ]; then exec "$HC" -c "$ROOT/hypr/ypsilon.conf"; fi
+  if [ -n "$HC" ]; then exec "$HC" -c "$ROOT/hypr/ypsilon.lua"; fi
   echo "FATAL: neither start-hyprland nor Hyprland found on PATH=$PATH"
   exit 1
 } >>"$LOG" 2>&1
