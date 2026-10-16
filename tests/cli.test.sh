@@ -137,6 +137,21 @@ case "$p" in
   *) no "AUR plan order wrong: $p";;
 esac
 echo "$p" | grep -q "libastal-meta" && no "AUR plan must not use libastal-meta" || ok
+# --- install: navapkg-style one command (dry-run only here; real runs open a terminal) ---
+mkdir -p "$T/pkgbin"
+printf '#!/usr/bin/env bash\n[ "$1" = "-Si" ] && [ "$2" = "repo-pkg" ] && exit 0\nexit 1\n' > "$T/pkgbin/pacman"
+printf '#!/usr/bin/env bash\n[ "$1" = "-Si" ] && [ "$2" = "aur-pkg" ] && exit 0\nexit 1\n' > "$T/pkgbin/paru"
+printf '#!/usr/bin/env bash\n[ "$1" = "-Si" ] && [ "$2" = "aur-pkg" ] && exit 0\nexit 1\n' > "$T/pkgbin/yay"
+printf '#!/usr/bin/env bash\n[ "$1" = "search" ] && { echo Application; [ "$3" = "flat-pkg" ] && echo org.example.flat-pkg; }\nexit 0\n' > "$T/pkgbin/flatpak"
+chmod +x "$T/pkgbin/"*
+OLD_PATH=$PATH; PATH="$T/pkgbin:$PATH"
+expect "install usage" "usage: ypsilon install" "$Y" install
+expect "install dry repo" "sudo pacman -S --needed repo-pkg" "$Y" install --dry-run repo-pkg
+expect "install dry aur" "paru -S aur-pkg" "$Y" install --dry-run aur-pkg
+expect "install dry flatpak" "flatpak install -y org.example.flat-pkg" "$Y" install --dry-run flat-pkg
+expect "install dry mixed" "sudo pacman -S --needed repo-pkg && paru -S aur-pkg" "$Y" install --dry-run repo-pkg aur-pkg
+expect "install unknown" "no package 'nope'" "$Y" install --dry-run nope
+PATH="$OLD_PATH"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$T/fakepac/pacman"
 [ "$(plan | tr -d '[]\n')" = "" ] && ok || no "AUR plan must be empty when everything is provided"
 expect "install bad flag" "unknown option" "$ROOT/scripts/install.sh" --frobnicate

@@ -7,6 +7,7 @@ Writes assets/wallpapers/*.jpg at 1920x1080 (sharp on the common laptop panels, 
   ypsilon-dunes    warm minimal dunes (pairs with the light theme)
   ypsilon-bloom    soft colour bloom on near-black, like light through frosted glass
   ypsilon-contour  topographic contour lines
+  ypsilon-nava     pastel liquid-glass waves (pairs with the ypsilon-nava theme)
 
 Every scene is seeded, so a rerun gives the same files. Local build tool; the images are
 committed, so users never need numpy. Usage: make-wallpaper.py [NAME ...]
@@ -225,8 +226,36 @@ def contour(seed=55):
     finish(img, "ypsilon-contour", grain=2.0, seed=seed)
 
 
+def nava(seed=66):
+    """Pastel liquid-glass waves: soft domes + white edge strokes on periwinkle mist."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    img = vgrad("#bcd0ee", "#eaccd8", curve=1.0)
+    img = glow(img, W * 0.15, H * 0.30, 700, "#a9c4ff", 0.20)
+    img = glow(img, W * 0.85, H * 0.55, 700, "#ffbdd2", 0.20)
+    img = glow(img, W * 0.55, H * 0.10, 600, "#ffffff", 0.05)
+    # translucent glass domes with bright rims, back to front (color, cx, cy, rx, ry_frac)
+    domes = (("#c3d6ff", 0.16, 0.60, 480, 0.40), ("#ffc2d6", 0.40, 0.38, 430, 0.34),
+             ("#d3c6ff", 0.62, 0.56, 460, 0.40), ("#ffdabf", 0.84, 0.40, 410, 0.32),
+             ("#e8eefc", 0.33, 0.80, 520, 0.44))
+    for color, cx, cy, rx, ry in domes:
+        jx = (rng.random() - 0.5) * 40
+        d = np.sqrt(((xx - (W * cx + jx)) / rx) ** 2 + ((yy - H * cy) / (ry * H)) ** 2)
+        m = np.clip(1 - d, 0, 1) ** 1.5 * 0.34
+        img = mix(img, rgb(color), m[..., None])
+        rim = np.exp(-(((d - 1) / 0.02) ** 2))[..., None] * 0.5
+        img = mix(img, rgb("#ffffff"), rim)
+    # thin white edge strokes along smooth arch lines
+    x = np.linspace(0, 1, W)
+    for k, (base, amp) in enumerate(((0.28, 0.11), (0.45, 0.13), (0.64, 0.10))):
+        line = H * (base + amp * np.sin(x * (2.0 + k * 0.9) + k * 1.7) + 0.02 * np.sin(x * 7.3 + k))
+        d = np.abs(yy - line[None, :])
+        img = mix(img, rgb("#ffffff"), (np.exp(-(d / 1.8) ** 2) * 0.7)[..., None])
+    finish(img, "ypsilon-nava", grain=1.6, seed=seed)
+
+
 SCENES = {"ypsilon-ridges": ridges, "ypsilon-aurora": aurora, "ypsilon-dunes": dunes,
-          "ypsilon-bloom": bloom, "ypsilon-contour": contour}
+          "ypsilon-bloom": bloom, "ypsilon-contour": contour, "ypsilon-nava": nava}
 
 
 def main(argv):

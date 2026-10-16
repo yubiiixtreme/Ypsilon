@@ -178,10 +178,11 @@ export default function Launcher() {
             >
               <box spacing={12}>
                 {row.glyph ? <label class="row-glyph" label={row.glyph} widthRequest={30} /> : <image iconName={row.icon} pixelSize={30} />}
-                <box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER}>
+                <box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER} hexpand>
                   <label class={mode((m) => (m === "calc" ? "calc-result" : "app-name"))} label={row.title} halign={Gtk.Align.START} ellipsize={3} maxWidthChars={58} />
                   <label class="sub" label={row.sub} halign={Gtk.Align.START} visible={row.sub !== ""} ellipsize={3} maxWidthChars={64} />
                 </box>
+                <label class="run-hint" label="↵" valign={Gtk.Align.CENTER} visible={createComputed(() => sel() === index())} />
               </box>
             </button>
           )}

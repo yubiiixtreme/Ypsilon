@@ -246,6 +246,7 @@ button:hover .clock { background: @y_faint; }
 .app-row.selected .app-name { color: @y_fg; }
 .app-name { font-weight: 500; }
 .row-glyph { font-size: 24px; }
+.run-hint { color: @y_muted; font-size: 15px; padding-right: 4px; }
 .calc-result { font-size: 22px; font-weight: 600; color: @y_primary; padding: 4px 6px; }
 .hint { font-size: 11px; color: alpha(@y_muted, 0.8); }
 

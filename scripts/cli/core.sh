@@ -103,5 +103,31 @@ term() {
   esac
 }
 
+# install_plan PKG... — one command that installs everything, navapkg-style:
+# repo packages -> pacman, AUR -> paru/yay, apps -> flatpak. Prints the command;
+# the caller runs it in a terminal. Unknown names fail the whole plan.
+install_plan() {
+  local p h aur="" repo_pkgs="" aur_pkgs="" flat_pkgs="" app cmd=""
+  for h in paru yay; do have "$h" && { aur=$h; break; }; done
+  for p in "$@"; do
+    if pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs="$repo_pkgs $p"
+    elif [ -n "$aur" ] && "$aur" -Si "$p" >/dev/null 2>&1; then aur_pkgs="$aur_pkgs $p"
+    elif app=$(flat_app "$p") && [ -n "$app" ]; then flat_pkgs="$flat_pkgs $app"
+    else echo "no package '$p' (repo, AUR, flatpak)"; return 1
+    fi
+  done
+  [ -n "$repo_pkgs" ] && cmd="sudo pacman -S --needed$repo_pkgs"
+  if [ -n "$aur_pkgs" ]; then [ -n "$cmd" ] && cmd="$cmd && "; cmd="$cmd$aur -S$aur_pkgs"; fi
+  if [ -n "$flat_pkgs" ]; then [ -n "$cmd" ] && cmd="$cmd && "; cmd="$cmd""flatpak install -y$flat_pkgs"; fi
+  printf '%s\n' "$cmd"
+}
+
+# flat_app NAME — first flatpak app id matching NAME, empty when none
+flat_app() {
+  have flatpak || return 1
+  if have timeout; then timeout 25 flatpak search --columns=application "$1" 2>/dev/null | tail -n +2 | grep -i -m1 "$1"
+  else flatpak search --columns=application "$1" 2>/dev/null | tail -n +2 | grep -i -m1 "$1"; fi
+}
+
 # shell_osd MODE — flash the shell OSD if the shell is up; silent otherwise
 shell_osd() { have ags && ags request -i ypsilon osd "$1" >/dev/null 2>&1 || true; }

@@ -71,6 +71,7 @@ Config & session
   ypsilon restart                   restart the shell (after config changes like bar position)
   ypsilon stop                      stop the shell and every daemon that start launched
   ypsilon updates run               upgrade the system in a terminal (pacman/AUR + flatpak)
+  ypsilon install [--dry-run] PKG...  one-command install (repo -> pacman, AUR -> paru/yay, app -> flatpak)
   ypsilon self-update               pull Ypsilon (fast-forward only), regenerate, re-check
 
 Health
@@ -215,6 +216,14 @@ PY
         term "echo '== Ypsilon: system update =='; $cmd";;
       *) echo "usage: ypsilon updates run   (the shell's Updates page shows what's pending)"; exit 1;;
     esac;;
+  install)
+    shift
+    dry=0
+    [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
+    [ $# -gt 0 ] || { echo "usage: ypsilon install [--dry-run] PKG...   (repo -> pacman, AUR -> paru/yay, app -> flatpak)"; exit 1; }
+    if ! plan=$(install_plan "$@"); then printf '%s\n' "$plan"; exit 1; fi
+    if [ "$dry" = 1 ]; then printf '%s\n' "$plan"
+    else term "echo '== Ypsilon: install $* =='; $plan"; fi;;
   self-update)
     git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || { echo "not a git checkout"; exit 1; }
     if [ -z "$(git -C "$ROOT" remote)" ]; then echo "local repo without a remote - nothing to pull"; exit 0; fi

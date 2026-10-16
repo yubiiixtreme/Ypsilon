@@ -45,9 +45,9 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Bar** | Always shown or auto-hide (touch the screen edge to reveal) — top or bottom, switched live in Settings → Bar. Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
 | **Launcher** `SUPER+Space` (alias `SUPER+.`) | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`, `overview`, `clipboard`. Prefixes: `=` calc (functions, constants, `5!`) · `:` run command · `;` clipboard · `@` switch window · `?` web search · `pw 20` passwords · `time tokyo` world clock · `.fire` emoji · `!wiki` quick links · `todo` to-do · `pomo 25` pomodoro · `timer 10m tea` countdown · `define word` dictionary |
 | **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme swatch chips + shuffle, media with art + progress |
-| **Wallpapers** | Five built-in scenes (ridges, aurora, dunes, bloom, contour) rendered by `scripts/make-wallpaper.py`; drop your own in `~/Pictures/Wallpapers` — or browse with **Aether** (AUR: `aether`), whose downloads Ypsilon picks up automatically. Ypsilon is the only display pipe; Aether's apply (Ctrl+Enter) changes theme + wallpaper together through its Ypsilon hook (`scripts/link-aether.sh`) |
+| **Wallpapers** | Six built-in scenes (ridges, aurora, dunes, bloom, contour, nava glass waves) rendered by `scripts/make-wallpaper.py`; drop your own in `~/Pictures/Wallpapers` — or browse with **Aether** (AUR: `aether`), whose downloads Ypsilon picks up automatically. Ypsilon is the only display pipe; Aether's apply (Ctrl+Enter) changes theme + wallpaper together through its Ypsilon hook (`scripts/link-aether.sh`) |
 | **Wallpaper → theme** | `ypsilon theme auto` builds a WCAG-checked palette from your wallpaper and re-themes shell, Hyprland borders, lockscreen and terminals — on demand, never automatically |
-| **Themes** | Five hand-tuned themes: dark, neon, light, ocean, sunset — plus auto from any wallpaper (`ypsilon theme list`) |
+| **Themes** | Six hand-tuned themes: dark, neon, light, ocean, sunset, nava (pastel liquid glass) — plus auto from any wallpaper (`ypsilon theme list`) |
 | **Dashboard** *(clock click)* | Big clock, calendar, live CPU/memory/temperature graphs, now playing |
 | **Notifications** | Stacked image toasts, silent under DND and fullscreen apps (critical still shows), history center |
 | **Login** | Ypsilon SDDM theme (`extras/sddm-ypsilon/`) — glass card, clock, user + session picker. `scripts/install-sddm-theme.sh set` installs + selects it, `restore` falls back to a stock theme |
@@ -88,6 +88,7 @@ ypsilon wallpaper list|status|set|next
 ypsilon shot select|full  ypsilon record select|full|stop
 ypsilon calc 'sqrt(16)+2*3'  ypsilon pw 20  # calculator + password generator
 ypsilon clip  ypsilon lock  ypsilon ocr     # themed clipboard · lock now · screen text → clipboard
+ypsilon install [--dry-run] PKG...        # one-command install: repo → pacman, AUR → paru/yay, app → flatpak
 ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness
