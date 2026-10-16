@@ -45,7 +45,7 @@ Capture & tools
   ypsilon pick                      color picker -> clipboard (hyprpicker)
   ypsilon calc EXPR                 safe calculator: functions, constants, factorial (try: sqrt(16), sin(30), 5!)
   ypsilon pw [LEN] [--no-symbols]   strong password -> stdout (+ clipboard with wl-copy)
-  ypsilon clip                      clipboard history picker (cliphist + fuzzel)
+  ypsilon clip                      clipboard history picker (cliphist + Ypsilon-themed fuzzel; `;` in the launcher too)
 
 Shell
   ypsilon toggle NAME               toggle a shell window: launcher control dashboard notif-center
@@ -169,7 +169,10 @@ PY
       *) echo "usage: ypsilon config [path|init|edit|check]"; exit 1;;
     esac;;
   keys) ags toggle -i ypsilon ypsilon-cheatsheet;;
-  clip) cliphist list | fuzzel --dmenu | cliphist decode | wl-copy;;
+  clip)
+    fz=(--dmenu --prompt='clipboard › ' --lines 12 --width 60)
+    [ -f "$ROOT/extras/current/fuzzel.ini" ] && fz+=(--config "$ROOT/extras/current/fuzzel.ini")  # Ypsilon theme colors
+    cliphist list | fuzzel "${fz[@]}" | cliphist decode | wl-copy;;
   lock) ensure_generated; pidof hyprlock >/dev/null || hyprlock -c "$ROOT/hypr/generated/hyprlock.conf";;
   toggle) n="${2:?usage: ypsilon toggle NAME (launcher, control, dashboard, wallpapers, ...)}"; ags toggle -i ypsilon "ypsilon-${n#ypsilon-}";;
   osd) ags request -i ypsilon osd "${2:-volume}";;

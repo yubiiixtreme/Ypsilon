@@ -38,8 +38,8 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | | |
 |---|---|
 | **Bar** | Always shown or auto-hide (touch the screen edge to reveal) — top or bottom, switched live in Settings → Bar. Per monitor, hotplug-aware: launcher, scrollable workspaces, focused window, clock → dashboard, media, CPU/RAM, REC dot, tray menus, notification badge, status group → control center |
-| **Launcher** `SUPER+Space` | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`. Prefixes: `=` calc (functions, constants, `5!`) · `:` run command · `;` clipboard · `@` switch window · `?` web search · `pw 20` passwords · `time tokyo` world clock · `.fire` emoji · `!wiki` quick links · `todo` to-do |
-| **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme chips, media with art + progress |
+| **Launcher** `SUPER+Space` (alias `SUPER+.`) | Fuzzy apps ranked by match + your habits, plus a command palette — type `lock`, `reboot`, `neon`, `game mode`, `overview`, `clipboard`. Prefixes: `=` calc (functions, constants, `5!`) · `:` run command · `;` clipboard · `@` switch window · `?` web search · `pw 20` passwords · `time tokyo` world clock · `.fire` emoji · `!wiki` quick links · `todo` to-do · `pomo 25` pomodoro · `timer 10m tea` countdown · `define word` dictionary |
+| **Control center** `SUPER+C` | Wi-Fi live list + join, Bluetooth devices + battery, outputs/inputs/per-app mixer, DND, night light, game mode, caffeine, power profiles, theme swatch chips + shuffle, media with art + progress |
 | **Wallpapers** | Five built-in scenes (ridges, aurora, dunes, bloom, contour) rendered by `scripts/make-wallpaper.py`; drop your own in `~/Pictures/Wallpapers` — or browse with **Aether** (AUR: `aether`), whose downloads Ypsilon picks up automatically. Ypsilon is the only display pipe; Aether's apply (Ctrl+Enter) changes theme + wallpaper together through its Ypsilon hook (`scripts/link-aether.sh`) |
 | **Wallpaper → theme** | `ypsilon theme auto` builds a WCAG-checked palette from your wallpaper and re-themes shell, Hyprland borders, lockscreen and terminals — on demand, never automatically |
 | **Themes** | Five hand-tuned themes: dark, neon, light, ocean, sunset — plus auto from any wallpaper (`ypsilon theme list`) |
@@ -49,21 +49,23 @@ Non-Arch: `install-deps.sh` prints the package list for your distro. Everything 
 | **Updates** | pacman (rootless `checkupdates`), AUR, Flatpak + kernel-reboot warnings, bar badge, one-click update in your terminal, Ypsilon self-update |
 | **Plugins** | Runtime JS modules (bar widgets, launcher modes, tiles, commands, settings) — crash-isolated, type-checked, hot enable/disable. Bundled: **Net speed** (bar), **To-do** (`todo`), **Emoji** (`.fire`), **Unit converter** (`10 km to mi`), **Dictionary** (`define word`), **Password** (`pw 20`), **Color** (`#ff0000`), **World clock** (`time tokyo`), **Pomodoro**, **Quick links** (`!wiki`), **Dev ports** (`port`) · **IP addresses** (`ip`) · **Process killer** (`kill firefox`) · **Disks** (`disk`, `eject`) — switch them on in Settings → Plugins. See [docs/PLUGINS.md](docs/PLUGINS.md) |
 | **CLI** | `ypsilon calc 'sqrt(16)+2*3'` safe calculator · `ypsilon pw 20` passwords · `ypsilon theme/ocean/sunset` · full list below |
-| **Extras** | Fish greeting centred over fastfetch, in your theme colours (`cp extras/fish_greeting.fish ~/.config/fish/functions/`) · Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · cheatsheet `SUPER+/` · overview `SUPER+Tab` · OSD · hyprlock + hypridle (dim → lock → off → suspend) |
+| **Extras** | Fish greeting centred over fastfetch, in your theme colours (`cp extras/fish_greeting.fish ~/.config/fish/functions/`) · Weather (Open-Meteo, keyless) · cava visualizer (only while music plays) · searchable cheatsheet `SUPER+K` (alias `SUPER+/`) · overview `SUPER+Tab` (alias `SUPER+Shift+O`) · OSD · hyprlock + hypridle (dim → lock → off → suspend) · Ypsilon SDDM login theme (`scripts/install-sddm-theme.sh set`) |
 
 ## Keybinds
 
-`SUPER` is the modifier (preview uses `ALT`). Full list anytime: `SUPER+/` — it reads
+`SUPER` is the modifier (preview uses `ALT`). Full list anytime: `SUPER+K` — it reads
 `hypr/core/keybinds.conf`, and the `# text` after each bind is the description it shows.
+Type in the cheatsheet to filter it.
 
 | Keys | Action |
 |---|---|
-| `SUPER+Enter` (or `Ctrl+Alt+T`) / `W` / `E` | Terminal (Settings → Apps) · default browser · files |
-| `SUPER+Space` / `C` / `Shift+C` / `N` / `Tab` | Launcher · control center · dashboard · notifications · overview |
-| `SUPER+Shift+Q` / `I` / `/` / `Shift+W` | Power menu · settings · cheatsheet · wallpapers |
+| `SUPER+Enter` (or `Ctrl+Alt+T`) / `W` / `B` / `E` | Terminal (Settings → Apps) · default browser (+ alias) · files |
+| `SUPER+Space` (or `.`) / `C` / `Shift+C` (or `D`) / `N` / `Tab` (or `Shift+O`) | Launcher · control center · dashboard · notifications · overview |
+| `SUPER+Shift+Q` / `I` (or `,`) / `K` (or `/`) / `Shift+W` | Power menu · settings · searchable cheatsheet · wallpapers |
 | `SUPER+L` / `X` / `Shift+V` / `P` | Lock · next wallpaper · clipboard · color picker |
 | `SUPER+Shift+G` / `Shift+N` / `M` | Game mode · night light · layout toggle |
 | `SUPER+Q` / `Shift+E` / `F` / `V` / `J` / `T` | Close · log out · fullscreen · float · split · group |
+| `SUPER+Alt+HJKL` / `SUPER+Shift+HJKL` | Focus / move window vim-style (no arrows needed) |
 | `Alt+Tab` | Cycle windows |
 | `SUPER+1…0` / `Shift+1…0` / `S` / scroll | Workspaces · move there · scratchpad · scroll workspaces |
 | `Print` / `SUPER+Print` / `SUPER+Shift+R` | Select shot · full shot · record toggle |

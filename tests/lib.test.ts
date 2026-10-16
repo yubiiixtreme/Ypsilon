@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { parseConfig, diagnoseConfig, DEFAULTS } from "../shell/lib/config.ts"
 import { parseCpu, cpuUsage, parseMem, hottest } from "../shell/lib/sysinfo.ts"
 import { rank, bump, frecency, parseUsage } from "../shell/lib/rank.ts"
-import { parseBinds, groupBinds, findConflicts } from "../shell/lib/keys.ts"
+import { parseBinds, groupBinds, findConflicts, filterBinds } from "../shell/lib/keys.ts"
 import { readFileSync } from "node:fs"
 import { splitTerse, parseSavedWifi, dedupeAps } from "../shell/lib/net.ts"
 import { monitorRect, fitRects, appsByWorkspace, rows } from "../shell/lib/overview.ts"
@@ -81,6 +81,14 @@ test("keys: every bind in the REAL keybinds.conf has a human description", () =>
   const conf = readFileSync(new URL("../hypr/core/keybinds.conf", import.meta.url), "utf8")
   const missing = conf.split("\n").filter((l) => /^\s*bind[a-z]*\s*=/.test(l) && !/[^#]#(?!#)\s*\S/.test(l))
   assert.deepEqual(missing, [], "add a trailing `# description` to these binds")
+})
+
+test("keys: filterBinds searches combo + action", () => {
+  const g = groupBinds(parseBinds("bind = SUPER, Space, exec, ags toggle -i ypsilon ypsilon-launcher || fuzzel   # App launcher & search\nbind = SUPER ALT, H, movefocus, l   # Focus left (vim)\n"))
+  assert.deepEqual(filterBinds(g, "").length, g.length)
+  assert.deepEqual(filterBinds(g, "vim").flatMap(([, l]) => l.map((b) => b.action)), ["Focus left (vim)"])
+  assert.deepEqual(filterBinds(g, "super + space").flatMap(([, l]) => l.map((b) => b.combo)), ["Super + Space"])
+  assert.deepEqual(filterBinds(g, "zzz"), [])
 })
 
 test("net: nmcli terse parsing + AP dedupe", () => {

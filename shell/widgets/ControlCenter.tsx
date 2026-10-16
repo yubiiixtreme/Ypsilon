@@ -12,7 +12,7 @@ import { shortDeviceName } from "../lib/audio"
 import { brightness, refreshBrightness, setBrightness } from "../services/brightness"
 import { gamma, refreshGamma, setGamma } from "../services/gamma"
 import { getNotifd, setDnd } from "../services/notif"
-import { currentTheme, setCurrentTheme, themeNames, setAutoTheme } from "../services/theme"
+import { currentTheme, setCurrentTheme, themeNames, themePalette, setAutoTheme } from "../services/theme"
 import {
   toggleWifi, toggleBt, setTheme, toggleGameMode, toggleNightlight, toggleCaffeine,
   screenshot, colorPicker, cliPath,
@@ -119,6 +119,24 @@ function PluginTiles() {
         )}
       </For>
     </box>
+  )
+}
+
+/** compact theme chip with live swatches (mirrors Settings → Appearance) + next-theme shuffle */
+function ThemeDot({ name }: { name: string }) {
+  const p = themePalette(name)
+  const short = name.replace("ypsilon-", "").replace(/^./, (c) => c.toUpperCase())
+  return (
+    <button
+      class={currentTheme((cur) => `pill-btn theme-chip${cur === name ? " on" : ""}`)}
+      tooltipText={`${short} theme`}
+      onClicked={() => setTheme(name).then(() => setCurrentTheme(name))}
+    >
+      <box spacing={6}>
+        <box class="swatch" css={`background: ${p.primary ?? "#888"};`} />
+        <label label={short} />
+      </box>
+    </button>
   )
 }
 
@@ -233,15 +251,22 @@ export default function ControlCenter() {
 
         <box spacing={8}>
           <label class="section-label" label="Theme" hexpand halign={Gtk.Align.START} />
-          <box class="segmented">
-            {themeNames().map((n) => (
-              <button
-                class={currentTheme((cur) => `seg-btn${n === cur ? " on" : ""}`)}
-                label={n.replace("ypsilon-", "").replace(/^./, (c) => c.toUpperCase())}
-                onClicked={() => setTheme(n).then(() => setCurrentTheme(n))}
-              />
-            ))}
-          </box>
+          <button
+            class="icon-btn"
+            tooltipText="Next theme"
+            onClicked={() => {
+              const names = themeNames()
+              const next = names[(names.indexOf(currentTheme()) + 1) % names.length] ?? names[0]
+              if (next) setTheme(next).then(() => setCurrentTheme(next))
+            }}
+          >
+            <image iconName="view-refresh-symbolic" pixelSize={14} />
+          </button>
+        </box>
+        <box spacing={6}>
+          {themeNames().map((n) => (
+            <ThemeDot name={n} />
+          ))}
         </box>
 
         <box spacing={8} homogeneous>

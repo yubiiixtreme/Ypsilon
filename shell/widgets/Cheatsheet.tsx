@@ -1,13 +1,16 @@
 import Gtk from "gi://Gtk"
-import { createState, For } from "ags"
+import { createComputed, createState, For } from "ags"
 import { readFile } from "ags/file"
 import { ROOT } from "../services/theme"
-import { parseBinds, groupBinds, type Bind } from "../lib/keys"
+import { filterBinds, groupBinds, parseBinds, type Bind } from "../lib/keys"
 import Popup from "./Popup"
 
-// Keybind cheat-sheet, parsed live from hypr/core/keybinds.conf. Toggle: SUPER+/.
+// Keybind cheat-sheet, parsed live from hypr/core/keybinds.conf. Toggle: SUPER+K or SUPER+/.
+// Type to filter (matches "Super + Space launcher", "vim", "workspace", ...).
 export default function Cheatsheet() {
   const [groups, setGroups] = createState<[string, Bind[]][]>([])
+  const [query, setQuery] = createState("")
+  const filtered = createComputed(() => filterBinds(groups(), query()))
   const load = () => {
     try {
       setGroups(groupBinds(parseBinds(readFile(`${ROOT}/hypr/core/keybinds.conf`))))
@@ -16,11 +19,18 @@ export default function Cheatsheet() {
     }
   }
   return (
-    <Popup name="ypsilon-cheatsheet" spacing={10} onShow={load}>
+    <Popup name="ypsilon-cheatsheet" spacing={10} onShow={() => { load(); setQuery("") }}>
       <label class="title" label="Keyboard shortcuts" halign={Gtk.Align.START} />
+      <entry
+        class="search"
+        primaryIconName="system-search-symbolic"
+        placeholderText="Search shortcuts…"
+        text={query}
+        onNotifyText={({ text }) => setQuery(text)}
+      />
       <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} propagateNaturalHeight maxContentHeight={520}>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={12} class="cheat">
-          <For each={groups}>
+          <For each={filtered}>
             {([name, binds]) => (
               <box orientation={Gtk.Orientation.VERTICAL} spacing={3}>
                 <label class="accent" label={name} halign={Gtk.Align.START} />

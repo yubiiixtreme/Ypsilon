@@ -1,0 +1,12 @@
+[SddmGreeterTheme]
+Name=Ypsilon
+Description=Ypsilon glass login screen (dark, matches the Hyprland desktop)
+Author=Ypsilon
+Version=1.0.0
+License=MIT
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=ypsilon
+Type=sddm-theme
+QtVersion=6
+Screenshot=preview.png

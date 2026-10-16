@@ -6,7 +6,7 @@ import { openSettings } from "../widgets/settings/SettingsApp"
 import { getNotifd, setDnd } from "./notif"
 import {
   lock, logout, suspend, reboot, poweroff, screenshot, colorPicker, toggleGameMode, toggleNightlight,
-  toggleCaffeine, toggleRecording, wallpaperNext, setTheme,
+  toggleCaffeine, toggleRecording, wallpaperNext, setTheme, detach, cliPath,
 } from "./system"
 
 export type RunnableAction = PaletteAction & { run: () => unknown }
@@ -35,6 +35,10 @@ export function paletteActions(): RunnableAction[] {
     A("updates", "Check for updates", "software-update-available-symbolic", ["upgrade", "pacman", "packages"], () => openSettings("updates")),
     A("plugins", "Plugins", "application-x-addon-symbolic", ["extensions", "addons"], () => openSettings("plugins")),
     A("keys", "Keybind cheatsheet", "input-keyboard-symbolic", ["shortcuts", "help", "binds"], () => toggleWindow("ypsilon-cheatsheet")),
+    A("overview", "Workspace overview", "view-app-grid-symbolic", ["workspaces", "expose", "windows"], () => toggleWindow("ypsilon-overview")),
+    A("notifs", "Notifications", "preferences-system-notifications-symbolic", ["alerts", "center", "dnd"], () => toggleWindow("ypsilon-notif-center")),
+    A("power", "Power menu", "system-shutdown-symbolic", ["shutdown", "reboot", "logout", "suspend"], () => toggleWindow("ypsilon-power")),
+    A("clip", "Clipboard history", "edit-paste-symbolic", ["paste", "copy", "cliphist"], () => detach(`${cliPath} clip`)),
     A("dashboard", "Dashboard", "view-grid-symbolic", ["calendar", "stats"], () => toggleWindow("ypsilon-dashboard")),
     ...themeNames().map((n) => A(`theme-${n}`, `Theme · ${n.replace("ypsilon-", "")}`, "preferences-desktop-appearance-symbolic", ["colors", "theme"], () => setTheme(n))),
   ]

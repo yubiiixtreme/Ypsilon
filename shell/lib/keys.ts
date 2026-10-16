@@ -87,6 +87,15 @@ export function groupBinds(binds: Bind[]): [string, Bind[]][] {
     .filter(([, l]) => l.length > 0)
 }
 
+/** case-insensitive substring filter over "combo + action" (cheatsheet search box) */
+export function filterBinds(groups: [string, Bind[]][], q: string): [string, Bind[]][] {
+  const needle = q.trim().toLowerCase()
+  if (!needle) return groups
+  return groups
+    .map(([name, binds]) => [name, binds.filter((b) => `${b.combo} ${b.action}`.toLowerCase().includes(needle))] as [string, Bind[]])
+    .filter(([, l]) => l.length > 0)
+}
+
 /** combos bound more than once (Hyprland would run both actions) */
 export function findConflicts(binds: Bind[]): string[] {
   const seen = new Map<string, number>()

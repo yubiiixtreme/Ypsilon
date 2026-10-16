@@ -21,8 +21,9 @@ type Row = { id: string; icon: string; glyph?: string; title: string; sub: strin
 // Spotlight-style launcher. Modes by prefix:
 //   (none) apps, ranked by fuzzy match + your habits   =  calculator (functions, pi, 5!)
 //   :  run shell command   ;  clipboard history   @  switch window   ?  web search
-//   pw passwords · time world clock · . emoji · ! quick links · todo to-do · pomo timer · port ports
-// ↑/↓/Tab select · Enter run · Esc / click outside closes. Toggle: SUPER+Space.
+//   pw passwords · time world clock · . emoji · ! quick links · todo to-do · pomo timer · timer countdown
+//   define dictionary · power profiles · port dev ports · ip · kill · disk · caffeine
+// ↑/↓/Tab select · Enter run · Esc / click outside closes. Toggle: SUPER+Space (SUPER+. alias).
 export default function Launcher() {
   const [query, setQuery] = createState("")
   const [sel, setSel] = createState(0)
@@ -127,7 +128,7 @@ export default function Launcher() {
 
   const hint = createComputed(() =>
     mode() === "plugin" ? `${pluginProvider()?.name ?? "plugin"}` : ({
-      apps: "= calc  : cmd  ; clip  @ win  ? web  pw pass  time clock  . emoji",
+      apps: "= calc  : cmd  ; clip  @ win  ? web  pw pass  time clock  . emoji  ! links  todo pomo timer",
       calc: "Calculator · functions sqrt sin log · constants pi e · 5! · Enter copies",
       cmd: "Run a shell command",
       clip: "Clipboard history · Enter copies it back",
