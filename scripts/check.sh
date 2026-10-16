@@ -20,7 +20,7 @@ python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null 2>&1 || true
 if command -v Hyprland &>/dev/null; then
   out=$(Hyprland --verify-config -c "$ROOT/hypr/ypsilon.conf" 2>&1)
   if echo "$out" | grep -q "^config ok"; then ok "hypr conf ($(Hyprland -v | head -1 | cut -c1-24))"
-  else bad "hypr conf"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; fi
+  else bad "hypr conf (Hyprland $(Hyprland -v 2>/dev/null | head -1 | cut -c1-24), exit $?)"; echo "$out" | sed -n '/Config parsing result/,$p' | sed 's/.*Ypsilon\/hypr\///' | sort -u | sed 's/^/     /'; echo "$out" | head -25 | sed 's/^/     raw: /'; fi
 else skip "hypr conf (Hyprland not installed)"; fi
 
 # 2. theme sync — regenerate and see whether anything changed
@@ -28,7 +28,7 @@ sig() { (cd "$ROOT" && find hypr/themes shell/style extras -path extras/current 
 before=$(sig)
 python3 "$ROOT/scripts/gen-theme.py" >/dev/null || bad "gen-theme.py failed"
 [ "$before" = "$(sig)" ] && ok "generated files in sync with tokens.json" \
-  || bad "generated files were stale — now regenerated, review 'git diff' and commit"
+  || { bad "generated files were stale — now regenerated, review 'git diff' and commit"; git -C "$ROOT" status --short | head -20 | sed 's/^/     /'; git -C "$ROOT" diff --stat | tail -8 | sed 's/^/     /'; }
 
 # 3. css
 python3 - "$ROOT" <<'PY' && ok "css parses + all @y_* defined" || bad "css"
@@ -68,9 +68,10 @@ if command -v node &>/dev/null; then
   NODE_NO_WARNINGS=1 node --test "$ROOT/tests/" >/dev/null 2>&1 && ok "unit tests (ts)" || bad "unit tests (node --test tests/)"
 else skip "unit tests (node missing)"; fi
 
-python3 -m unittest discover -s "$ROOT/tests" >/dev/null 2>&1 && ok "unit tests (python: palette, userconf→Hyprland)" || bad "unit tests (python3 -m unittest discover -s tests)"
+pyout=$(python3 -m unittest discover -s "$ROOT/tests" 2>&1) && ok "unit tests (python: palette, userconf→Hyprland)" || { bad "unit tests (python3 -m unittest discover -s tests)"; echo "$pyout" | tail -30 | sed 's/^/     /'; }
 
-"$ROOT/tests/cli.test.sh" >/dev/null 2>&1 && ok "cli + supervisor tests (hermetic)" || bad "cli tests (run tests/cli.test.sh)"
+cliout=$("$ROOT/tests/cli.test.sh" 2>&1); rc=$?
+[ $rc -eq 0 ] && ok "cli + supervisor tests (hermetic)" || { bad "cli tests (run tests/cli.test.sh)"; echo "$cliout" | grep -E "^FAIL|failed" | head -20 | sed 's/^/     /'; }
 
 # 6. shell scripts
 for s in "$ROOT"/scripts/*.sh "$ROOT"/scripts/cli/*.sh "$ROOT/scripts/ypsilon" "$ROOT"/tests/*.sh; do bash -n "$s" 2>/dev/null || bad "bash -n $(basename "$s")"; done
