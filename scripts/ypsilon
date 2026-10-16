@@ -29,6 +29,7 @@ Display & quick toggles
   ypsilon caffeine [on|off|toggle|status]   keep the screen awake (pauses hypridle)
   ypsilon layout [dwindle|master|toggle]    switch tiling layout
   ypsilon pip                       picture-in-picture: float + pin the window bottom-right (again: tile)
+  ypsilon pip-corner {1|2|3|4}       snap floating video to a corner (1=TL 2=TR 3=BL 4=BR)
 
 Look
   ypsilon theme list                list themes
@@ -102,6 +103,7 @@ case "$cmd" in
   caffeine) cmd_caffeine "${2:-toggle}";;
   layout) cmd_layout "${2:-toggle}";;
   pip) cmd_pip;;
+  pip-corner) cmd_pip_corner "${2:-}";;
   theme)
     case "${2:-list}" in
       list) python3 "$ROOT/scripts/gen-theme.py" --list;;
