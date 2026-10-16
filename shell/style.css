@@ -137,6 +137,21 @@ tooltip label { font-size: 12px; }
 }
 window.ypsilon-bar.bottom .bar-inner, .bar-inner.bottom { margin: 0 8px 8px 8px; }
 
+/* Caelestia-style separated islands: transparent layout, each module floats on its own */
+.bar-layout { background: transparent; margin: 8px 8px 0 8px; }
+window.ypsilon-bar.bottom .bar-layout, .bar-layout.bottom { margin: 0 8px 8px 8px; }
+.bar-island {
+  background: @y_surface;
+  border: 1px solid @y_border;
+  border-radius: 18px;
+  padding: 4px 10px;
+  box-shadow: inset 0 1px 0 @y_edge, 0 6px 22px rgba(0, 0, 0, 0.26);
+}
+.bar-left { margin-right: 8px; }
+.bar-right { margin-left: 8px; }
+/* the center island must not push the sides off: let it shrink inside */
+.bar-center { min-width: 0; }
+
 .launch-btn { padding: 4px 9px; border-radius: 9999px; }
 .launch-btn:hover { background: @y_faint; }
 .launch-logo {

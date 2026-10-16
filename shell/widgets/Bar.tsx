@@ -91,6 +91,8 @@ function ActiveWindow() {
       class="window-title"
       visible={createComputed(() => config().bar.showWindowTitle && title() !== "")}
       label={title}
+      ellipsize={3}
+      maxWidthChars={32}
     />
   )
 }
@@ -226,7 +228,7 @@ function MediaMini() {
       <box visible={config((c) => c.bar.showVisualizer)}>
         <Visualizer width={44} height={14} when={playing} />
       </box>
-      <label class="media-title" label={one((p) => (p?.title || "—").slice(0, 28))} />
+      <label class="media-title" label={one((p) => (p?.title || "—").slice(0, 28))} ellipsize={3} maxWidthChars={24} />
       <button
         class="icon-btn"
         onClicked={() => {
@@ -379,8 +381,8 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           transitionDuration={configValue((c) => (c.reduceMotion ? 0 : 220))}
           onNotifyChildRevealed={shrink}
         >
-          <centerbox class={bottom((b) => `bar-inner${b ? " bottom" : ""}`)}>
-            <box $type="start" class="bar-left" spacing={8}>
+          <centerbox class={bottom((b) => `bar-layout${b ? " bottom" : ""}`)}>
+            <box $type="start" class="bar-island bar-left" spacing={8}>
               <button class="launch-btn" onClicked={() => toggle("ypsilon-launcher")} tooltipText="Apps">
                 <label class="launch-logo" label={distroGlyph()} />
               </button>
@@ -388,14 +390,14 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
               <ActiveWindow />
               <PluginSlot position="left" />
             </box>
-            <box $type="center" class="bar-center" spacing={10}>
+            <box $type="center" class="bar-island bar-center" spacing={10}>
               <button onClicked={() => toggle("ypsilon-dashboard")} tooltipText="Calendar and system">
                 <label class="clock" label={clock} />
               </button>
               <MediaMini />
               <PluginSlot position="center" />
             </box>
-            <box $type="end" class="bar-right" spacing={6}>
+            <box $type="end" class="bar-island bar-right" spacing={6}>
               <PluginSlot position="right" />
               <RecordingDot />
               <Sysinfo />
