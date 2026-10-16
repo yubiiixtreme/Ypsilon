@@ -86,13 +86,3 @@ hl.window_rule({
 
 -- Never let a fullscreen window blank the screen
 hl.window_rule({ name = "inhibit-fullscreen", match = { class = ".*" }, idle_inhibit = "fullscreen" })
-
--- Fix some dragging issues with XWayland
-hl.window_rule({
-  name = "fix-xwayland-drags",
-  match = { class = "^$", title = "^$", xwayland = true, float = true, fullscreen = false, pin = false },
-  no_focus = true,
-})
-
--- Ignore maximize requests from all apps. You'll probably like this.
-hl.window_rule({ name = "suppress-maximize", match = { class = ".*" }, suppress_event = "maximize" })
