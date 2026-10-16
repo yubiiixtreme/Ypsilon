@@ -195,6 +195,8 @@ export default function ControlCenter() {
           </button>
         </box>
 
+        <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} propagateNaturalHeight maxContentHeight={560}>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={12}>
         <box spacing={8} homogeneous>
           <Tile icon="network-wireless-symbolic" title="Wi-Fi" sub={ssid} on={wifiOn} onClicked={toggleWifi} onMore={go("wifi")} />
           <Tile icon="bluetooth-symbolic" title="Bluetooth" sub={bt((o) => (o ? "On" : "Off"))} on={bt} onClicked={() => toggleBt(bt())} onMore={go("bt")} />
@@ -289,6 +291,8 @@ export default function ControlCenter() {
             </box>
           </button>
         </box>
+        </box>
+        </scrolledwindow>
       </box>
 
       <box visible={page((p) => p === "wifi")}>
