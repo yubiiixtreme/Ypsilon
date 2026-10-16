@@ -11,6 +11,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
 THEME_DIR=/usr/share/sddm/themes/ypsilon
 CONF=/etc/sddm.conf.d/20-ypsilon.conf
+SYS_CONF=/etc/sddm.conf.d/10-lumina.conf   # distro greeter config (Wayland compositor + fallback theme)
 SRC="$ROOT/extras/sddm-ypsilon"
 
 current() {
@@ -38,6 +39,18 @@ case "${1:-status}" in
       echo "removed $CONF"
     else
       echo "nothing to restore ($CONF not present)"
+    fi
+    # the old selector in $SYS_CONF may name a theme that no longer exists
+    # (e.g. lumina-sddm, removed when Ypsilon took over) — fall back to stock
+    cur=$(current)
+    if [ "$cur" != "(sddm default)" ] && [ ! -d "/usr/share/sddm/themes/$cur" ]; then
+      for t in maldives elarun maya hypr; do
+        if [ -d "/usr/share/sddm/themes/$t" ]; then
+          sudo sed -i "s/^Current=.*/Current=$t/" "$SYS_CONF"
+          echo "previous theme gone — falling back to: $t"
+          break
+        fi
+      done
     fi
     echo "sddm theme: $(current)";;
   *)
