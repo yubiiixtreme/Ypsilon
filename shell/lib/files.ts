@@ -1,4 +1,3 @@
-// @ts-check
 // Files & folders — launcher mode for `/`. While the text keeps starting with
 // `/`, it walks the filesystem: slash-ended text lists that directory, a
 // "/dir/needle" seam filters it, a bare name searches home (plus
@@ -9,7 +8,12 @@ import GLib from "gi://GLib"
 
 const MAX = 10
 
-const FILE_ICONS = [
+export type FileRow = { title: string; sub?: string; icon?: string; closes?: boolean; run: () => void }
+
+type Entry = { name: string; isDir: boolean }
+type Hit = { path: string; name: string; isDir: boolean }
+
+const FILE_ICONS: Array<[RegExp, string]> = [
   [/\.pdf$/i, "x-office-document-symbolic"],
   [/\.(png|jpe?g|gif|webp|avif|svg)$/i, "image-x-generic-symbolic"],
   [/\.(mp4|mkv|webm|mov|avi)$/i, "video-x-generic-symbolic"],
@@ -18,11 +22,11 @@ const FILE_ICONS = [
   [/\.(ts|tsx|js|mjs|py|c|cpp|h|hpp|rs|go|lua|sh|json|md|toml|yml|yaml|css|ini|conf|nix)$/i, "text-x-generic-symbolic"],
 ]
 
-const iconFor = (name, isDir) =>
+const iconFor = (name: string, isDir: boolean): string =>
   isDir ? "folder-open-symbolic" : (FILE_ICONS.find(([re]) => re.test(name))?.[1] ?? "text-x-generic-symbolic")
 
-/** leading `~`/`$HOME` collapsed for display (paths built by us carry `~`) */
-export function displayPath(p) {
+/** collapse a leading `~` for display (paths built here always carry `~`) */
+export function displayPath(p: string): string {
   const home = GLib.get_home_dir()
   if (p === home) return "~"
   if (p.startsWith(home + "/")) return "~/" + p.slice(home.length + 1)
@@ -31,7 +35,7 @@ export function displayPath(p) {
 
 /** expand a leading `~`/`$HOME`; also accepts the `"/~…"` display form;
  * anything else without a `/` prefix is implied to be under home */
-function expandHome(input) {
+function expandHome(input: string): string {
   const home = GLib.get_home_dir()
   let s = input.startsWith("//") ? input.slice(1) : input
   if (s.startsWith("/~")) s = s.slice(1)
@@ -43,32 +47,35 @@ function expandHome(input) {
   return home + "/" + s
 }
 
-/** one directory, sorted (folders first, then files, alphabetical; no dotfiles) */
-export function listDir(dir) {
+/** one directory listing, sorted: folders first, then files, alphabetical;
+ * dotfiles are never shown */
+export function listDir(dir: string): Entry[] {
   let d
   try {
     d = GLib.Dir.open(dir, 0)
   } catch {
     return []
   }
-  const entries = []
+  const entries: Entry[] = []
   let name
   while ((name = d.read_name())) {
-    if (!name.startsWith("."))
-      entries.push(GLib.file_test(`${dir}/${name}`, GLib.FileTest.IS_DIR) ? [1, name] : [0, name])
+    const isDir = GLib.file_test(`${dir}/${name}`, GLib.FileTest.IS_DIR)
+    entries.push({ name, isDir })
   }
   d.close()
-  entries.sort((a, b) => b[0] - a[0] || a[1].localeCompare(b[1]))
-  return entries.map(([isDir, name]) => ({ name, isDir }))
+  entries.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name))
+  return entries
 }
 
-/** breadth-first name search under `root`, up to `limit` hits, 5 levels deep */
-export function search(root, needle, limit) {
+/** breadth-first name search under `root`: up to `limit` hits, 5 levels deep */
+export function search(root: string, needle: string, limit: number): Hit[] {
   const q = needle.toLowerCase()
-  const out = []
-  const stack = [[root, 0]]
+  const out: Hit[] = []
+  const stack: Array<[string, number]> = [[root, 0]]
   while (stack.length && out.length <= limit) {
-    const [dir, depth] = stack.pop()
+    const top = stack.pop()
+    if (!top) break
+    const [dir, depth] = top
     if (depth > 5) continue
     let d
     try {
@@ -89,52 +96,56 @@ export function search(root, needle, limit) {
   return out
 }
 
-/** search roots: home + user data dir when it is separate */
-function searchRoots() {
+function searchRoots(): string[] {
   const home = GLib.get_home_dir()
   const data = GLib.get_user_data_dir()
-  return data && data !== home ? [home, data] : [home]
+  return data !== home ? [home, data] : [home]
 }
 
-/** name search across all search roots, capped */
-export function searchAll(needle) {
+/** by-name search across the search roots, capped at MAX */
+export function searchAll(needle: string): Hit[] {
   if (needle.trim().length < 2) return []
-  const out = []
+  const out: Hit[] = []
   for (const root of searchRoots()) {
     for (const hit of search(root, needle, MAX + 1 - out.length)) {
       if (out.length >= MAX) break
       out.push(hit)
     }
   }
-  void 0
   return out
 }
 
-/** parent text of a directory-view text: "~/" → "", "/etc/needle" → "/" */
-function parentArgOf(rest) {
+/** open a file with xdg-open — the path is argv[1], never interpolated */
+export function open(abs: string): void {
+  GLib.spawn_command_line_async(`sh -c 'exec xdg-open "$1"' sh ${JSON.stringify(abs)}`)
+}
+
+/** parent text of a directory-view text: "Ypsilon/" → "", "/etc/needle" → "/" */
+function parentArgOf(rest: string): string {
   const core = rest.replace(/\/+$/, "")
   const i = core.lastIndexOf("/")
   return i < 0 ? "" : core.slice(0, i + 1)
 }
 
-/** open a file with xdg-open — the path is argv[1], never interpolated */
-export function open(abs) {
-  GLib.spawn_command_line_async(`sh -c 'exec xdg-open "$1"' sh ${JSON.stringify(abs)}`)
-}
-
 /**
- * All rows for the `/` launcher mode. `goDir(dirRest)` should set the launcher
- * text to `"/" + dirRest` (dirRest without the leading slash).
+ * rows for the `/` launcher mode (the built-in Files & folders browser).
+ * `goDir(dirRest)` should set the launcher text to `"/" + dirRest` (without
+ * the leading slash — the launcher keeps it).
+ *
  *   ""                → home listing, no ../ row (nothing above home)
- *   "~/" · "$DATA/"   → that root's listing
- *   "Projects/"       → Projects' listing          ("~" implied when absent)
- *   "Projects/Ypso.." → type-ahead filter at that dir (prefix on names)
- *   "Projects/Y/lua"  → "/seam" walks as far as real dirs go, then filters
- *   "world.glb"       → name search across the search roots
+ *   "~/", "$DATA/"    → that root's listing
+ *   "Projects/"       → Projects' listing ("~" implied when the form is bare)
+ *   "Projects/ypso…"  → type-ahead filter at that dir (prefix on names)
+ *   "Projects/Y/lua"  → "/seam": walks as far as the dirs go, then filters
+ *   "world.glb"       → by-name search across the search roots
+ *
+ * Nav rows (../, folders, search-dir hits) hand their target to `goDir` and
+ * the launcher stays open; `closes: true` rows (files) open with xdg-open and
+ * close the launcher.
  */
-export function rowsFiles(rest, goDir) {
-  const go = (dirRest) => () => goDir(dirRest)
-  const out = []
+export function rowsFiles(rest: string, goDir: (dirRest: string) => void): FileRow[] {
+  const go = (dirRest: string) => () => goDir(dirRest)
+  const out: FileRow[] = []
   const seam = rest.lastIndexOf("/")
 
   if (rest === "" || rest.endsWith("/")) {
@@ -161,7 +172,7 @@ export function rowsFiles(rest, goDir) {
   }
 
   if (seam >= 0) {
-    // "head/needle" — walk far as head goes on disk, filter its names by prefix
+    // "head/needle" — walk head as far as it exists on disk, filter by prefix
     const head = rest.slice(0, seam + 1)
     const needle = rest.slice(seam + 1).toLowerCase()
     const base = expandHome(head)
@@ -179,7 +190,7 @@ export function rowsFiles(rest, goDir) {
           : { title: e.name, sub: "File · Enter opens", icon: iconFor(e.name, false), closes: true, run: () => open(`${base}/${e.name}`) },
       )
     }
-    if (hits.length > MAX) out.push({ title: `… ${hits.length - MAX} more`, sub: "Keep typing to narrow", icon: "system-search-symbolic" })
+    if (hits.length > MAX) out.push({ title: `… ${hits.length - MAX} more`, sub: "Keep typing to narrow", icon: "system-search-symbolic", run: () => {} })
     return out
   }
 
@@ -194,3 +205,5 @@ export function rowsFiles(rest, goDir) {
   }
   return out
 }
+
+export { MAX, iconFor }
