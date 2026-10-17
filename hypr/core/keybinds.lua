@@ -154,7 +154,8 @@ hl.bind(MOD .. " + ALT + G", hl.dsp.exec_cmd(Y .. " gamma toggle"), { descriptio
 hl.bind(MOD .. " + ALT + M", hl.dsp.exec_cmd(Y .. " menu"), { description = "Quick menu (screen, theme, sound toggles)" })
 hl.bind("ALT + XF86MonBrightnessDown", hl.dsp.exec_cmd(Y .. " gamma lower 5"), { repeating = true, locked = true, description = "Gamma down (fine, 5%)" })
 hl.bind("ALT + XF86MonBrightnessUp", hl.dsp.exec_cmd(Y .. " gamma raise 5"), { repeating = true, locked = true, description = "Gamma up (fine, 5%)" })
-hl.bind(MOD .. " + Z", hl.dsp.exec_cmd(Y .. " 3d toggle"), { description = "3D cube workspace effect on/off" })
+hl.bind(MOD .. " + Z", hl.dsp.exec_cmd(Y .. " 3d toggle"), { description = "3D room / cube workspaces on/off" })
+hl.bind(MOD .. " + SHIFT + Z", hl.dsp.exec_cmd(Y .. " 3d keys"), { description = "3D room controls cheat-sheet" })
 
 -- --- media keys: repeat + work on the lockscreen; OSD needs `ags` running ---
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ && ags request -i ypsilon osd volume"), { repeating = true, locked = true, description = "Volume up" })

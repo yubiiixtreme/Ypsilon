@@ -19,7 +19,7 @@ Rectangle {
         property color card: "#151824"
         property color cardEdge: "#232741"
         property color primary: "#7c7cff"
-        property color onPrimary: "#0b0e1a"
+        property color textOnPrimary: "#0b0e1a"
         property color fg: "#e6e9f5"
         property color muted: "#8b90a7"
         property color bad: "#e06565"

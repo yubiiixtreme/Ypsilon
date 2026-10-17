@@ -26,7 +26,7 @@ Display & quick toggles
   ypsilon gamma tune                interactive: arrows/hjkl adjust, 0 reset, d dim, q done
   ypsilon nightlight [on|off|toggle|status] warm screen (config display.nightTemp)
   ypsilon gamemode [on|off|toggle|status]   kill animations/blur/gaps for max perf
-  ypsilon 3d [on|off|toggle|status|install]  3D cube workspaces (SUPER+Z) · install builds desktop-cube.so
+  ypsilon 3d [on|off|toggle|status|install|help]  3D room + cube workspaces (SUPER+Z) · help = controls · install builds Hypr3D
   ypsilon caffeine [on|off|toggle|status]   keep the screen awake (pauses hypridle)
   ypsilon layout [dwindle|master|toggle]    switch tiling layout
   ypsilon pip                       picture-in-picture: float + pin the window bottom-right (again: tile)
