@@ -12,6 +12,7 @@ import { config } from "../services/config"
 import { calc, formatNumber } from "../lib/calc"
 import { matchActions } from "../lib/actions"
 import { paletteActions } from "../services/actions"
+import { rowsFiles } from "../lib/files"
 import { providers } from "../services/plugins"
 import type { Row as PluginRow } from "../lib/plugin-types"
 import Popup from "./Popup"
@@ -21,6 +22,7 @@ type Row = { id: string; icon: string; glyph?: string; title: string; sub: strin
 // Spotlight-style launcher. Modes by prefix:
 //   (none) apps, ranked by fuzzy match + your habits   =  calculator (functions, pi, 5!)
 //   :  run shell command   ;  clipboard history   @  switch window   ?  web search
+//   /  files & folders (drill in, filter, search, open)
 //   pw passwords · time world clock · . emoji · ! quick links · todo to-do · pomo timer · timer countdown
 //   define dictionary · power profiles · port dev ports · ip · kill · disk · caffeine
 // ↑/↓/Tab select · Enter run · Esc / click outside closes. Toggle: SUPER+Space (SUPER+. alias).
@@ -42,14 +44,14 @@ export default function Launcher() {
   // a plugin provider whose prefix matches takes over (built-in prefixes win on conflicts)
   const pluginProvider = createComputed(() => {
     const q = query()
-    if ("=:;@?".includes(q[0] ?? " ")) return null
+    if ("=:;@?/".includes(q[0] ?? " ")) return null
     return providers().find((p) => p.prefix && q.startsWith(p.prefix)) ?? null
   })
 
   const mode = createComputed(() => {
     const q = query()
     if (pluginProvider()) return "plugin"
-    return q[0] === "=" ? "calc" : q[0] === ":" ? "cmd" : q[0] === ";" ? "clip" : q[0] === "@" ? "win" : q[0] === "?" ? "web" : "apps"
+    return q[0] === "=" ? "calc" : q[0] === ":" ? "cmd" : q[0] === ";" ? "clip" : q[0] === "@" ? "win" : q[0] === "?" ? "web" : q[0] === "/" ? "files" : "apps"
   })
 
   /** plugin rows, isolated: a throwing provider yields nothing instead of breaking the launcher */
@@ -99,6 +101,20 @@ export default function Launcher() {
           .slice(0, max)
           .map((l) => ({ id: l, icon: "edit-paste-symbolic", title: clipPreview(l).slice(0, 80), sub: "Copy back to the clipboard", run: done(() => pasteClip(l)) }))
       }
+      case "files": {
+        // `/` walks the filesystem; nav rows keep the launcher up, file opens close it
+        const nav = (dir: string) => {
+          setQuery("/" + dir)
+          setSel(0)
+        }
+        return rowsFiles(query().slice(1), nav).map((r, i) => ({
+          id: `files:${i}:${r.title}`,
+          icon: r.icon || "folder-open-symbolic",
+          title: r.title,
+          sub: r.sub ?? "",
+          run: r.closes ? done(r.run) : r.run,
+        }))
+      }
       case "win": {
         const needle = body.toLowerCase()
         return (getHypr()?.clients ?? [])
@@ -128,10 +144,11 @@ export default function Launcher() {
 
   const hint = createComputed(() =>
     mode() === "plugin" ? `${pluginProvider()?.name ?? "plugin"}` : ({
-      apps: "= calc  : cmd  ; clip  @ win  ? web  pw pass  time clock  . emoji  ! links  todo pomo timer",
+      apps: "= calc  : cmd  ; clip  @ win  ? web  / files  pw pass  time clock  . emoji  ! links  todo pomo timer",
       calc: "Calculator · functions sqrt sin log · constants pi e · 5! · Enter copies",
       cmd: "Run a shell command",
       clip: "Clipboard history · Enter copies it back",
+      files: "Files · /dir/ lists it · text after / filters · bare name searches · ../ up",
       win: "Open windows · Enter focuses",
       web: "Web search",
     } as Record<string, string>)[mode()],
@@ -159,7 +176,7 @@ export default function Launcher() {
       <entry
         class="search"
         primaryIconName="system-search-symbolic"
-        placeholderText="Search apps and actions"
+        placeholderText="Search apps, actions, files (/)"
         text={query}
         onNotifyText={({ text }) => {
           setQuery(text)

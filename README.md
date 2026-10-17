@@ -93,7 +93,7 @@ ypsilon terminal|browser  # your terminal (Settings → Apps) / default browser
 ypsilon toggle NAME       # any window: launcher, control, dashboard, …
 ypsilon osd volume|brightness
 ypsilon gamemode|nightlight|caffeine|layout toggle
-ypsilon 3d [on|off|toggle|status|install|help]
+ypsilon 3d [on|off|toggle|status]
 ypsilon config edit|check ypsilon keys
 ypsilon health|logs|restart|stop|report
 ypsilon check             # = scripts/check.sh

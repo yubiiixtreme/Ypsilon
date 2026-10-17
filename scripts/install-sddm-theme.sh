@@ -29,7 +29,7 @@ case "${1:-status}" in
     [ -f "$SRC/Main.qml" ] || { echo "missing: $SRC/Main.qml"; exit 1; }
     prev=$(current)
     sudo mkdir -p "$THEME_DIR"
-    sudo cp -a "$SRC/Main.qml" "$SRC/metadata.desktop" "$SRC/theme.conf" "$THEME_DIR/"
+    sudo cp -a "$SRC"/. "$THEME_DIR/"
     printf '[Theme]\nCurrent=ypsilon\n' | sudo tee "$CONF" >/dev/null
     echo "installed $THEME_DIR (previous theme was: $prev)"
     echo "take effect at the next login (no reboot needed)";;

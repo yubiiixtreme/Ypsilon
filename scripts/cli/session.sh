@@ -35,6 +35,9 @@ cmd_start() {
       "$mod+/ all keybinds · $mod+Space launcher · $mod+C control center"$'\n'"Customize: ypsilon config edit · Problems: ypsilon doctor") &
     touch "$cfgdir/.welcomed"
   fi
+  # performance governor: fullscreen / battery visuals (off with `ypsilon autopilot off`)
+  [ -z "${YPSILON_NESTED:-}" ] && [ ! -f "${XDG_STATE_HOME:-$HOME/.local/state}/ypsilon/autopilot-off" ] \
+    && once autopilot python3 -I "$ROOT/scripts/autopilot.py"
   # supervisor: preflight + crash restarts with backoff (scripts/shell-supervisor.sh)
   YPSILON_ROOT="$ROOT" once shell "$ROOT/scripts/shell-supervisor.sh"
 }

@@ -19,7 +19,7 @@ It is **not** sourced into your own config. Ypsilon ships as its own session: `H
 
 ### 3D cube workspaces (`hypr/3d.lua`)
 
-Workspace switches swing with depth (`slidefade 30%` on the `glide` curve + dimmed inactive windows). Toggle: `SUPER+Z` / `ypsilon 3d toggle` / Settings → Desktop → 3D cube (writes `hypr.cube` in config.json → `generated/user.lua` flattens the swing when off; `reduceMotion` disables all animation). The true compositor cube (`desktop-cube.so`) loads automatically from `~/.config/ypsilon/plugins/` when present — build it with `ypsilon 3d install` (hyprpm, must match the running Hyprland ABI).
+Workspace switches swing with depth (`slidefade 30%` on the `glide` curve + dimmed inactive windows). Toggle: `SUPER+Z` / `ypsilon 3d toggle` / Settings → Desktop → 3D cube (writes `hypr.cube` in config.json → `generated/user.lua` flattens the swing when off; `reduceMotion` disables all animation).
 
 ## Shell layering
 

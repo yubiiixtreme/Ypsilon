@@ -3,8 +3,9 @@
 
 cmd_gamemode() {
   # a screen shader forces a full-screen redraw every frame and blocks direct scanout: off too
-  gm_on() { hyprctl --batch "keyword animations:enabled 0; keyword decoration:blur:enabled 0; keyword decoration:shadow:enabled 0; keyword general:gaps_in 0; keyword general:gaps_out 0; keyword decoration:rounding 0; keyword decoration:screen_shader [[EMPTY]]" >/dev/null; }
-  gm_st() { [ "$(hyprctl getoption animations:enabled 2>/dev/null | awk '/int:/{print $2}')" = "0" ] && echo on || echo off; }
+  # Lua config: `hyprctl keyword` is rejected, options change through `hyprctl eval hl.config{}`
+  gm_on() { hyprctl eval 'hl.config({ animations = { enabled = false }, general = { gaps_in = 0, gaps_out = 0 }, decoration = { rounding = 0, screen_shader = "", blur = { enabled = false }, shadow = { enabled = false } } })' >/dev/null; }
+  gm_st() { case "$(hyprctl getoption animations:enabled 2>/dev/null | awk '/bool:|int:/{print $2}')" in false|0) echo on;; *) echo off;; esac; }
   case "${1:-toggle}" in
     status) gm_st;;
     on) gm_on; echo on;;
@@ -31,63 +32,19 @@ cmd_layout() {
   cur=$(hyprctl getoption general:layout 2>/dev/null | awk '/str:/{print $2}')
   case "${1:-toggle}" in
     status) echo "${cur:-?}";;
-    dwindle|master) hyprctl keyword general:layout "$1" >/dev/null && echo "$1";;
-    toggle) next=$([ "$cur" = master ] && echo dwindle || echo master); hyprctl keyword general:layout "$next" >/dev/null && echo "$next";;
+    dwindle|master) hyprctl eval "hl.config({ general = { layout = \"$1\" } })" >/dev/null && echo "$1";;
+    toggle) next=$([ "$cur" = master ] && echo dwindle || echo master); hyprctl eval "hl.config({ general = { layout = \"$next\" } })" >/dev/null && echo "$next";;
     *) echo "usage: ypsilon layout [dwindle|master|toggle|status]"; return 1;;
   esac
 }
 
-# 3D cube workspaces: config.json hypr.cube -> hypr/generated/user.lua -> hyprctl reload.
-# The cube-feel animations live in hypr/3d.lua; the true desktop-cube.so plugin
-# (when installed) is loaded from there too. SUPER+Z toggles.
-_3d_controls() {
-  cat <<'TXT'
-Hypr3D room — controls
-  SUPER+Z              enter / leave the room
-  mouse                look around
-  arrows               walk (Up/Down forward/back, Left/Right strafe)
-  PageUp / PageDown    jump or fly up / down
-  Right Ctrl           sprint
-  C (+ wheel)          zoom
-  SUPER+Left Alt       switch between moving and typing in windows
-  SUPER+left drag      move a window · SUPER+right drag resize · SUPER+wheel zoom it
-  click a window       keyboard stays on it (so games keep WASD/Space/Shift/Ctrl)
-  F3 debug HUD · F5 camera view
-TXT
-}
-
-_3d_plugin_state() {
-  local so=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/plugins/hypr3d.so
-  if hyprctl plugin list 2>/dev/null | grep -qi hypr3d; then echo loaded
-  elif [ -f "$so" ]; then echo installed
-  else echo missing; fi
-}
-
+# Cube-feel workspace animations: config.json hypr.cube -> hypr/generated/user.lua -> hyprctl reload.
+# The animations live in hypr/3d.lua. SUPER+Z toggles.
 cmd_3d() {
-  local sub="${1:-toggle}" cur st
+  local sub="${1:-toggle}" cur
   cur=$(python3 -c 'import json,sys; print("on" if json.load(open(sys.argv[1])).get("hypr",{}).get("cube",True) else "off")' "$CFG" 2>/dev/null || echo on)
   case "$sub" in
-    status)
-      st=$(_3d_plugin_state)
-      echo "cube animations: $cur"
-      case "$st" in
-        loaded) echo "Hypr3D room: ready — SUPER+Z to enter (ypsilon 3d help for controls)";;
-        installed) echo "Hypr3D room: built, loads at next login";;
-        *) echo "Hypr3D room: not installed — run: ypsilon 3d install";;
-      esac;;
-    help|controls) _3d_controls;;
-    keys)
-      # same cheat-sheet as `help`, as a notification (SUPER+SHIFT+Z)
-      if have notify-send; then notify-send -a Ypsilon -t 15000 "3D room controls" "$(_3d_controls | tail -n +2 | sed 's/^  //')"
-      else _3d_controls; fi;;
-    hint)
-      # shown when the room opens (hypr/3d.lua on_state); stops after 3 times so it never nags
-      local f=${XDG_STATE_HOME:-$HOME/.local/state}/ypsilon/3d-hints n=0
-      [ -f "$f" ] && n=$(cat "$f" 2>/dev/null || echo 0)
-      [ "${n:-0}" -lt 3 ] 2>/dev/null || return 0
-      mkdir -p "$(dirname "$f")" && echo $((n + 1)) > "$f"
-      have notify-send && notify-send -a Ypsilon -t 9000 "Welcome to the 3D room" \
-        "Arrows walk · mouse looks · PageUp jumps · SUPER+Z leaves\nSUPER+Left Alt types in windows · ypsilon 3d help for all keys";;
+    status) echo "cube animations: $cur";;
     on|off)
       python3 - "$CFG" "$sub" <<'PY' || { echo "could not update $CFG"; return 1; }
 import json, os, sys
@@ -103,39 +60,8 @@ print("3D cube", "on" if want else "off")
 PY
       python3 "$ROOT/scripts/gen-theme.py" --paths-only >/dev/null || { echo "gen failed"; return 1; }
       hyprctl reload >/dev/null 2>&1 || echo "(hyprctl reload failed — not in a Hyprland session?)";;
-    toggle)
-      # Hypr3D (walkable 3D room) when its plugin is loaded, else the cube-feel animations
-      st=$(_3d_plugin_state)
-      if [ "$st" = loaded ]; then
-        hyprctl eval 'hl.plugin.hypr3d.toggle()' >/dev/null
-      else
-        case "$st" in
-          installed) echo "Hypr3D is built but not loaded yet — log out and back in to use the room";;
-          *) echo "Hypr3D room not installed (ypsilon 3d install) — toggling the cube animations instead";;
-        esac
-        if [ "$cur" = on ]; then cmd_3d off; else cmd_3d on; fi
-        have notify-send && [ "$st" != loaded ] && notify-send -a Ypsilon "3D room not ready" \
-          "$([ "$st" = installed ] && echo 'Log out and back in to load it' || echo 'Run: ypsilon 3d install')"
-      fi;;
-    install)
-      # Hypr3D (github.com/samine825/Hypr3D): built from source against the installed Hyprland headers.
-      # Needs: cmake, a C++23 compiler, and Hyprland's headers (/usr/include/hyprland). No hyprpm required.
-      have cmake || { echo "cmake not found (Arch: sudo pacman -S cmake)"; return 1; }
-      [ -f /usr/include/hyprland/src/plugins/PluginAPI.hpp ] || { echo "Hyprland headers missing (Arch: reinstall the hyprland package)"; return 1; }
-      local dest=${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/plugins src
-      src=${XDG_CACHE_HOME:-$HOME/.cache}/ypsilon/hypr3d-src
-      mkdir -p "$dest" "$(dirname "$src")"
-      if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only -q || return 1
-      else git clone --depth 1 https://github.com/samine825/Hypr3D "$src" || return 1; fi
-      echo "building Hypr3D for $(Hyprland --version 2>/dev/null | head -1)…"
-      # Ypsilon patch: arrow-key movement (frees WASD for games) + input.sticky_focus
-      git -C "$src" checkout -q -- . && git -C "$src" apply "$ROOT/extras/hypr3d/ypsilon.patch" || { echo "patch did not apply (upstream changed?)"; return 1; }
-      cmake -S "$src" -B "$src/build" -DHYPRLAND_HEADERS=/usr >/dev/null && cmake --build "$src/build" -j"$(nproc)" || { echo "build failed"; return 1; }
-      # new inode: overwriting a .so the running compositor has mapped can crash it
-      rm -f "$dest/hypr3d.so" && cp "$src/build/hypr3d.so" "$dest/hypr3d.so" || return 1
-      python3 -I "$ROOT/scripts/make-3d-world.py" || echo "(world generation failed — room will use the plain grid)"
-      echo "installed $dest/hypr3d.so — takes effect at next login (or: hyprctl plugin unload/load, risky while windows are open); toggle with SUPER+Z";;
-    *) echo "usage: ypsilon 3d [on|off|toggle|status|install|help]"; return 1;;
+    toggle) if [ "$cur" = on ]; then cmd_3d off; else cmd_3d on; fi;;
+    *) echo "usage: ypsilon 3d [on|off|toggle|status]"; return 1;;
   esac
 }
 
@@ -169,4 +95,16 @@ cmd_pip_corner() {
     4) set -- "exact 69% 68%";;  # bottom-right
   esac
   hyprctl --batch "dispatch setfloating address:$addr; dispatch tagwindow ypsilon-pip address:$addr; dispatch pin address:$addr; dispatch movewindowpixel $1,address:$addr" >/dev/null; echo "corner $pos"
+}
+
+# Autopilot: event-driven performance governor (scripts/autopilot.py), started by `ypsilon start`.
+cmd_autopilot() {
+  local flag=${XDG_STATE_HOME:-$HOME/.local/state}/ypsilon/autopilot-off
+  case "${1:-status}" in
+    status) if ours autopilot; then echo on; else echo off; fi;;
+    on) rm -f "$flag"; once autopilot python3 -I "$ROOT/scripts/autopilot.py"; echo on;;
+    off) mkdir -p "${flag%/*}"; touch "$flag"; stop_daemons autopilot >/dev/null; echo off;;
+    toggle) if ours autopilot; then cmd_autopilot off; else cmd_autopilot on; fi;;
+    *) echo "usage: ypsilon autopilot [on|off|toggle|status]"; return 1;;
+  esac
 }
