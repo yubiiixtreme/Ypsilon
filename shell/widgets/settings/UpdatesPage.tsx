@@ -1,6 +1,6 @@
 import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
-import { createComputed, For } from "ags"
+import { createComputed, createEffect, For } from "ags"
 import { execAsync } from "ags/process"
 import { updates, checking, lastChecked, error, checkUpdates, runUpdates, selfStatus, checkSelf } from "../../services/updates"
 import { needsReboot, summarize, type Source } from "../../lib/updates"
@@ -26,9 +26,11 @@ export default function UpdatesPage() {
   const headline = createComputed(() =>
     checking() ? "Checking for updates…" : sum().total === 0 ? "Your system is up to date" : `${sum().total} update${sum().total === 1 ? "" : "s"} available`,
   )
+  // run the initial check + self status once on mount, not on every render
+  createEffect(() => { if (!lastChecked.peek()) checkUpdates(); checkSelf(); return () => {} })
 
   return (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={18} $={() => { if (!lastChecked.peek()) checkUpdates(); checkSelf() }}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
       <box class="updates-hero" spacing={14}>
         <image iconName={sum((s) => (s.total ? "software-update-available-symbolic" : "object-select-symbolic"))} pixelSize={40} />
         <box orientation={Gtk.Orientation.VERTICAL} hexpand valign={Gtk.Align.CENTER}>

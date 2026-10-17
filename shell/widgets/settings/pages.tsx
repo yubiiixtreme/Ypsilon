@@ -2,7 +2,7 @@
 // (writeConfig -> `ypsilon apply` -> hypr/generated/user.lua + hyprctl reload).
 import Gtk from "gi://Gtk"
 import PowerProfiles from "gi://AstalPowerProfiles"
-import { createBinding } from "ags"
+import { createEffect, createBinding } from "ags"
 import { execAsync } from "ags/process"
 import { Section, SwitchRow, SliderRow, EntryRow, ChoiceRow, ButtonRow, SettingsRow } from "./controls"
 import { currentTheme, setCurrentTheme, themeNames, themePalette, setAutoTheme, ROOT } from "../../services/theme"
@@ -52,8 +52,10 @@ function ThemeChip({ name }: { name: string }) {
 }
 
 export function AppearancePage() {
+  // load wallpapers once on mount, not on every render
+  createEffect(() => { loadWallpapers(); return () => {} })
   return (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={18} $={() => loadWallpapers()}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
       <Section title="Theme">
         <box class="settings-row" spacing={10}>
           {themeNames().map((n) => (

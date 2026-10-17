@@ -21,7 +21,12 @@ function arm() {
   })
 }
 
-const second = createPoll(0, 1000, () => GLib.get_real_time())
+// lazy 1s poll: created only when something actually shows seconds
+let _second: ReturnType<typeof createPoll> | null = null
+const second = (): ReturnType<typeof createPoll> => {
+  if (!_second) _second = createPoll(0, 1000, () => GLib.get_real_time())
+  return _second
+}
 
 /** `format` (GLib strftime) of the current time; ticks per second only while `seconds()` is true */
 export function wallClock(format: () => string, seconds: () => boolean = () => false): Accessor<string> {

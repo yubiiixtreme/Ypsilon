@@ -17,6 +17,7 @@ window {
   font-family: "Google Sans Flex", "Inter", "Figtree", sans-serif;
   font-size: 13px;
   font-weight: 400;
+  letter-spacing: 0.2px;
 }
 
 window.ypsilon-bar,
@@ -410,32 +411,55 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 }
 
 /* ---------- settings (control panel) ---------- */
-.popup-card.panel { padding: 0; min-width: 960px; min-height: 620px; }
-.settings-root { min-height: 620px; }
+.popup-card.panel { padding: 0; min-width: 1000px; min-height: 700px; }
+.settings-root { min-height: 700px; min-width: 1000px; }
+.settings-header {
+  background: alpha(@y_surface_low, 0.5);
+  border-bottom: 1px solid @y_border;
+  padding: 14px 22px;
+  spacing: 16px;
+}
+.settings-brand { font-size: 17px; font-weight: 600; padding: 0; }
+.settings-sub { font-size: 12px; color: @y_muted; }
+.settings-search {
+  width: 260px;
+  background: @y_faint;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  color: @y_fg;
+  caret-color: @y_primary;
+}
+.settings-search:focus-within { background: @y_soft; border-color: @y_primary_soft; }
+.settings-search image { color: @y_muted; margin-right: 6px; }
+
+.settings-body { orientation: horizontal; hexpand; vexpand; }
 .settings-nav {
   background: alpha(@y_surface_low, 0.6);
-  border-radius: 21px 0 0 21px;
+  border-radius: 0;
   padding: 16px 10px;
-  min-width: 210px;
+  min-width: 220px;
+  border-right: 1px solid @y_border;
 }
-.settings-brand { font-size: 16px; font-weight: 600; padding: 4px 12px 14px 12px; }
-.nav-btn { border-radius: 9999px; padding: 8px 14px; transition: background 140ms ease; }
+.nav-btn { border-radius: 9999px; padding: 10px 14px; transition: background 140ms ease; spacing: 10px; }
 .nav-btn:hover { background: @y_faint; }
 .nav-btn image { color: @y_muted; }
 .nav-btn.on { background: @y_primary_container; }
 .nav-btn.on label, .nav-btn.on image { color: @y_on_primary_container; font-weight: 500; }
-.settings-main { padding: 18px 22px 8px 22px; }
-.settings-page-title { font-size: 22px; font-weight: 600; padding: 0 4px 12px 4px; }
-.settings-page { padding: 0 6px 18px 0; }
+.nav-btn label { font-size: 13px; font-weight: 500; }
+.settings-nav-foot { font-size: 11px; color: alpha(@y_muted, 0.6); padding: 12px 10px 4px 10px; }
+.settings-main { padding: 22px 26px 10px 26px; hexpand; vexpand; orientation: vertical; }
+.settings-page-title { font-size: 24px; font-weight: 600; padding: 0 4px 16px 4px; }
+.settings-page { padding: 0 6px 24px 0; hexpand; vexpand; }
 .settings-page > box { min-width: 640px; }
-.settings-section-title { font-size: 12px; font-weight: 500; color: @y_primary; padding: 8px 6px 6px 6px; }
+.settings-section-title { font-size: 12px; font-weight: 500; color: @y_primary; padding: 10px 6px 6px 6px; }
 .settings-group {
   background: alpha(@y_surface_high, 0.5);
   border-radius: 18px;
 }
-.settings-row { padding: 12px 16px; border-bottom: 1px solid alpha(@y_bg, 0.5); min-height: 26px; }
+.settings-row { padding: 14px 18px; border-bottom: 1px solid alpha(@y_bg, 0.4); min-height: 28px; }
 .settings-group > .settings-row:last-child { border-bottom: none; }
-.settings-label { font-weight: 500; }
+.settings-label { font-weight: 500; font-size: 13px; }
 .settings-sub { font-size: 12px; color: @y_muted; }
 .settings-sub.mono, .mono { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 11px; }
 .settings-value { font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; color: @y_primary; }
@@ -443,7 +467,7 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
   background: @y_faint;
   border: 2px solid transparent;
   border-radius: 12px;
-  padding: 5px 10px;
+  padding: 6px 12px;
   min-height: 0;
   color: @y_fg;
 }
@@ -496,7 +520,38 @@ calendar > grid > label:selected, calendar > grid > label.day-number:selected {
 .graph-cpu .graph { color: @y_primary; }
 .graph-mem .graph { color: @y_accent; }
 
-/* ---------- notification groups (one stack per app) ---------- */
+/* ---------- glass & depth ---------- */
+.glass {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+.popup-card { box-shadow: inset 0 1px 0 @y_edge, 0 20px 60px rgba(0, 0, 0, 0.5); }
+
+/* hover lift for interactive cards */
+.app-row, .theme-card, .plugin-card, .power-tile, .thumb-btn {
+  transition: background 140ms ease, transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.app-row:hover, .theme-card:hover, .plugin-card:hover, .thumb-btn:hover {
+  transform: scale(1.02);
+}
+
+/* button refinements */
+button {
+  transition: background 140ms ease, color 140ms ease;
+}
+.icon-btn:hover { background: @y_soft; transform: scale(1.05); }
+.pill-btn:hover { background: @y_soft; transform: scale(1.02); }
+
+/* slider refinements */
+scale trough { min-height: 5px; }
+scale slider { min-width: 14px; min-height: 14px; margin: -4px; }
+
+/* toast stack */
+window.ypsilon-toast { margin: 12px 12px 0 12px; }
+
+/* divider */
+.divider { height: 1px; background: @y_border; margin: 6px 0; }
 
 .notif-group { background: @y_faint; border-radius: 16px; padding: 8px; }
 .notif-group .notif-row { background: @y_faint; }

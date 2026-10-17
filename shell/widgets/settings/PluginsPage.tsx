@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk"
-import { createComputed, For, With } from "ags"
+import { createComputed, For } from "ags"
 import { plugins, setPluginEnabled, rescanPlugins, pluginSettingsAccessor, type PluginInfo } from "../../services/plugins"
 import { writeConfig } from "../../services/config"
 import { CONFIG_DIR } from "../../services/config"
@@ -97,7 +97,5 @@ export default function PluginsPage() {
         <ButtonRow label="Your plugins folder" sub={`${CONFIG_DIR}/plugins — create one with: ypsilon plugin new my-plugin`} button="Open" icon="folder-symbolic"
           onClicked={() => openUri(`${CONFIG_DIR}/plugins`)} />
       </Section>
-      <With value={count}>{() => <box />}</With>
-    </box>
-  )
+   )
 }

@@ -48,7 +48,12 @@ export default function Overview() {
   const grid = ids((l) => rows(l, PER_ROW))
 
   return (
-    <Popup name="ypsilon-overview" spacing={12} onShow={() => ids.peek().forEach((id) => fixeds.get(id) && paint(fixeds.get(id)!, id))}>
+    <Popup name="ypsilon-overview" spacing={12} onShow={() => {
+      ids.peek().forEach((id) => {
+        const fixed = fixeds.get(id)
+        if (fixed) paint(fixed, id)
+      })
+    }}>
       <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <For each={grid}>
           {(row) => (

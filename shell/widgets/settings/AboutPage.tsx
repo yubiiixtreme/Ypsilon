@@ -1,6 +1,6 @@
 import Gtk from "gi://Gtk"
 import GLib from "gi://GLib"
-import { createState } from "ags"
+import { createEffect, createState } from "ags"
 import { execAsync } from "ags/process"
 import { ROOT } from "../../services/theme"
 import { CONFIG_PATH, configProblems } from "../../services/config"
@@ -10,8 +10,9 @@ import { Section, ButtonRow, SettingsRow } from "./controls"
 const cli = (...a: string[]) => execAsync([`${ROOT}/scripts/ypsilon`, ...a]).catch(() => "")
 
 export default function AboutPage() {
-  const [versions, setVersions] = createState("…")
-  const [health, setHealth] = createState(healthReport())
+const [versions, setVersions] = createState("…")
+const [health, setHealth] = createState(healthReport())
+createEffect(() => { load(); return () => {} })
   const load = async () => {
     const hypr = (await execAsync(["bash", "-c", "Hyprland --version 2>/dev/null | head -1"]).catch(() => "")).slice(0, 40)
     const ags = (await execAsync(["bash", "-c", "ags --version 2>/dev/null | head -1"]).catch(() => "")).trim()
@@ -20,7 +21,7 @@ export default function AboutPage() {
     setHealth(healthReport())
   }
   return (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={18} $={() => void load()}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={18}>
       <box class="about-hero" orientation={Gtk.Orientation.VERTICAL} spacing={4}>
         <label class="about-logo" label="Ypsilon" halign={Gtk.Align.START} />
         <label class="settings-sub" label={versions} halign={Gtk.Align.START} wrap xalign={0} />

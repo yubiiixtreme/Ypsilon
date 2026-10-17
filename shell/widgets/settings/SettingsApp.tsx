@@ -10,6 +10,7 @@ import AboutPage from "./AboutPage"
 import WifiPage, { refreshWifi } from "../pages/WifiPage"
 import BluetoothPage from "../pages/BluetoothPage"
 import AudioPage from "../pages/AudioPage"
+import { currentTheme } from "../../services/theme"
 import { updates } from "../../services/updates"
 import { plugins } from "../../services/plugins"
 
@@ -30,6 +31,7 @@ export const PAGES = [
 export type PageId = (typeof PAGES)[number][0]
 
 const [page, setPage] = createState<PageId>("general")
+const [search, setSearch] = createState("")
 
 /** open Settings (optionally at a page): `ags request -i ypsilon settings updates` */
 export function openSettings(id?: string) {
@@ -57,15 +59,20 @@ function Content({ id }: { id: PageId }) {
   }
 }
 
+const filteredPages = createComputed(() => {
+  const q = search().trim().toLowerCase()
+  if (!q) return PAGES
+  return PAGES.filter(([id, title]) => id.includes(q) || title.toLowerCase().includes(q))
+})
+
 function NavButton({ id, title, icon }: { id: PageId; title: string; icon: string }) {
-  // live badges: pending updates, broken plugins
   const badge = createComputed(() =>
     id === "updates" ? (updates().length ? String(updates().length) : "")
     : id === "plugins" ? (plugins().some((p) => p.status === "error") ? "!" : "")
     : "",
   )
   return (
-    <button class={page((p) => `nav-btn${p === id ? " on" : ""}`)} onClicked={() => (setPage(id), id === "network" && refreshWifi())}>
+    <button class={page((p) => `nav-btn${p === id ? " on" : ""}`)} onClicked={() => { setPage(id); if (id === "network") refreshWifi() } }>
       <box spacing={10}>
         <image iconName={icon} pixelSize={16} />
         <label label={title} hexpand halign={Gtk.Align.START} />
@@ -78,23 +85,32 @@ function NavButton({ id, title, icon }: { id: PageId; title: string; icon: strin
 // The Ypsilon control panel. SUPER+I, the gear in the control center, or `ypsilon settings [page]`.
 export default function SettingsApp() {
   const title = page((p) => PAGES.find(([id]) => id === p)?.[1] ?? "")
+  const activeThemeName = currentTheme((t) => t.replace("ypsilon-", ""))
   return (
     <Popup name="ypsilon-settings" variant="panel" valign={Gtk.Align.CENTER} keymode={Astal.Keymode.ON_DEMAND} spacing={0}>
       <box class="settings-root">
-        <box class="settings-nav" orientation={Gtk.Orientation.VERTICAL} spacing={2}>
-          <label class="settings-brand" label="Settings" halign={Gtk.Align.START} />
-          {PAGES.map(([id, t, icon]) => (
-            <NavButton id={id} title={t} icon={icon} />
-          ))}
-        </box>
-        <box class="settings-main" orientation={Gtk.Orientation.VERTICAL} hexpand>
-          <label class="settings-page-title" label={title} halign={Gtk.Align.START} />
-          <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} vexpand>
-            <box class="settings-page">
-              {/* pages are built when visited (cheap, and their load hooks run on visit) */}
-              <With value={page}>{(id) => <Content id={id} />}</With>
-            </box>
-          </scrolledwindow>
+        <header class="settings-header" orientation={Gtk.Orientation.HORIZONTAL} hexpand>
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={2} valign={Gtk.Align.CENTER}>
+            <label class="settings-brand" label="✦ Ypsilon Settings" halign={Gtk.Align.START} />
+            <label class="settings-sub" label={`theme · ${activeThemeName}`} halign={Gtk.Align.START} />
+          </box>
+          <entry class="settings-search" primaryIconName="edit-find-symbolic" placeholderText="Search settings…" text={search} onNotifyText={({ text }) => setSearch(text)} />
+        </header>
+        <box class="settings-body" orientation={Gtk.Orientation.HORIZONTAL} hexpand vexpand>
+          <box class="settings-nav" orientation={Gtk.Orientation.VERTICAL} spacing={2}>
+            {filteredPages().map(([id, t, icon]) => (
+              <NavButton id={id} title={t} icon={icon} />
+            ))}
+            <label class="settings-nav-foot" label={`${filteredPages().length} of ${PAGES.length} pages`} halign={Gtk.Align.START} />
+          </box>
+          <box class="settings-main" orientation={Gtk.Orientation.VERTICAL} hexpand>
+            <label class="settings-page-title" label={title} halign={Gtk.Align.START} />
+            <scrolledwindow hscrollbarPolicy={Gtk.PolicyType.NEVER} vexpand>
+              <box class="settings-page">
+                <With value={page}>{(id) => <Content id={id} />}</With>
+              </box>
+            </scrolledwindow>
+          </box>
         </box>
       </box>
     </Popup>

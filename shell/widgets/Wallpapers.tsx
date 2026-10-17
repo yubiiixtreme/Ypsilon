@@ -19,10 +19,15 @@ export const loadWallpapers = () =>
 // memory and a full-resolution decode per thumbnail every time the picker opens
 const THUMB_W = 380
 const THUMB_H = 220
+const THUMB_CACHE_MAX = 32
 const thumbCache = new Map<string, Gdk.Texture>()
 function thumbTexture(path: string): Gdk.Texture | null {
   let tex = thumbCache.get(path)
   if (!tex) {
+    if (thumbCache.size >= THUMB_CACHE_MAX) {
+      const first = thumbCache.keys().next().value
+      if (first) thumbCache.delete(first)
+    }
     try {
       tex = Gdk.Texture.new_for_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path, THUMB_W, THUMB_H * 2, true))
       thumbCache.set(path, tex)
