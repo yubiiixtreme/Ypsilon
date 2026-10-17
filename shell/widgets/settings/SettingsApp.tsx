@@ -89,13 +89,13 @@ export default function SettingsApp() {
   return (
     <Popup name="ypsilon-settings" variant="panel" valign={Gtk.Align.CENTER} keymode={Astal.Keymode.ON_DEMAND} spacing={0}>
       <box class="settings-root">
-        <header class="settings-header" orientation={Gtk.Orientation.HORIZONTAL} hexpand>
+        <box class="settings-header" orientation={Gtk.Orientation.HORIZONTAL} hexpand>
           <box orientation={Gtk.Orientation.VERTICAL} spacing={2} valign={Gtk.Align.CENTER}>
             <label class="settings-brand" label="✦ Ypsilon Settings" halign={Gtk.Align.START} />
             <label class="settings-sub" label={`theme · ${activeThemeName}`} halign={Gtk.Align.START} />
           </box>
           <entry class="settings-search" primaryIconName="edit-find-symbolic" placeholderText="Search settings…" text={search} onNotifyText={({ text }) => setSearch(text)} />
-        </header>
+        </box>
         <box class="settings-body" orientation={Gtk.Orientation.HORIZONTAL} hexpand vexpand>
           <box class="settings-nav" orientation={Gtk.Orientation.VERTICAL} spacing={2}>
             {filteredPages().map(([id, t, icon]) => (

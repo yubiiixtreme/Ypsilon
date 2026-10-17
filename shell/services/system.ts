@@ -12,14 +12,15 @@ const cli = (...args: string[]) => run([`${ROOT}/scripts/ypsilon`, ...args])
  * the parent, so `ypsilon restart` / a shell crash never takes your windows with it, and their
  * output stays out of the shell log. Falls back to a plain child outside Hyprland.
  */
+const luaString = (v: string) => JSON.stringify(v) // JSON string escapes are valid Lua ones
 export const detach = (cmd: string) =>
-  execAsync(["hyprctl", "dispatch", "exec", cmd]).catch(() => sh(`setsid -f ${cmd} >/dev/null 2>&1`))
+  execAsync(["hyprctl", "eval", `hl.dispatch(hl.dsp.exec_cmd(${luaString(cmd)}))`]).catch(() => sh(`setsid -f ${cmd} >/dev/null 2>&1`))
 
 export const openUri = (uri: string) => detach(`xdg-open ${GLib.shell_quote(uri)}`)
 
 // `ypsilon lock` uses the generated hyprlock config (theme colors + real paths)
 export const lock = () => detach(`${GLib.shell_quote(`${ROOT}/scripts/ypsilon`)} lock`)
-export const logout = () => run(["hyprctl", "dispatch", "exit"])
+export const logout = () => run(["hyprctl", "eval", "hl.dispatch(hl.dsp.exit())"])
 export const suspend = () => run(["systemctl", "suspend"])
 export const reboot = () => run(["systemctl", "reboot"])
 export const poweroff = () => run(["systemctl", "poweroff"])

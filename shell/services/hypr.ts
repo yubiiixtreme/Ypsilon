@@ -56,11 +56,11 @@ export function hyprLayoutTick(): Accessor<number> {
   return tick
 }
 
-// actions go through hyprctl, which works even when the IPC library does not
-const dispatch = (...args: string[]) =>
-  execAsync(["hyprctl", "dispatch", ...args]).catch((e) => print(`ypsilon: dispatch ${args.join(" ")} failed: ${e}`))
-
-export const gotoWorkspace = (id: number) => dispatch("workspace", String(id))
-export const moveToWorkspace = (id: number) => dispatch("movetoworkspace", String(id))
-export const focusAddress = (address: string) => dispatch("focuswindow", `address:${address}`)
-export const stepWorkspace = (dir: 1 | -1) => dispatch("workspace", dir === 1 ? "e+1" : "e-1")
+// actions go through `hyprctl eval`: Hyprland's Lua config rejects the old `hyprctl dispatch <name> <arg>` syntax
+const lua = (code: string) =>
+  execAsync(["hyprctl", "eval", code]).catch((e) => print(`ypsilon: eval ${code} failed: ${e}`))
+export const gotoWorkspace = (id: number) => lua(`hl.dispatch(hl.dsp.focus({ workspace = ${Math.trunc(id)} }))`)
+export const moveToWorkspace = (id: number) => lua(`hl.dispatch(hl.dsp.window.move({ workspace = ${Math.trunc(id)} }))`)
+export const focusAddress = (address: string) =>
+  lua(`hl.dispatch(hl.dsp.focus({ window = "address:${address.replace(/[^0-9a-fx]/gi, "")}" }))`)
+export const stepWorkspace = (dir: 1 | -1) => lua(`hl.dispatch(hl.dsp.focus({ workspace = "${dir === 1 ? "e+1" : "e-1"}" }))`)

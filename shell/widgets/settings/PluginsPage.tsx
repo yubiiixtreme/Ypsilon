@@ -97,5 +97,6 @@ export default function PluginsPage() {
         <ButtonRow label="Your plugins folder" sub={`${CONFIG_DIR}/plugins — create one with: ypsilon plugin new my-plugin`} button="Open" icon="folder-symbolic"
           onClicked={() => openUri(`${CONFIG_DIR}/plugins`)} />
       </Section>
-   )
+    </box>
+  )
 }

@@ -11,11 +11,6 @@ hl.config({
     dim_inactive = true,
     dim_strength = 0.12,
 
-    -- OLED vivid screen shader — punchy saturation + contrast + deep blacks.
-    -- Toggle off live: hyprctl eval hl.config{decoration={screen_shader=""}}
-    -- Milder version: ~/.config/hypr/shaders/oled-natural.glsl
-    screen_shader = "/home/yubiii/.config/hypr/shaders/oled-vivid.glsl",
-
     shadow = {
       enabled = true,
       range = 24,

@@ -2,7 +2,8 @@
 """Ypsilon autopilot: an event-driven performance governor (no polling loops).
 
   fullscreen window  -> game-mode visuals (no blur/shadow/animations/screen shader: the
-                        compositor can direct-scan-out the app); restored when it ends
+                        compositor can direct-scan-out the app; touch ~/.config/ypsilon/keep-screen-shader
+                        to keep your own shader); restored when it ends
   on battery         -> blur + shadows off, power-saver profile; restored on AC
 
 Only undoes what it applied itself: a manual `ypsilon gamemode on` is never reverted.
@@ -19,7 +20,10 @@ DEBOUNCE = 0.15
 WATCH = (b"fullscreen>>", b"closewindow>>", b"activewindowv2>>", b"workspacev2>>", b"movewindowv2>>")
 
 # Lua config: options change via `hyprctl eval hl.config{}` (`hyprctl keyword` is rejected)
-FULL = 'hl.config({ animations = { enabled = false }, decoration = { rounding = 0, screen_shader = "", blur = { enabled = false }, shadow = { enabled = false } } })'
+# `keep-screen-shader` in the user config dir: a personal screen shader (colour grading) survives fullscreen
+KEEP_SHADER = os.path.exists(os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "ypsilon/keep-screen-shader"))
+FULL = ('hl.config({ animations = { enabled = false }, decoration = { rounding = 0, '
+        + ('' if KEEP_SHADER else 'screen_shader = "", ') + 'blur = { enabled = false }, shadow = { enabled = false } } })')
 LITE = 'hl.config({ decoration = { blur = { enabled = false }, shadow = { enabled = false } } })'
 
 

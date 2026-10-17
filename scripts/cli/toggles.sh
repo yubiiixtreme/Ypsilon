@@ -4,7 +4,12 @@
 cmd_gamemode() {
   # a screen shader forces a full-screen redraw every frame and blocks direct scanout: off too
   # Lua config: `hyprctl keyword` is rejected, options change through `hyprctl eval hl.config{}`
-  gm_on() { hyprctl eval 'hl.config({ animations = { enabled = false }, general = { gaps_in = 0, gaps_out = 0 }, decoration = { rounding = 0, screen_shader = "", blur = { enabled = false }, shadow = { enabled = false } } })' >/dev/null; }
+  # (a personal shader stays when ~/.config/ypsilon/keep-screen-shader exists)
+  gm_on() {
+    local sh='screen_shader = "", '
+    [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/ypsilon/keep-screen-shader" ] && sh=
+    hyprctl eval "hl.config({ animations = { enabled = false }, general = { gaps_in = 0, gaps_out = 0 }, decoration = { rounding = 0, ${sh}blur = { enabled = false }, shadow = { enabled = false } } })" >/dev/null
+  }
   gm_st() { case "$(hyprctl getoption animations:enabled 2>/dev/null | awk '/bool:|int:/{print $2}')" in false|0) echo on;; *) echo off;; esac; }
   case "${1:-toggle}" in
     status) gm_st;;
